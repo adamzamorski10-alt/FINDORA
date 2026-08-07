@@ -1,0 +1,89 @@
+{
+  "exportedAt": "2026-06-25T23:23:05.637Z",
+  "products": [
+    {
+      "id": "mqhqcvc7tjx9b",
+      "name": "Nike Elite Bag",
+      "buyPrice": 30,
+      "notes": ""
+    },
+    {
+      "id": "mqhqhugfqiwfe",
+      "name": "Białe skarpetki Nike (6par)",
+      "buyPrice": 17,
+      "notes": ""
+    },
+    {
+      "id": "mqioftsj45tzd",
+      "name": "Szara dziecięca bluza nike",
+      "buyPrice": null,
+      "notes": ""
+    },
+    {
+      "id": "mqmdqhab5dp7x",
+      "name": "Bransoletka Lacoste",
+      "buyPrice": 21,
+      "notes": ""
+    },
+    {
+      "id": "mqsk7je35vq6n",
+      "name": "Szara Bluza Nike",
+      "buyPrice": 33,
+      "notes": ""
+    },
+    {
+      "id": "mqsk9hxz8hccj",
+      "name": "Bluza Polo Ralph Lauren",
+      "buyPrice": 46,
+      "notes": ""
+    },
+    {
+      "id": "mqskambjspq17",
+      "name": "Sweter Polo Ralph Lauren",
+      "buyPrice": 63,
+      "notes": ""
+    },
+    {
+      "id": "mqskbmp2w565d",
+      "name": "Dresy Jordan",
+      "buyPrice": 49,
+      "notes": ""
+    },
+    {
+      "id": "mqskvpcwk0wp8",
+      "name": "Shorty Jordan",
+      "buyPrice": 27,
+      "notes": ""
+    },
+    {
+      "id": "mqsmke41n5g2k",
+      "name": "Yeezy Slide",
+      "buyPrice": 23,
+      "notes": ""
+    },
+    {
+      "id": "mqsp88gfz9pur",
+      "name": "Koszulka Barcelona",
+      "buyPrice": 44,
+      "notes": ""
+    },
+    {
+      "id": "mqsp9vkx2soef",
+      "name": "Białe skarpetki Nike (3pary)",
+      "buyPrice": 17,
+      "notes": ""
+    },
+    {
+      "id": "mqspe1nixkyxr",
+      "name": "Czapka Zimowa The North Face",
+      "buyPrice": 11,
+      "notes": ""
+    },
+    {
+      "id": "mqspr6zdrnznn",
+      "name": "Kurtka The North Face 700",
+      "buyPrice": 47,
+      "notes": ""
+    }
+  ]
+}

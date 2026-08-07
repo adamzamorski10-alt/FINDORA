@@ -1,0 +1,1055 @@
+{
+  "generatedAt": "2026-06-26T01:51:11.166712",
+  "products": {
+    "mqhqcvc7tjx9b": {
+      "name": "Nike Elite Bag",
+      "scrapedAt": "2026-06-26T01:47:36.842381",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            2.5,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 2.5,
+            "max": 6.0,
+            "avg": 5.65,
+            "median": 6.0,
+            "suggested": 6.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            2.5,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 2.5,
+            "max": 6.0,
+            "avg": 5.65,
+            "median": 6.0,
+            "suggested": 6.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            2.5,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0,
+            6.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 2.5,
+            "max": 6.0,
+            "avg": 5.65,
+            "median": 6.0,
+            "suggested": 6.0
+          }
+        }
+      }
+    },
+    "mqhqhugfqiwfe": {
+      "name": "Białe skarpetki Nike (6par)",
+      "scrapedAt": "2026-06-26T01:47:53.999747",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            9.0,
+            10.0,
+            10.0,
+            11.0,
+            12.0,
+            13.0,
+            15.0,
+            15.0,
+            15.0,
+            18.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 9.0,
+            "max": 18.0,
+            "avg": 12.8,
+            "median": 12.5,
+            "suggested": 10.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            9.0,
+            10.0,
+            11.0,
+            12.0,
+            13.0,
+            13.0,
+            15.0,
+            15.0,
+            15.0,
+            15.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 9.0,
+            "max": 15.0,
+            "avg": 12.8,
+            "median": 13.0,
+            "suggested": 10.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            8.0,
+            9.99,
+            10.0,
+            10.0,
+            11.0,
+            12.0,
+            13.0,
+            13.0,
+            15.0,
+            15.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 8.0,
+            "max": 15.0,
+            "avg": 11.7,
+            "median": 11.5,
+            "suggested": 9.99
+          }
+        }
+      }
+    },
+    "mqioftsj45tzd": {
+      "name": "Szara dziecięca bluza nike",
+      "scrapedAt": "2026-06-26T01:48:11.035708",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            0.18,
+            2.0,
+            2.68,
+            2.68,
+            2.68,
+            3.0,
+            3.58,
+            3.58,
+            4.0,
+            4.34
+          ],
+          "stats": {
+            "count": 10,
+            "min": 0.18,
+            "max": 4.34,
+            "avg": 2.87,
+            "median": 2.84,
+            "suggested": 2.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            0.18,
+            2.0,
+            2.68,
+            2.68,
+            2.68,
+            3.0,
+            3.58,
+            3.58,
+            4.0,
+            4.34
+          ],
+          "stats": {
+            "count": 10,
+            "min": 0.18,
+            "max": 4.34,
+            "avg": 2.87,
+            "median": 2.84,
+            "suggested": 2.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            0.18,
+            2.0,
+            2.68,
+            2.68,
+            2.68,
+            3.0,
+            3.58,
+            3.58,
+            4.0,
+            4.34
+          ],
+          "stats": {
+            "count": 10,
+            "min": 0.18,
+            "max": 4.34,
+            "avg": 2.87,
+            "median": 2.84,
+            "suggested": 2.0
+          }
+        }
+      }
+    },
+    "mqmdqhab5dp7x": {
+      "name": "Bransoletka Lacoste",
+      "scrapedAt": "2026-06-26T01:48:28.423374",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            1.0,
+            5.0,
+            7.0,
+            8.0,
+            8.0,
+            9.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 10.0,
+            "avg": 7.8,
+            "median": 8.5,
+            "suggested": 5.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            1.0,
+            5.0,
+            7.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            11.0,
+            12.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 12.0,
+            "avg": 8.6,
+            "median": 10.0,
+            "suggested": 5.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            1.0,
+            5.0,
+            7.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            11.0,
+            12.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 12.0,
+            "avg": 8.6,
+            "median": 10.0,
+            "suggested": 5.0
+          }
+        }
+      }
+    },
+    "mqsk7je35vq6n": {
+      "name": "Szara Bluza Nike",
+      "scrapedAt": "2026-06-26T01:48:43.073371",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            0.18,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 0.18,
+            "max": 1.0,
+            "avg": 0.92,
+            "median": 1.0,
+            "suggested": 1.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            0.18,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 0.18,
+            "max": 1.0,
+            "avg": 0.92,
+            "median": 1.0,
+            "suggested": 1.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            0.18,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 0.18,
+            "max": 1.0,
+            "avg": 0.92,
+            "median": 1.0,
+            "suggested": 1.0
+          }
+        }
+      }
+    },
+    "mqsk9hxz8hccj": {
+      "name": "Bluza Polo Ralph Lauren",
+      "scrapedAt": "2026-06-26T01:48:58.446714",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            1.0,
+            2.0,
+            2.0,
+            4.0,
+            4.14,
+            4.14,
+            4.31,
+            4.34,
+            4.34,
+            5.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 5.0,
+            "avg": 3.53,
+            "median": 4.14,
+            "suggested": 2.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            1.0,
+            2.0,
+            2.0,
+            4.0,
+            4.14,
+            4.14,
+            4.31,
+            4.34,
+            4.34,
+            5.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 5.0,
+            "avg": 3.53,
+            "median": 4.14,
+            "suggested": 2.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            1.0,
+            2.0,
+            2.0,
+            4.0,
+            4.14,
+            4.14,
+            4.31,
+            4.34,
+            4.34,
+            5.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 5.0,
+            "avg": 3.53,
+            "median": 4.14,
+            "suggested": 2.0
+          }
+        }
+      }
+    },
+    "mqskambjspq17": {
+      "name": "Sweter Polo Ralph Lauren",
+      "scrapedAt": "2026-06-26T01:49:17.185402",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            2.0,
+            4.0,
+            4.34,
+            4.34,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.87
+          ],
+          "stats": {
+            "count": 10,
+            "min": 2.0,
+            "max": 5.87,
+            "avg": 4.55,
+            "median": 5.0,
+            "suggested": 4.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            2.0,
+            4.0,
+            4.34,
+            4.34,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.87
+          ],
+          "stats": {
+            "count": 10,
+            "min": 2.0,
+            "max": 5.87,
+            "avg": 4.55,
+            "median": 5.0,
+            "suggested": 4.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            2.0,
+            4.0,
+            4.34,
+            4.34,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.87
+          ],
+          "stats": {
+            "count": 10,
+            "min": 2.0,
+            "max": 5.87,
+            "avg": 4.55,
+            "median": 5.0,
+            "suggested": 4.0
+          }
+        }
+      }
+    },
+    "mqskbmp2w565d": {
+      "name": "Dresy Jordan",
+      "scrapedAt": "2026-06-26T01:49:31.902504",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            1.0,
+            3.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 5.0,
+            "avg": 4.4,
+            "median": 5.0,
+            "suggested": 3.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            1.0,
+            3.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 5.0,
+            "avg": 4.4,
+            "median": 5.0,
+            "suggested": 3.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            1.0,
+            3.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 5.0,
+            "avg": 4.4,
+            "median": 5.0,
+            "suggested": 3.0
+          }
+        }
+      }
+    },
+    "mqskvpcwk0wp8": {
+      "name": "Shorty Jordan",
+      "scrapedAt": "2026-06-26T01:49:48.052400",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            4.0,
+            5.0,
+            8.0,
+            8.67,
+            8.67,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            11.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 4.0,
+            "max": 11.0,
+            "avg": 8.53,
+            "median": 9.34,
+            "suggested": 5.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            4.0,
+            5.0,
+            8.0,
+            8.67,
+            8.67,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 4.0,
+            "max": 10.0,
+            "avg": 8.43,
+            "median": 9.34,
+            "suggested": 5.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            4.0,
+            5.0,
+            8.0,
+            8.67,
+            8.67,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 4.0,
+            "max": 10.0,
+            "avg": 8.43,
+            "median": 9.34,
+            "suggested": 5.0
+          }
+        }
+      }
+    },
+    "mqsmke41n5g2k": {
+      "name": "Yeezy Slide",
+      "scrapedAt": "2026-06-26T01:50:02.414298",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            8.12,
+            10.84,
+            11.0,
+            12.35,
+            13.01,
+            14.32,
+            14.62,
+            14.99,
+            18.0,
+            19.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 8.12,
+            "max": 19.0,
+            "avg": 13.62,
+            "median": 13.66,
+            "suggested": 10.84
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            8.12,
+            10.84,
+            11.0,
+            12.35,
+            13.01,
+            14.32,
+            14.62,
+            14.99,
+            18.0,
+            19.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 8.12,
+            "max": 19.0,
+            "avg": 13.62,
+            "median": 13.66,
+            "suggested": 10.84
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            8.12,
+            10.84,
+            11.0,
+            12.35,
+            13.01,
+            14.32,
+            14.62,
+            14.99,
+            18.0,
+            19.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 8.12,
+            "max": 19.0,
+            "avg": 13.62,
+            "median": 13.66,
+            "suggested": 10.84
+          }
+        }
+      }
+    },
+    "mqsp88gfz9pur": {
+      "name": "Koszulka Barcelona",
+      "scrapedAt": "2026-06-26T01:50:19.406384",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 1.0,
+            "avg": 1.0,
+            "median": 1.0,
+            "suggested": 1.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 1.0,
+            "avg": 1.0,
+            "median": 1.0,
+            "suggested": 1.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 1.0,
+            "avg": 1.0,
+            "median": 1.0,
+            "suggested": 1.0
+          }
+        }
+      }
+    },
+    "mqsp9vkx2soef": {
+      "name": "Białe skarpetki Nike (3pary)",
+      "scrapedAt": "2026-06-26T01:50:38.103850",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            10.0,
+            10.0,
+            10.5,
+            13.0,
+            15.0,
+            15.0,
+            18.0,
+            18.0,
+            18.0,
+            18.99
+          ],
+          "stats": {
+            "count": 10,
+            "min": 10.0,
+            "max": 18.99,
+            "avg": 14.65,
+            "median": 15.0,
+            "suggested": 10.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            5.0,
+            6.0,
+            10.0,
+            10.5,
+            11.0,
+            13.0,
+            15.99,
+            18.0,
+            18.0,
+            19.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 5.0,
+            "max": 19.0,
+            "avg": 12.65,
+            "median": 12.0,
+            "suggested": 6.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            4.93,
+            6.0,
+            8.0,
+            8.0,
+            9.99,
+            10.0,
+            10.0,
+            13.0,
+            15.0,
+            18.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 4.93,
+            "max": 18.0,
+            "avg": 10.29,
+            "median": 10.0,
+            "suggested": 6.0
+          }
+        }
+      }
+    },
+    "mqspe1nixkyxr": {
+      "name": "Czapka Zimowa The North Face",
+      "scrapedAt": "2026-06-26T01:50:52.794474",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            1.0,
+            2.0,
+            2.0,
+            2.0,
+            4.5,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 1.0,
+            "max": 5.0,
+            "avg": 3.65,
+            "median": 4.75,
+            "suggested": 2.0
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            2.0,
+            2.0,
+            2.0,
+            4.0,
+            4.99,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            7.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 2.0,
+            "max": 7.0,
+            "avg": 4.2,
+            "median": 5.0,
+            "suggested": 2.0
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            2.0,
+            2.5,
+            3.0,
+            4.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 2.0,
+            "max": 5.0,
+            "avg": 4.15,
+            "median": 5.0,
+            "suggested": 2.5
+          }
+        }
+      }
+    },
+    "mqspr6zdrnznn": {
+      "name": "Kurtka The North Face 700",
+      "scrapedAt": "2026-06-26T01:51:11.166605",
+      "conditions": {
+        "nowe_z_metka": {
+          "label": "Nowy z metka",
+          "prices": [
+            37.27,
+            41.41,
+            58.01,
+            59.0,
+            60.0,
+            60.0,
+            70.0,
+            70.0,
+            72.0,
+            75.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 37.27,
+            "max": 75.0,
+            "avg": 60.27,
+            "median": 60.0,
+            "suggested": 41.41
+          }
+        },
+        "nowe_bez_metki": {
+          "label": "Nowy bez metki",
+          "prices": [
+            37.27,
+            41.41,
+            58.01,
+            59.0,
+            60.0,
+            60.0,
+            70.0,
+            70.0,
+            72.0,
+            75.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 37.27,
+            "max": 75.0,
+            "avg": 60.27,
+            "median": 60.0,
+            "suggested": 41.41
+          }
+        },
+        "bardzo_dobre": {
+          "label": "Bardzo dobry",
+          "prices": [
+            37.27,
+            41.41,
+            50.0,
+            58.01,
+            59.0,
+            60.0,
+            60.0,
+            70.0,
+            70.0,
+            72.0
+          ],
+          "stats": {
+            "count": 10,
+            "min": 37.27,
+            "max": 72.0,
+            "avg": 57.77,
+            "median": 59.5,
+            "suggested": 41.41
+          }
+        }
+      }
+    }
+  }
+}
