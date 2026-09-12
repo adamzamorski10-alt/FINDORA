@@ -1,0 +1,2432 @@
+# FINORA — AKTUALNY PLAN ROZWOJU I STAN PROGRAMU
+
+**Wersja:** 3.0
+**Data aktualizacji:** 10 września 2026
+**Status:** NOWY KIERUNEK GREENFIELD — stara aplikacja pozostaje Legacy Reference
+
+---
+
+# 0. NAJWAŻNIEJSZA ZMIANA W WERSJI 3.0
+
+W wersji 3.0 zmieniamy główną strategię rozwoju Finory.
+
+Dotychczas projekt był prowadzony jako stopniowa przebudowa starego, monolitycznego `index.html` w kierunku warstwowej architektury.
+
+Ta praca przyniosła bardzo dużo wartości:
+
+* poznaliśmy rzeczywistą architekturę aplikacji,
+* znaleźliśmy problemy,
+* wydzieliliśmy granice,
+* wyciągnęliśmy logikę biznesową,
+* zbudowaliśmy Storage Abstraction,
+* przygotowaliśmy fundament migracji schematów,
+* zbudowaliśmy podstawy State,
+* uporządkowaliśmy ładowanie danych.
+
+Jednak dalsze przepisywanie starego monolitu nie jest już najlepszą drogą.
+
+Dlatego od wersji 3.0 obowiązuje:
+
+> **NOWA FINORA BĘDZIE BUDOWANA GREENFIELD.**
+
+Oznacza to, że:
+
+```text
+STARA FINORA
+     ↓
+Legacy Reference
+     ↓
+poznajemy:
+- funkcje
+- dane
+- reguły biznesowe
+- edge cases
+- istniejące zachowanie
+     ↓
+NOWA FINORA
+     ↓
+projektowana od podstaw
+na docelowej architekturze
+```
+
+Stara aplikacja odpowiada przede wszystkim na pytanie:
+
+> **CO Finora robi?**
+
+Nowa aplikacja odpowiada na pytanie:
+
+> **JAK Finora powinna być zbudowana?**
+
+Nie będziemy kopiować starej struktury tylko dlatego, że już istnieje.
+
+Nie będziemy również bez końca usuwać każdego pozostałego śladu starej architektury, jeśli taka praca nie daje istotnej wartości nowemu systemowi.
+
+---
+
+# 1. CEL FINORA
+
+Finora ma zostać prywatną, nowoczesną aplikacją do zarządzania finansami osobistymi.
+
+Najważniejsza zasada architektoniczna:
+
+> **Prywatne dane finansowe użytkownika mają przede wszystkim pozostawać na jego urządzeniu.**
+
+Docelowo Finora ma być:
+
+* local-first,
+* możliwa do używania offline,
+* prywatna,
+* bezpieczna,
+* modularna,
+* testowalna,
+* łatwa do dalszego rozwijania,
+* odporna na utratę danych,
+* gotowa na opcjonalny cloud,
+* gotowa w przyszłości na opcjonalne AI,
+* przygotowana do dalszego rozwoju przez AI Managera/Kilo Code.
+
+Firebase nie będzie docelowo głównym miejscem przechowywania prywatnych danych finansowych.
+
+Cloud może być wykorzystany opcjonalnie do:
+
+* konta,
+* zaszyfrowanego backupu,
+* synchronizacji,
+* odzyskiwania danych,
+* innych funkcji, jeśli zostaną uznane za bezpieczne i potrzebne.
+
+AI nie powinno automatycznie otrzymywać pełnej historii finansowej użytkownika.
+
+Przyszła warstwa AI musi być projektowana zgodnie z zasadą:
+
+> **Minimalizujemy dane przekazywane poza urządzenie.**
+
+---
+
+# 2. NAJWAŻNIEJSZE ZASADY PROJEKTU
+
+Od wersji 3.0 obowiązują następujące zasady nadrzędne.
+
+## 2.1 Greenfield zamiast dalszego przepisywania monolitu
+
+Nowa Finora jest osobnym systemem.
+
+Stary kod służy jako:
+
+* dokumentacja zachowania,
+* źródło reguł biznesowych,
+* źródło danych i ich znaczenia,
+* źródło edge cases,
+* referencja funkcjonalna.
+
+Nie służy jako:
+
+* wzór architektury,
+* wzór organizacji kodu,
+* obowiązkowa struktura nowych modułów,
+* powód do zachowywania złych rozwiązań.
+
+---
+
+## 2.2 Prywatność przed wygodą
+
+Dane finansowe użytkownika powinny domyślnie pozostać lokalnie.
+
+Cloud jest opcjonalny.
+
+AI jest opcjonalne.
+
+---
+
+## 2.3 Poprawność danych przed szybkością
+
+Finora jest aplikacją finansową.
+
+Nie wolno poświęcać:
+
+* poprawności obliczeń,
+* integralności danych,
+* bezpieczeństwa,
+* możliwości odzyskania danych,
+* izolacji użytkowników
+
+tylko po to, żeby szybciej wdrożyć funkcję.
+
+---
+
+## 2.4 Prostota przed nadmierną abstrakcją
+
+Nie tworzymy abstrakcji tylko dlatego, że dobrze wygląda na diagramie.
+
+Każda warstwa i każdy moduł powinien mieć rzeczywistą odpowiedzialność.
+
+Nie budujemy ogromnych „god modules”.
+
+Nie tworzymy kilkudziesięciu repository bez potrzeby.
+
+---
+
+## 2.5 Plan jest adaptacyjny
+
+Plan nie jest święty.
+
+Jeżeli podczas pracy okaże się, że:
+
+* można coś zrobić szybciej,
+* można coś zrobić prościej,
+* istnieje lepsza architektura,
+* jakiś etap nie ma już sensu,
+* jakaś praca jest tylko kosmetyczna,
+* można połączyć małe etapy bez zwiększania ryzyka,
+
+należy zmienić plan.
+
+Głównym zadaniem architekta jest wybór najlepszej drogi, a nie ślepe trzymanie się starej kolejności.
+
+---
+
+# 3. ROLA CHATGPT, UŻYTKOWNIKA I AI KODUJĄCEGO
+
+Od wersji 3.0 obowiązuje następujący model pracy.
+
+## ChatGPT
+
+ChatGPT pełni rolę:
+
+* głównego architekta,
+* stratega,
+* project managera,
+* osoby projektującej etapy,
+* osoby oceniającej raporty AI,
+* osoby wykonującej hostile audity koncepcyjne,
+* osoby wykrywającej problemy,
+* osoby proponującej lepsze rozwiązania,
+* osoby decydującej, czy dana praca ma sens.
+
+ChatGPT powinien aktywnie proponować:
+
+* nowe pomysły,
+* usprawnienia,
+* uproszczenia,
+* szybsze rozwiązania,
+* zmiany kolejności,
+* usuwanie niepotrzebnych etapów.
+
+Nie należy czekać, aż użytkownik sam znajdzie problem.
+
+---
+
+## Użytkownik
+
+Użytkownik przede wszystkim:
+
+1. otrzymuje rekomendację,
+2. otrzymuje gotowy prompt,
+3. wkleja prompt do AI kodującego,
+4. przekazuje raport AI,
+5. akceptuje albo odrzuca rekomendację.
+
+---
+
+## AI kodujące
+
+AI kodujące:
+
+* analizuje rzeczywisty kod,
+* implementuje zadany etap,
+* uruchamia testy,
+* raportuje zmiany,
+* raportuje problemy,
+* nie podejmuje samodzielnie dużych zmian architektonicznych poza zakresem promptu.
+
+---
+
+# 4. ZASADA PRACY Z KILO CODE
+
+Prompty dla AI kodującego muszą być projektowane pod tryb:
+
+**FAST / EFFICIENT**
+
+Każdy prompt powinien być możliwie krótki i mieć jasno ograniczony zakres.
+
+Każdy prompt zaczyna się od:
+
+```text
+REASONING: LOW
+```
+
+lub:
+
+```text
+REASONING: MEDIUM
+```
+
+lub:
+
+```text
+REASONING: HIGH
+```
+
+### LOW
+
+Domyślnie dla:
+
+* prostych implementacji,
+* małych zmian,
+* testów,
+* prostych migracji,
+* prostych poprawek.
+
+### MEDIUM
+
+Dla:
+
+* trudniejszej implementacji,
+* debugowania,
+* integracji kilku warstw,
+* trudniejszych problemów logicznych.
+
+### HIGH
+
+Tylko dla:
+
+* architektury,
+* trudnych problemów bezpieczeństwa,
+* końcowych hostile auditów,
+* krytycznych decyzji projektowych.
+
+Nie łączymy bez potrzeby:
+
+```text
+discovery
++
+dużej implementacji
++
+pełnej regresji
++
+hostile auditu
+```
+
+w jednym promptcie.
+
+Duże zadania dzielimy na logiczne etapy.
+
+---
+
+# 5. METODA WERYFIKACJI
+
+Standard pracy:
+
+```text
+DISCOVERY
+   ↓
+DESIGN
+   ↓
+IMPLEMENTATION
+   ↓
+FOCUSED TESTS
+   ↓
+HOSTILE AUDIT
+   ↓
+REMEDIATION
+   ↓
+FINAL AUDIT
+   ↓
+CLOSE
+```
+
+Nie uznajemy etapu za zamknięty tylko dlatego, że AI napisało:
+
+`PASS`.
+
+Raport AI traktujemy jako deklarację, którą trzeba zweryfikować.
+
+---
+
+# 6. STARA FINORA — LEGACY REFERENCE
+
+Stara aplikacja nie jest usuwana.
+
+Pozostaje referencją.
+
+Będziemy z niej odczytywać:
+
+* funkcje,
+* ekrany,
+* dane,
+* nazwy i znaczenie pól,
+* reguły finansowe,
+* obliczenia,
+* zachowania użytkownika,
+* edge cases,
+* zachowania guest/owner,
+* istniejące mechanizmy,
+* zależności,
+* problemy.
+
+W szczególności stara aplikacja może służyć do odpowiedzi na pytania:
+
+* Jak obecnie działa dana funkcja?
+* Jakie dane są potrzebne?
+* Jakie wartości są dopuszczalne?
+* Co dzieje się przy wartości ujemnej?
+* Co dzieje się na przełomie miesiąca?
+* Co dzieje się przy braku danych?
+* Jakie są wyjątki?
+* Jak zachowuje się obecna aplikacja?
+
+Natomiast nowy kod nie powinien kopiować starego kodu tylko dlatego, że stary kod działa.
+
+---
+
+# 7. STAN DOTYCHCZASOWEJ PRZEBUDOWY
+
+Przed przejściem na Greenfield wykonano dużą część pracy fundamentowej.
+
+---
+
+## Stage 0 — Discovery / Baseline
+
+Zbadano:
+
+* strukturę monolitu,
+* Firebase,
+* Authentication,
+* sposób ładowania danych,
+* `dbData`,
+* globalne zmienne,
+* dashboard,
+* guest mode,
+* brakujące testy,
+* problemy bezpieczeństwa,
+* sposób zapisu i odczytu danych.
+
+Powstała rzeczywista mapa systemu.
+
+---
+
+## Stage 0.3 — Backup / Restore / Schema Foundation
+
+Dodano podstawy:
+
+* backupów,
+* restore,
+* walidacji,
+* integralności SHA-256,
+* wersjonowania schematu,
+* rollbacku,
+* testowych danych.
+
+Backup zawiera m.in.:
+
+* `backupVersion`,
+* `schemaVersion`,
+* `createdAt`,
+* `appVersion`,
+* metadata,
+* dane,
+* ustawienia lokalne,
+* integrity information.
+
+Restore posiada mechanizmy:
+
+* walidacji,
+* preview,
+* potwierdzenia,
+* backupu przed restore,
+* rollbacku,
+* ochrony ownership.
+
+Nie powinien wykonywać przypadkowych produkcyjnych zapisów do Firebase.
+
+---
+
+# 8. STAGE 1.0–1.0C — DATALAYER I GRANICA FIREBASE
+
+Wydzielono `DataLayer`.
+
+Bezpośrednie operacje danych Firebase zostały usunięte z UI i przypadkowych miejsc.
+
+Docelowy kierunek:
+
+```text
+UI
+ ↓
+DataLayer
+ ↓
+StorageAdapter
+ ↓
+Firebase
+```
+
+Bezpośredni Firebase w aplikacji został ograniczony do:
+
+* infrastruktury,
+* tworzenia referencji,
+* authentication/session setup,
+* właściwego adaptera.
+
+W hostile auditach potwierdzono brak nieautoryzowanych persistence bypasses.
+
+---
+
+# 9. STAGE 1.1 — STATE BOUNDARY
+
+Powstał:
+
+* `ApplicationState`,
+* `DashboardLayoutsState`.
+
+Dashboard został przeprowadzony na:
+
+```text
+UI
+ ↓
+DashboardLayoutsState
+ ↓
+DashboardLayoutsRepository
+ ↓
+StorageAdapter
+```
+
+Dashboard nie powinien traktować globalnych zmiennych jako źródła prawdy.
+
+Wykryto i naprawiono problemy związane z:
+
+* bidirectional aliases,
+* mutowalnymi globalami,
+* fallbackami,
+* `dbData`,
+* bezpośrednimi odczytami repository z globalnego stanu.
+
+---
+
+# 10. STAGE 1.2–1.2E — STORAGE ABSTRACTION
+
+Powstała abstrakcja storage.
+
+Główne operacje:
+
+```text
+StorageAdapter
+ ├─ get
+ ├─ set
+ ├─ update
+ ├─ updateMany
+ ├─ remove
+ ├─ listen
+ └─ listenRoot
+```
+
+Istnieją:
+
+* Firebase Storage Adapter,
+* Mock Storage Adapter,
+* Composition Root,
+* kontrakt Storage Adapter.
+
+Architektura:
+
+```text
+Application
+     ↓
+StorageAdapter
+     ↓
+FirebaseStorageAdapter
+     ↓
+Firebase
+```
+
+Storage boundary został wielokrotnie sprawdzony hostile auditami.
+
+Naprawiono m.in.:
+
+* owner adapter initialization,
+* context switching,
+* listener lifecycle,
+* `updateMany`,
+* aktywny adapter,
+* owner/guest separation,
+* cleanup przy logout.
+
+Ostatni finalny audit Storage Boundary zakończył się:
+
+**PASS / TRUE STORAGE BOUNDARY**
+
+---
+
+# 11. STAGE 1.3–1.3B — SCHEMA / MIGRATION FRAMEWORK
+
+Powstał ogólny framework do:
+
+* wersjonowania schematów,
+* rejestrowania migracji,
+* walidacji,
+* wykonywania migracji,
+* ochrony danych źródłowych.
+
+Framework obejmuje m.in.:
+
+```text
+schema-version
+migration
+migration-registry
+schema-validator
+migrator
+integration
+```
+
+Wcześniejsza sztuczna migracja dashboardu została usunięta, ponieważ nie odpowiadała rzeczywistemu modelowi produkcyjnemu.
+
+Framework pozostał fundamentem.
+
+Nie został sztucznie podłączony do produkcji.
+
+To była celowa decyzja.
+
+---
+
+# 12. STAGE 1.4–1.5 — DOMAIN I APPLICATION LOGIC
+
+Duża część logiki biznesowej została wydzielona z monolitu.
+
+Powstały czyste kalkulatory domenowe oraz Application Services m.in. dla:
+
+* Safe-to-Spend,
+* celów,
+* odsprzedaży,
+* giełdy,
+* dochodów,
+* zadłużeń,
+* pożyczek,
+* statystyk miesięcznych,
+* transakcji cyklicznych,
+* innych obliczeń finansowych.
+
+Ogólny kierunek:
+
+```text
+Legacy Function
+      ↓
+Application Service
+      ↓
+Domain Calculator
+```
+
+Logika biznesowa może być testowana bez:
+
+* Firebase,
+* DOM,
+* UI,
+* globalnego środowiska.
+
+Po zamknięciu Stage 1.5 było:
+
+**839/839 testów**
+
+---
+
+# 13. STAGE 1.6B — SESSION / DATA LOADING
+
+Rozpoczęto przebudowę mechanizmu ładowania danych.
+
+Powstał `SessionManager`.
+
+Jego odpowiedzialność:
+
+* aktywny UID,
+* owner session,
+* current user context,
+* lifecycle sesji,
+* rozpoczęcie i zakończenie owner session.
+
+Authentication pozostaje poza SessionManagerem.
+
+---
+
+## UserDataLoader
+
+Powstał `UserDataLoader`.
+
+Jego odpowiedzialność:
+
+```text
+Storage
+ ↓
+rootData
+ ↓
+mapping
+ ↓
+legacy compatibility state
+```
+
+Loader nie powinien:
+
+* zarządzać authentication,
+* wybierać użytkownika,
+* zarządzać UI,
+* wykonywać migracji,
+* stać się god module.
+
+---
+
+## Root listener
+
+Przebudowano główny przepływ:
+
+```text
+SessionManager
+      ↓
+UserDataLoader
+      ↓
+StorageAdapter.listenRoot()
+      ↓
+Firebase adapter
+      ↓
+rootData
+```
+
+Zamiast starego:
+
+```text
+index.html
+      ↓
+Firebase root listener
+      ↓
+dbData
+```
+
+Dodano również ochronę przed starymi callbackami podczas zmiany użytkownika.
+
+---
+
+# 14. STAGE 1.6B.1 — LISTEN CONTRACT
+
+Ujednolicono kontrakt listenera.
+
+Callback otrzymuje:
+
+**plain JavaScript value**
+
+a nie Firebase `DataSnapshot`.
+
+Zasady:
+
+* initial callback jest asynchroniczny,
+* kolejne zmiany są obsługiwane,
+* unsubscribe jest dostępne,
+* Firebase objects nie wychodzą poza adapter,
+* `listen('')` nie jest ogólnym kontraktem,
+* root listening jest osobną operacją `listenRoot()`.
+
+Stage został zamknięty po korekcie testów i dokumentacji.
+
+---
+
+# 15. STAGE 1.6B.2–1.6B.4 — USER DATA I SESSION INTEGRATION
+
+Zweryfikowano mapowanie danych oraz integrację owner session.
+
+UserDataLoader mapuje m.in.:
+
+* transactions,
+* debtors,
+* budgets,
+* goals,
+* reminders,
+* transfers,
+* incomeSources,
+* txTemplates,
+* recurringTx,
+* creditors,
+* autoSaveRules,
+* ruleTargets,
+* stronyProducts,
+* resaleProducts,
+* resaleSales,
+* resaleTasks,
+* resaleShipments,
+* resaleEvents,
+* resaleSettings,
+* gieldaOps,
+* stronyClients,
+* Vinted prices,
+* dashboard layouts,
+* inne dane legacy.
+
+SessionManager i UserDataLoader zostały połączone w owner flow.
+
+Signout wykonuje odpowiedni cleanup.
+
+Naprawiono również problem z szerokim `currentRef.off()`.
+
+Ostatecznie listener lifecycle został przypisany do UserDataLoader.
+
+---
+
+# 16. STAGE 1.6B.5A-R1 — DBData MIGRATION FOUNDATION
+
+Usunięto część rzeczywistych zależności od `dbData`.
+
+W szczególności:
+
+* dashboard przestał traktować `dbData.settings.layouts` jako źródło prawdy,
+* usunięto część odczytów dashboardu,
+* naprawiono race condition podczas inicjalizacji dashboardu,
+* przeniesiono Vinted metadata,
+* rozpoczęto usuwanie kolejnych legacy accessorów.
+
+Naprawiono również problem, w którym przedwczesna inicjalizacja dashboardu mogła zablokować późniejsze prawdziwe dane.
+
+---
+
+# 17. STAGE 1.6B.5C — VINTED META
+
+Vinted metadata zostały przeniesione z legacy `dbData`.
+
+UserDataLoader mapuje:
+
+```text
+finapp_vinted_meta
+        ↓
+_vintedMeta
+```
+
+Usunięto zbędny loader.
+
+Produkcja nie odczytuje już:
+
+```text
+dbData[SK_VINTED_META]
+dbData[SK_VINTED]
+```
+
+Stage zakończony hostile auditem:
+
+**PASS WITH LOW FINDINGS**
+
+---
+
+# 18. STAGE 1.6B.5D — DBData NEXT TARGET DISCOVERY
+
+Przeprowadzono discovery pozostałych zależności.
+
+Znaleziono m.in.:
+
+* `DataLayer` jako legacy accessor,
+* inicjalizację `dbData`,
+* dashboard compatibility fallback,
+* `activeMoneyPlace`,
+* reset `dbData`,
+* pozostałości Vinted,
+* inne elementy legacy.
+
+Najmniejszym kandydatem wybrano:
+
+```text
+activeMoneyPlace
+```
+
+---
+
+# 19. STAGE 1.6B.5E — ACTIVE MONEY PLACE
+
+Przeniesiono `activeMoneyPlace` do UserDataLoader.
+
+Docelowy mapping:
+
+```text
+finapp_active_money_place
+        ↓
+activeMoneyPlace
+```
+
+Domyślna wartość:
+
+```text
+konto
+```
+
+Logika związana z `gielda` została przeniesiona do momentu, w którym dane użytkownika są już dostępne.
+
+Po implementacji został uruchomiony dodatkowy verification step dotyczący rzeczywistego zachowania global bindingu oraz produkcyjnego initialization trace.
+
+Niezależnie od wyniku tego verification step, decyzja strategiczna wersji 3.0 jest taka:
+
+> Nie będziemy kontynuować czyszczenia `dbData` w nieskończoność tylko po to, aby stara aplikacja była idealnie zrefaktoryzowana.
+
+---
+
+# 20. AKTUALNY STATUS STAREJ APLIKACJI
+
+Stara aplikacja jest obecnie traktowana jako:
+
+**LEGACY REFERENCE**
+
+Nie jest już głównym kierunkiem rozwoju.
+
+Można wykonać jeszcze pojedyncze małe poprawki starej aplikacji, jeśli są:
+
+* bardzo tanie,
+* potrzebne do bezpieczeństwa,
+* potrzebne do poznania zachowania,
+* potrzebne do poprawnego odczytu danych,
+* potrzebne do późniejszej migracji.
+
+Nie będziemy jednak wykonywać dużych prac tylko po to, żeby:
+
+* usunąć wszystkie global variables,
+* usunąć każdy ślad `dbData`,
+* przepisać cały `index.html`,
+* doprowadzić starą architekturę do stanu idealnego.
+
+---
+
+# 21. DLACZEGO ZMIENIAMY KIERUNEK
+
+Dalsze przepisywanie monolitu ma malejącą wartość.
+
+Może prowadzić do sytuacji:
+
+```text
+stary monolit
+     ↓
+kolejne warstwy
+     ↓
+kolejne adaptery
+     ↓
+kolejne compatibility layers
+     ↓
+kolejne wyjątki
+     ↓
+coraz większa złożoność
+```
+
+Zamiast tego chcemy:
+
+```text
+Legacy Reference
+       ↓
+poznanie wymagań
+       ↓
+nowy model
+       ↓
+czysta architektura
+       ↓
+nowa Finora
+```
+
+To powinno dać lepszy rezultat i w długim terminie wymagać mniej pracy.
+
+---
+
+# 22. NOWY GŁÓWNY PLAN — GREENFIELD
+
+Od teraz głównym planem jest:
+
+```text
+G0
+ ↓
+G1
+ ↓
+G2
+ ↓
+ARCHITECTURE FREEZE
+ ↓
+G3
+ ↓
+G4
+ ↓
+G5
+ ↓
+G6
+ ↓
+G7
+ ↓
+G8
+ ↓
+G9
+```
+
+---
+
+# 23. G0 — LEGACY REFERENCE & PRODUCT INVENTORY
+
+To jest **najbliższy główny etap**.
+
+Celem nie jest kodowanie.
+
+Celem jest dokładne poznanie tego, co nowa Finora musi umieć.
+
+AI kodujące ma zbadać starą aplikację i przygotować uporządkowany inventory.
+
+---
+
+## G0.1 — Funkcje
+
+Należy skatalogować:
+
+* dashboard,
+* konta,
+* pieniądze,
+* transakcje,
+* dochody,
+* wydatki,
+* budżety,
+* cele,
+* długi,
+* pożyczki,
+* inwestycje,
+* giełdę,
+* odsprzedaż,
+* Vinted,
+* przypomnienia,
+* transakcje cykliczne,
+* reguły automatyczne,
+* raporty,
+* statystyki,
+* ustawienia,
+* guest mode,
+* inne istniejące moduły.
+
+---
+
+## G0.2 — Model danych
+
+Należy zidentyfikować:
+
+* wszystkie główne encje,
+* pola,
+* typy,
+* relacje,
+* identyfikatory,
+* daty,
+* wartości pieniężne,
+* statusy,
+* opcjonalne pola,
+* dane historyczne,
+* dane konfiguracyjne.
+
+---
+
+## G0.3 — Reguły biznesowe
+
+Należy zebrać:
+
+* obliczenia,
+* warunki,
+* zaokrąglenia,
+* zachowanie wartości ujemnych,
+* daty,
+* miesiące,
+* przejścia roku,
+* recurring transactions,
+* cele,
+* długi,
+* kredyty,
+* inwestycje,
+* edge cases.
+
+---
+
+## G0.4 — Inventory UI
+
+Nie chodzi jeszcze o redesign.
+
+Chodzi o określenie:
+
+* jakie ekrany istnieją,
+* jakie informacje pokazują,
+* jakie akcje są możliwe,
+* jakie formularze istnieją,
+* jakie elementy dashboardu istnieją,
+* jakie są zależności między ekranami.
+
+---
+
+## G0.5 — Priorytety
+
+Każda funkcja zostanie oznaczona jako:
+
+* MUST HAVE,
+* SHOULD HAVE,
+* NICE TO HAVE,
+* LEGACY / OPTIONAL.
+
+Nie zakładamy automatycznie, że każda stara funkcja musi trafić do nowej wersji.
+
+---
+
+# 24. G1 — DOMAIN MODEL
+
+Po G0 zaprojektujemy nowy model domeny.
+
+Najpierw odpowiemy:
+
+> Jakie rzeczy naprawdę istnieją w świecie finansowym użytkownika?
+
+Przykładowo:
+
+```text
+User
+Account
+Transaction
+Category
+Income
+Budget
+Goal
+Debt
+Loan
+Investment
+RecurringTransaction
+Reminder
+Asset
+Liability
+```
+
+Dokładna lista zostanie ustalona dopiero po G0.
+
+Nie będziemy kopiować starego modelu 1:1.
+
+---
+
+# 25. G2 — APPLICATION CONTRACTS
+
+Następnie zaprojektujemy kontrakty aplikacyjne.
+
+Docelowo:
+
+```text
+UI
+ ↓
+Application Services
+ ↓
+Domain
+ ↓
+Repositories
+ ↓
+Storage
+```
+
+Zdefiniujemy m.in.:
+
+* input/output,
+* błędy,
+* walidację,
+* lifecycle,
+* ownership,
+* transakcje,
+* operacje atomowe,
+* granice modułów.
+
+Na tym etapie nie musimy jeszcze budować pełnej aplikacji.
+
+Najpierw musimy wiedzieć, jak moduły mają ze sobą rozmawiać.
+
+---
+
+# 26. ARCHITECTURE FREEZE
+
+Przed rozpoczęciem Local-First odbędzie się:
+
+**ARCHITECTURE FREEZE / PRE-LOCAL-FIRST GATE**
+
+Sprawdzimy:
+
+* Domain,
+* Application,
+* Repository boundaries,
+* Storage,
+* State,
+* lifecycle,
+* error handling,
+* ownership,
+* schema,
+* migracje,
+* testowanie,
+* bezpieczeństwo,
+* offline requirements.
+
+Po tej bramce architektura bazowa zostanie zamrożona na tyle, aby można było bezpiecznie budować Local-First.
+
+Nie oznacza to, że później niczego nigdy nie zmienimy.
+
+Oznacza to, że nie zaczynamy IndexedDB na nieustalonych fundamentach.
+
+---
+
+# 27. G3 — LOCAL STORAGE FOUNDATION
+
+Po Architecture Freeze rozpoczynamy Local-First.
+
+Podstawowym storage będzie:
+
+**IndexedDB**
+
+Docelowo:
+
+```text
+Application
+     ↓
+Repository
+     ↓
+Storage Abstraction
+     ↓
+IndexedDB
+```
+
+IndexedDB będzie podstawowym źródłem danych użytkownika.
+
+---
+
+# 28. G4 — NEW APPLICATION STATE
+
+Nowa Finora dostanie własny, czysty model stanu.
+
+Nie będziemy przenosić bezpośrednio:
+
+```text
+dbData
++
+dziesiątki global variables
+```
+
+do nowej aplikacji.
+
+State będzie projektowany od podstaw.
+
+Zasada:
+
+```text
+Storage State
+     ↓
+Application State
+     ↓
+UI
+```
+
+Stan UI nie powinien być magazynem danych finansowych.
+
+---
+
+# 29. G5 — NEW UI SHELL
+
+Dopiero po przygotowaniu fundamentów zbudujemy nową warstwę UI.
+
+Cel:
+
+* nowoczesny interfejs,
+* mobile-first/responsive,
+* dobra nawigacja,
+* accessibility,
+* szybkie działanie,
+* dark theme,
+* light theme,
+* w przyszłości system theme.
+
+Dashboard powinien zachować możliwość personalizacji, ale mechanizm zostanie zaprojektowany od nowa.
+
+Nie kopiujemy starego DOM.
+
+---
+
+# 30. G6 — CORE FINANCE
+
+Po przygotowaniu architektury i UI budujemy podstawowe funkcje finansowe.
+
+Priorytet:
+
+1. Accounts / balances
+2. Transactions
+3. Categories
+4. Income / expenses
+5. Budgets
+6. Goals
+7. Recurring transactions
+8. Debts / loans
+9. Net worth
+10. Dashboard
+11. Statistics
+12. Pozostałe moduły według wartości.
+
+Dokładna kolejność może zostać zmieniona po G0/G1.
+
+---
+
+# 31. G7 — DATA MIGRATION
+
+Migracja danych ze starej Finory będzie osobnym projektem.
+
+Nie budujemy migracji teraz.
+
+Docelowy model:
+
+```text
+OLD FINORA
+     ↓
+Legacy Export / Reader
+     ↓
+Migration / Import Layer
+     ↓
+Validation
+     ↓
+New Finora Domain Model
+     ↓
+IndexedDB
+```
+
+Migrator będzie musiał:
+
+* rozpoznać stare dane,
+* przekształcić je,
+* zweryfikować,
+* raportować błędy,
+* zachować dane możliwie bezstratnie,
+* nie dopuścić do cichego uszkodzenia danych.
+
+Przed migracją należy wykonywać backup.
+
+Migracja nie może zakładać, że stary model danych jest idealny.
+
+---
+
+# 32. G8 — PRIVACY & SECURITY GATE
+
+Po uruchomieniu podstawowej nowej Finory wykonamy osobną bramkę bezpieczeństwa.
+
+Sprawdzimy:
+
+* izolację danych,
+* ownership,
+* lokalne storage,
+* XSS,
+* injection,
+* sekrety,
+* klucze,
+* cloud boundaries,
+* backup encryption,
+* import/export,
+* recovery,
+* AI boundary,
+* dane wrażliwe,
+* guest mode, jeśli zostanie zachowany.
+
+Bezpieczeństwo nie jest jednorazowym etapem.
+
+Będzie wymaganiem całego projektu.
+
+---
+
+# 33. G9 — INTELLIGENCE
+
+Dopiero po stabilizacji Core Finance i Privacy/Security Gate rozwijamy Intelligence.
+
+Najpierw:
+
+```text
+Local Intelligence
+```
+
+czyli:
+
+* reguły,
+* obliczenia,
+* analityka,
+* prognozy,
+* wykrywanie wzorców,
+* scenariusze „co jeśli?”,
+* rekomendacje oparte na lokalnych danych.
+
+Dopiero później:
+
+```text
+External AI
+```
+
+---
+
+# 34. LOCAL INTELLIGENCE
+
+Nie każda funkcja wymaga LLM.
+
+Wiele rzeczy powinno być wykonywane lokalnie:
+
+* Safe-to-Spend,
+* statystyki,
+* prognozy,
+* wykrywanie prostych anomalii,
+* obliczenia budżetowe,
+* analiza cash flow,
+* obliczenia majątku netto,
+* harmonogramy,
+* reguły automatyczne.
+
+Dzięki temu:
+
+* dane nie muszą opuszczać urządzenia,
+* system działa offline,
+* wynik jest przewidywalny,
+* koszty są zerowe,
+* działanie jest szybkie.
+
+---
+
+# 35. AI PROVIDER
+
+AI będzie opcjonalne.
+
+Docelowo:
+
+```text
+Finora
+   ↓
+AI Boundary
+   ↓
+Data Minimization
+   ↓
+AI Provider
+```
+
+AI nie otrzymuje automatycznie:
+
+```text
+cała historia finansowa
+```
+
+Zamiast tego system powinien przygotować minimalny kontekst potrzebny do konkretnego zadania.
+
+Przykład:
+
+```text
+pytanie użytkownika
+      ↓
+lokalne wyliczenie potrzebnych danych
+      ↓
+minimalny kontekst
+      ↓
+AI
+```
+
+Google AI API zostanie rozważone dopiero na odpowiednim etapie.
+
+Klucze API nie mogą być bezpiecznie traktowane jako sekrety w publicznym frontendzie.
+
+---
+
+# 36. EVALUATION LAB
+
+W przyszłości powstanie:
+
+**Evaluation Lab**
+
+Jego zadaniem będzie rzeczywista ocena modeli.
+
+Testowane będą m.in.:
+
+* jakość,
+* poprawność,
+* szybkość,
+* koszt,
+* stabilność,
+* odporność na błędne dane,
+* jakość kodu,
+* jakość rozumowania,
+* regresje,
+* zgodność z wymaganiami Finory.
+
+Modele nie będą wybierane tylko na podstawie benchmarków lub nazwy.
+
+---
+
+# 37. MODEL FALLBACK SYSTEM
+
+Docelowo:
+
+```text
+Primary Model
+      ↓
+failure / timeout / insufficient result
+      ↓
+Fallback Model
+      ↓
+kolejny fallback
+```
+
+Model może być dobierany do rodzaju zadania.
+
+Przykładowe modele do późniejszej ewaluacji:
+
+* StepFun Step 3.7 Flash,
+* Poolside Laguna S 2.1,
+* NVIDIA Nemotron 3 Ultra,
+* Dots Studio Dots3-Note Preview,
+* Nex AGI Nex-N2.5-Pro.
+
+Lista nie jest zamknięta.
+
+Ostateczny wybór będzie wynikiem Evaluation Lab.
+
+---
+
+# 38. CLOUD / SYNCHRONIZACJA
+
+Cloud jest opcjonalny.
+
+Docelowo:
+
+```text
+                Finora
+                   │
+             Local Database
+                   │
+             PRIMARY SOURCE
+                   │
+          ┌────────┴────────┐
+          ↓                 ↓
+       Offline          Cloud Adapter
+                            │
+                            ↓
+                   Encrypted Backup
+                   Optional Sync
+```
+
+Cloud nie powinien być wymagany do podstawowego działania Finory.
+
+---
+
+# 39. OFFLINE
+
+Podstawowe funkcje muszą działać bez internetu.
+
+Offline:
+
+* konta,
+* transakcje,
+* budżety,
+* cele,
+* zobowiązania,
+* statystyki,
+* dashboard,
+* ustawienia,
+* lokalne obliczenia,
+* lokalna inteligencja.
+
+Internet może być potrzebny dopiero do funkcji opcjonalnych, takich jak:
+
+* synchronizacja,
+* backup cloud,
+* zewnętrzne AI,
+* inne usługi online.
+
+---
+
+# 40. SCHEMA I MIGRACJE W NOWEJ FINORZE
+
+Istniejący schema/migration framework jest fundamentem.
+
+Nie będzie jednak podłączany do nowej aplikacji bez potrzeby.
+
+Docelowo:
+
+```text
+IndexedDB
+    ↓
+read
+    ↓
+detect schema version
+    ↓
+validate
+    ↓
+migrate
+    ↓
+validate again
+    ↓
+use
+```
+
+Migracje muszą być:
+
+* deterministyczne,
+* testowalne,
+* bezpieczne,
+* odporne na częściowe błędy,
+* możliwie odwracalne,
+* chronione backupem.
+
+---
+
+# 41. REPOSITORIES
+
+Repository będą tworzone według potrzeby.
+
+Docelowo:
+
+```text
+UI
+ ↓
+Application Service
+ ↓
+Repository
+ ↓
+Storage
+```
+
+Nie tworzymy repository dla każdej funkcji tylko po to, żeby architektura wyglądała „enterprise”.
+
+Repository powinno istnieć wtedy, gdy daje rzeczywistą granicę:
+
+* dostępu do danych,
+* ownership,
+* query,
+* reguł,
+* transakcji,
+* abstrakcji storage.
+
+---
+
+# 42. DOMAIN
+
+Domain powinien być możliwie niezależny od:
+
+* DOM,
+* Firebase,
+* IndexedDB,
+* browser APIs,
+* UI,
+* global variables,
+* konkretnego AI.
+
+Domain odpowiada za:
+
+* reguły finansowe,
+* obliczenia,
+* invariants,
+* walidację domenową,
+* decyzje biznesowe.
+
+---
+
+# 43. APPLICATION SERVICES
+
+Application Services będą koordynować działania.
+
+Przykład:
+
+```text
+UI
+ ↓
+CreateTransactionService
+ ↓
+validation
+ ↓
+domain logic
+ ↓
+repository
+ ↓
+storage
+```
+
+Application Service nie powinien zawierać całej logiki biznesowej.
+
+---
+
+# 44. UI / UX
+
+Nowa aplikacja nie będzie kopią starego interfejsu.
+
+Zachowamy funkcjonalne potrzeby, ale UI będzie projektowane od nowa.
+
+Docelowe priorytety:
+
+* prostota,
+* szybkość,
+* czytelność,
+* mobile,
+* desktop,
+* accessibility,
+* responsywność,
+* dark mode,
+* light mode,
+* system theme,
+* personalizacja dashboardu.
+
+Duży redesign starej aplikacji nie jest już potrzebny.
+
+Nowe UI powstanie na nowej architekturze.
+
+---
+
+# 45. STABILIZACJA LOGIKI FINANSOWEJ
+
+Każda istotna funkcja finansowa będzie weryfikowana pod kątem:
+
+* wartości ujemnych,
+* zer,
+* brakujących danych,
+* dużych wartości,
+* ułamków,
+* dat,
+* końca miesiąca,
+* początku miesiąca,
+* przejścia roku,
+* recurring transactions,
+* celów,
+* długów,
+* kredytów,
+* inwestycji,
+* edge cases.
+
+Szczególnie ważna jest zgodność ze znaczeniem finansowym starej aplikacji.
+
+Jeżeli nowa aplikacja ma działać inaczej, musi to być świadoma decyzja produktowa, a nie przypadkowy efekt refaktoru.
+
+---
+
+# 46. TESTOWANIE
+
+Obecna baza testów Node `node:test` pozostaje wartościowym fundamentem.
+
+Obecnie testowane są m.in.:
+
+* domain,
+* application services,
+* storage,
+* state,
+* lifecycle,
+* owner/guest,
+* migrations,
+* regressions.
+
+W nowej Finorze potrzebne będą również:
+
+* unit tests,
+* integration tests,
+* browser tests,
+* IndexedDB tests,
+* offline tests,
+* migration tests,
+* data-import tests,
+* security tests,
+* mobile tests,
+* desktop tests,
+* performance tests,
+* recovery tests.
+
+Testy muszą sprawdzać rzeczywiste zachowanie, a nie tylko implementację.
+
+---
+
+# 47. BROWSER / RUNTIME VERIFICATION
+
+Ważne ograniczenie obecnego stanu:
+
+> Firebase/Auth/browser runtime nie zostały w pełni zweryfikowane w prawdziwym środowisku produkcyjnym.
+
+Dotychczasowe testy są przede wszystkim testami automatycznymi i strukturalnymi.
+
+Nie wolno traktować:
+
+```text
+unit tests PASS
+```
+
+jako dowodu:
+
+```text
+real browser runtime PASS
+```
+
+W odpowiednich etapach trzeba wykonać rzeczywiste testy runtime.
+
+---
+
+# 48. BEZPIECZEŃSTWO
+
+Bezpieczeństwo jest wymaganiem ciągłym.
+
+Szczególnie:
+
+* izolacja użytkowników,
+* ownership,
+* guest mode,
+* Firebase rules,
+* lokalne dane,
+* szyfrowanie backupów,
+* sekrety,
+* klucze API,
+* cross-user access,
+* import/export,
+* recovery,
+* migracje,
+* AI data boundary.
+
+Nie zakładamy, że bezpieczeństwo jest poprawne tylko dlatego, że aplikacja działa.
+
+---
+
+# 49. BACKUP I RECOVERY
+
+Finora musi mieć bezpieczną ścieżkę odzyskiwania danych.
+
+Docelowo:
+
+```text
+Local Data
+    ↓
+Backup
+    ↓
+Integrity
+    ↓
+Encrypted optional cloud storage
+```
+
+Backup powinien umożliwiać:
+
+* weryfikację integralności,
+* restore,
+* wykrywanie nieprawidłowych danych,
+* bezpieczne odtworzenie,
+* ochronę przed częściowym uszkodzeniem.
+
+---
+
+# 50. MIGRACJA STARYCH DANYCH
+
+Migracja starych danych będzie wykonana dopiero wtedy, gdy nowa architektura będzie wystarczająco stabilna.
+
+Najważniejsza zasada:
+
+> Nie dostosowujemy nowej architektury do starego Firebase tylko dlatego, że migracja byłaby wtedy łatwiejsza.
+
+Najpierw:
+
+```text
+Nowa Finora
+     ↓
+stabilny model
+     ↓
+stabilny storage
+     ↓
+stabilne funkcje
+     ↓
+dopiero migracja
+```
+
+---
+
+# 51. PRIORYTETY FUNKCJONALNE
+
+Ogólny priorytet:
+
+### P0 — fundament
+
+* prywatność,
+* poprawność danych,
+* domain,
+* storage,
+* state,
+* recovery,
+* bezpieczeństwo.
+
+### P1 — Core Finance
+
+* konta,
+* transakcje,
+* dochody,
+* wydatki,
+* budżety,
+* cele,
+* podstawowe statystyki.
+
+### P2 — Advanced Finance
+
+* długi,
+* pożyczki,
+* inwestycje,
+* majątek netto,
+* recurring,
+* reguły,
+* prognozy.
+
+### P3 — Intelligence
+
+* lokalne analizy,
+* scenariusze,
+* rekomendacje,
+* AI.
+
+### P4 — Automation / Cloud / Product
+
+* synchronizacja,
+* automatyzacje,
+* bardziej zaawansowane integracje,
+* przygotowanie do udostępnienia produktu innym użytkownikom.
+
+---
+
+# 52. CO NIE JEST TERAZ PRIORYTETEM
+
+Na obecnym etapie NIE:
+
+* dodajemy Google AI API,
+* wdrażamy cloud sync,
+* wdrażamy pełne IndexedDB przed Architecture Freeze,
+* przepisujemy cały stary `index.html`,
+* usuwamy `dbData` za wszelką cenę,
+* tworzymy ogromnego GenericUserDataRepository bez potrzeby,
+* robimy pełnego redesignu starego UI,
+* implementujemy autonomiczne płatności/przelewy,
+* budujemy skomplikowany system AI przed Core Finance,
+* łączymy wiele dużych etapów w jeden prompt.
+
+---
+
+# 53. FINANSE I AUTOMATYCZNE OPERACJE
+
+Na obecnym etapie AI może:
+
+* analizować dane,
+* pomagać zarządzać danymi,
+* proponować działania,
+* wykonywać obliczenia.
+
+Nie może wykonywać rzeczywistych:
+
+* przelewów,
+* płatności,
+* operacji finansowych
+
+bez osobnego, późniejszego etapu i bardzo mocnych zabezpieczeń.
+
+---
+
+# 54. DOCELOWA ARCHITEKTURA FINORY
+
+Docelowy model:
+
+```text
+                         FINORA
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+              ↓                           ↓
+             UI                    Local Intelligence
+              │                           │
+              ↓                           │
+      Application Services ←──────────────┘
+              │
+              ↓
+           Domain
+              │
+              ↓
+        Repositories
+              │
+              ↓
+      Storage Abstraction
+              │
+          ┌───┴────┐
+          ↓        ↓
+      IndexedDB   Cloud Adapter
+       PRIMARY      OPTIONAL
+          │           │
+          │           ↓
+          │     Encrypted Backup /
+          │     Optional Sync
+          │
+          ↓
+     User Device
+```
+
+AI:
+
+```text
+                    AI Layer
+                       │
+             ┌─────────┴─────────┐
+             ↓                   ↓
+       Local Rules         External AI
+       / Intelligence           │
+                                ↓
+                        Privacy Boundary
+                                │
+                                ↓
+                         Minimal Context
+```
+
+---
+
+# 55. DOCELNY PRZEPŁYW DANYCH
+
+Podstawowy:
+
+```text
+User
+ ↓
+UI
+ ↓
+Application Service
+ ↓
+Domain
+ ↓
+Repository
+ ↓
+IndexedDB
+```
+
+Odczyt:
+
+```text
+IndexedDB
+ ↓
+Repository
+ ↓
+Application Service
+ ↓
+State
+ ↓
+UI
+```
+
+Opcjonalny cloud:
+
+```text
+IndexedDB
+ ↓
+Cloud Adapter
+ ↓
+Encrypted Cloud
+```
+
+Opcjonalne AI:
+
+```text
+User Question
+ ↓
+Local Data Analysis
+ ↓
+Data Minimization
+ ↓
+AI Boundary
+ ↓
+External AI
+ ↓
+Answer
+```
+
+---
+
+# 56. NAJWAŻNIEJSZE RÓŻNICE: STARA VS NOWA FINORA
+
+| Stara Finora                | Nowa Finora                    |
+| --------------------------- | ------------------------------ |
+| monolityczny `index.html`   | modułowa architektura          |
+| Firebase-first              | local-first                    |
+| `dbData`                    | jawny state/repository         |
+| global variables            | kontrolowany application state |
+| Firebase jako główne źródło | IndexedDB jako primary source  |
+| UI silnie związane z danymi | UI oddzielone od storage       |
+| legacy functions            | Domain + Application Services  |
+| późniejsze warstwy          | architektura od początku       |
+| migracja istniejącego kodu  | Greenfield                     |
+| cloud jako główny backend   | cloud opcjonalny               |
+| AI później                  | AI jako opcjonalna warstwa     |
+| stare UI                    | nowy UI                        |
+| stary model danych          | nowy model domenowy            |
+| migracja kodu               | późniejsza migracja danych     |
+
+---
+
+# 57. GŁÓWNE BRAMKI PROJEKTU
+
+Docelowy przebieg:
+
+```text
+LEGACY REFERENCE
+       ↓
+G0 PRODUCT INVENTORY
+       ↓
+G1 DOMAIN MODEL
+       ↓
+G2 APPLICATION CONTRACTS
+       ↓
+ARCHITECTURE FREEZE
+       ↓
+G3 LOCAL STORAGE
+       ↓
+G4 APPLICATION STATE
+       ↓
+G5 NEW UI SHELL
+       ↓
+G6 CORE FINANCE
+       ↓
+G7 DATA MIGRATION
+       ↓
+G8 PRIVACY / SECURITY GATE
+       ↓
+G9 INTELLIGENCE
+       ↓
+EVALUATION LAB
+       ↓
+MODEL FALLBACK
+       ↓
+AUTOMATION / CLOUD
+```
+
+Kolejność może zostać zmieniona, jeśli architektura lub wyniki discovery pokażą lepszą drogę.
+
+---
+
+# 58. KRYTERIUM ZAMKNIĘCIA ETAPU
+
+Etap nie jest zamknięty, dopóki nie mamy:
+
+* określonego zakresu,
+* implementacji,
+* testów,
+* hostile audit,
+* poprawionych problemów,
+* finalnej weryfikacji,
+* jasnego raportu.
+
+Jeżeli występuje:
+
+```text
+Critical
+High
+Medium
+```
+
+problem, etap nie jest automatycznie zamykany.
+
+Low findings mogą zostać świadomie zaakceptowane, jeśli:
+
+* nie zagrażają architekturze,
+* nie zagrażają danym,
+* nie tworzą istotnego długu,
+* są zapisane do późniejszego backlogu.
+
+---
+
+# 59. ZASADA BRAKU PRZEDWCZESNEJ KOMPLIKACJI
+
+Nie budujemy teraz:
+
+* pełnego cloud backendu,
+* synchronizacji,
+* AI orchestration,
+* agentów,
+* skomplikowanych automatyzacji,
+* rozbudowanego plugin systemu,
+* ogromnej infrastruktury enterprise.
+
+Najpierw:
+
+```text
+solidna Finora Core
+```
+
+Dopiero potem:
+
+```text
+intelligence
+automation
+cloud
+```
+
+---
+
+# 60. POTENCJALNA PRZYSZŁOŚĆ FINORY
+
+Po zbudowaniu solidnego Core możliwe są:
+
+* zaawansowane prognozy,
+* automatyczne kategoryzowanie,
+* wykrywanie anomalii,
+* inteligentne budżety,
+* scenariusze finansowe,
+* AI Coach,
+* automatyczne raporty,
+* inteligentne przypomnienia,
+* automatyzacje,
+* integracje z bankami, jeśli będzie to bezpieczne i uzasadnione,
+* synchronizacja między urządzeniami,
+* opcjonalny cloud,
+* możliwość udostępnienia Finory innym użytkownikom.
+
+Żadna z tych funkcji nie jest ważniejsza od prywatności i integralności danych.
+
+---
+
+# 61. DŁUGOTERMINOWY MODEL PRODUKTU
+
+Finora ma być najpierw:
+
+> **bardzo dobrą prywatną aplikacją finansową dla właściciela.**
+
+Dopiero później może stać się:
+
+> **produktem dla większej liczby użytkowników.**
+
+Nie projektujemy teraz produktu masowego kosztem prostoty i prywatności.
+
+Architektura powinna jednak umożliwić późniejsze rozszerzenie.
+
+---
+
+# 62. GŁÓWNE RYZYKA
+
+Najważniejsze ryzyka projektu:
+
+### R-01 — Zbyt długie utrzymywanie legacy
+
+Rozwiązanie:
+
+> Greenfield.
+
+### R-02 — Przeniesienie złej architektury do nowego systemu
+
+Rozwiązanie:
+
+> Legacy Reference, nie Legacy Template.
+
+### R-03 — Zbyt duże prompty dla AI
+
+Rozwiązanie:
+
+> FAST/EFFICIENT + małe etapy.
+
+### R-04 — Zaufanie do raportu AI bez weryfikacji
+
+Rozwiązanie:
+
+> Hostile audits.
+
+### R-05 — Utrata lub uszkodzenie danych
+
+Rozwiązanie:
+
+> backup + validation + migration tests + recovery.
+
+### R-06 — Prywatność naruszona przez cloud/AI
+
+Rozwiązanie:
+
+> local-first + data minimization.
+
+### R-07 — Nadmierna abstrakcja
+
+Rozwiązanie:
+
+> każda warstwa musi mieć realną odpowiedzialność.
+
+### R-08 — Budowanie funkcji przed fundamentami
+
+Rozwiązanie:
+
+> Architecture Freeze + bramki.
+
+---
+
+# 63. NAJBLIŻSZY KROK
+
+Najbliższym głównym krokiem nie jest już:
+
+```text
+1.6B.5F
+1.6B.5G
+1.6B.5H
+...
+```
+
+w nieskończoność.
+
+Najbliższym krokiem jest:
+
+# G0 — LEGACY REFERENCE & PRODUCT INVENTORY
+
+Pierwszym zadaniem będzie stworzenie dokładnego katalogu:
+
+```text
+OLD FINORA
+     ↓
+FUNCTIONS
+DATA
+BUSINESS RULES
+EDGE CASES
+UI
+DEPENDENCIES
+PRIORITIES
+     ↓
+NEW FINORA REQUIREMENTS
+```
+
+G0 nie ma jeszcze budować nowej aplikacji.
+
+Ma dać nam wiedzę potrzebną do jej prawidłowego zaprojektowania.
+
+---
+
+# 64. OSTATECZNA ZASADA PROJEKTU
+
+Najważniejsza zasada całego rozwoju Finory:
+
+> **Stara Finora jest źródłem wiedzy. Nowa Finora jest właściwym produktem.**
+
+Nie musimy ratować starej architektury.
+
+Nie musimy przepisywać starego kodu linia po linii.
+
+Nie musimy usuwać każdej starej zmiennej.
+
+Musimy wykorzystać to, czego nauczyliśmy się podczas dotychczasowej przebudowy, i zbudować na tej wiedzy lepszy system.
+
+---
+
+# 65. GŁÓWNY CEL KOŃCOWY
+
+Końcowa Finora powinna być:
+
+* prywatna,
+* local-first,
+* offline-capable,
+* bezpieczna,
+* stabilna,
+* testowalna,
+* modularna,
+* skalowalna,
+* łatwa do rozwijania,
+* odporna na utratę danych,
+* możliwa do używania bez chmury,
+* możliwa do rozszerzenia o opcjonalny cloud,
+* możliwa do rozszerzenia o AI,
+* możliwa do rozszerzenia o automatyzację,
+* przygotowana do rozwoju przez AI Managera/Kilo Code.
+
+Docelowa filozofia:
+
+```text
+SOLID FOUNDATION
+       ↓
+PRIVATE LOCAL DATA
+       ↓
+RELIABLE FINANCE CORE
+       ↓
+INTELLIGENCE
+       ↓
+AUTOMATION
+       ↓
+OPTIONAL CLOUD
+       ↓
+OPTIONAL AI
+```
+
+Nie odwrotnie.
+
+---
+
+# 66. PODSUMOWANIE STRATEGII v3.0
+
+### Co kończymy
+
+Kończymy traktowanie starego monolitu jako głównego projektu przebudowy.
+
+### Co zachowujemy
+
+Zachowujemy:
+
+* wiedzę,
+* testy,
+* domain logic,
+* storage abstraction,
+* schema framework,
+* odkryte reguły,
+* informacje o danych,
+* doświadczenie z hostile auditów.
+
+### Czego nie robimy
+
+Nie przepisujemy całego starego `index.html`.
+
+Nie usuwamy `dbData` za wszelką cenę.
+
+Nie budujemy nowej aplikacji jako kopii starej.
+
+### Co budujemy
+
+Nową Finorę Greenfield:
+
+```text
+New UI
+ ↓
+Application State
+ ↓
+Application Services
+ ↓
+Domain
+ ↓
+Repositories
+ ↓
+Storage Abstraction
+ ↓
+IndexedDB
+ ↓
+Optional Cloud
+```
+
+### Co później
+
+```text
+Local Intelligence
+ ↓
+AI Boundary
+ ↓
+Evaluation Lab
+ ↓
+Model Fallback
+ ↓
+Automation
+```
+
+### Najbliższy etap
+
+**G0 — Legacy Reference & Product Inventory**
+
+---
+
+# 67. NACZELNA ZASADA ZARZĄDZANIA PROJEKTEM
+
+Plan Finory ma być aktywnie zarządzany.
+
+Nie obowiązuje zasada:
+
+> „Skoro coś było w planie, musimy to zrobić.”
+
+Obowiązuje:
+
+> **„Robimy to, co najlepiej prowadzi Finorę do docelowego celu przy zachowaniu bezpieczeństwa, jakości i poprawności danych.”**
+
+Jeżeli pojawi się lepsza droga:
+
+**zmieniamy plan.**
+
+Jeżeli coś okaże się niepotrzebne:
+
+**usuwamy etap.**
+
+Jeżeli coś można zrobić prościej:
+
+**upraszczamy.**
+
+Jeżeli coś można zrobić szybciej bez zwiększenia ryzyka:
+
+**przyspieszamy.**
+
+Jeżeli coś jest niebezpieczne:
+
+**zatrzymujemy się.**
+
+Jeżeli stare rozwiązanie jest dobre jako referencja, ale złe jako architektura:
+
+**zachowujemy wiedzę, nie kopiujemy implementacji.**
+
+To jest nadrzędna zasada prowadzenia całego projektu Finora.

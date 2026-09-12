@@ -1,0 +1,1363 @@
+FINORA
+DOKŁADNY PLAN ROZBUDOWY I PRZEBUDOWY PROGRAMU
+Wersja 1.0 — 5 września 2026
+
+============================================================
+0. CEL PROJEKTU
+============================================================
+
+Finora ma zostać przekształcona z obecnej aplikacji do ewidencji finansów
+w nowoczesnego, osobistego Financial Managera.
+
+Główna idea:
+Finora nie tylko pokazuje, co wydarzyło się z pieniędzmi. Ma pomagać
+użytkownikowi zrozumieć sytuację, przewidywać przyszłość i podejmować
+lepsze decyzje finansowe.
+
+Docelowa forma:
+- aplikacja webowa/PWA instalowana jak program,
+- desktop, tablet i telefon,
+- domyślnie local-first,
+- dane finansowe lokalnie,
+- opcjonalny szyfrowany backup,
+- opcjonalna synchronizacja,
+- inteligentne analizy i automatyzacja,
+- moduły personalizowane,
+- możliwość późniejszego udostępnienia produktu innym.
+
+Inspiracją wizualną są pokazane dark fintech dashboardy, ale Finora ma
+mieć własny design i branding.
+
+============================================================
+1. USTALENIA PRODUKTOWE
+============================================================
+
+Nazwa: FINORA
+Pozycjonowanie: Personal Financial Manager
+
+Styl:
+- Premium fintech 4/5.
+- Nowoczesny, spokojny, elegancki, technologiczny.
+
+Motyw:
+- DARK jako domyślny.
+- LIGHT jako dostępna alternatywa.
+- docelowo DARK / LIGHT / SYSTEM.
+
+Logo:
+- minimalistyczny symbol + napis FINORA,
+- kierunek: prosty, geometryczny symbol przypominający stylizowaną
+  literę F, niebieski/cyanowy akcent i jasny napis FINORA.
+
+Kolory:
+- deep navy / near-black jako baza,
+- granatowe powierzchnie,
+- blue/cyan jako główny akcent,
+- green = pozytywny wynik,
+- red = problem/wydatek,
+- amber = ostrzeżenie.
+
+Kolor nie może być jedynym sposobem komunikowania znaczenia; używać
+także tekstu, ikon i wartości.
+
+============================================================
+2. GŁÓWNA FILOZOFIA UX
+============================================================
+
+Finora ma odpowiadać na cztery pytania:
+1. Jaka jest moja sytuacja finansowa?
+2. Co wydarzy się w najbliższych dniach/tygodniach?
+3. Czy jestem na dobrej drodze do swoich celów?
+4. Co powinienem teraz zrobić?
+
+Hierarchia:
+SYTUACJA -> PRZYSZŁOŚĆ -> CELE I PLAN -> DZIAŁANIE
+
+Program ma być inteligentny domyślnie, ale użytkownik zawsze może
+nadpisać sugestie i konfigurację.
+
+============================================================
+3. ARCHITEKTURA PRODUKTU — LOCAL FIRST
+============================================================
+
+Docelowy model:
+
+FINORA
+  |
+  +-- APLIKACJA LOKALNA
+  |     |
+  |     +-- lokalna baza danych
+  |     +-- działanie offline
+  |
+  +-- CHMURA OPCJONALNA
+        |
+        +-- backup
+        +-- synchronizacja
+        +-- funkcje konta
+
+Podstawowe działanie nie powinno wymagać stałego połączenia z serwerem.
+
+Dane lokalne:
+- konta,
+- transakcje,
+- transfery,
+- kategorie,
+- budżety,
+- cele,
+- należności,
+- zobowiązania,
+- płatności cykliczne,
+- przypomnienia,
+- ustawienia,
+- layout dashboardu,
+- aktywne moduły,
+- dane inwestycyjne,
+- dane modułów personalnych.
+
+============================================================
+4. TRYBY PRACY
+============================================================
+
+TRYB LOKALNY
+- dane na urządzeniu,
+- offline,
+- brak konieczności konta do podstawowej pracy,
+- maksymalna prywatność.
+
+TRYB BACKUP
+- szyfrowana kopia danych,
+- plik backupu z wersją schematu,
+- integralność,
+- możliwość restore,
+- ostrzeżenie przed nadpisaniem.
+
+TRYB SYNCHRONIZACJI
+- opcjonalny,
+- użytkownik świadomie go włącza,
+- synchronizacja między urządzeniami,
+- obsługa konfliktów,
+- odpowiednia ochrona danych.
+
+============================================================
+5. ARCHITEKTURA TECHNICZNA
+============================================================
+
+Obecny monolityczny HTML/JS/CSS nie powinien być dalej bezpośrednio
+rozbudowywany bez uporządkowania.
+
+Docelowy podział:
+
+UI
+ |
+Components
+ |
+Application Services
+ |
+Domain / Business Logic
+ |
+Data Repository
+ |
+Local Database
+ |
+Optional Cloud Adapter
+
+UI nie powinno bezpośrednio zarządzać całą logiką danych.
+
+Moduły:
+- auth,
+- storage,
+- transactions,
+- accounts,
+- budgets,
+- savings,
+- recurring,
+- receivables,
+- liabilities/loans,
+- income,
+- reports,
+- statistics,
+- reminders,
+- investments,
+- personal modules,
+- intelligence,
+- backup,
+- synchronization,
+- settings.
+
+============================================================
+6. REFAKTOR OBECNEGO KODU
+============================================================
+
+Przed rozbudową należy uporządkować obecny kod.
+
+Audyt wykazał m.in.:
+- bardzo duży monolityczny plik,
+- duplikaty funkcji,
+- duplikaty ID,
+- kod legacy,
+- funkcje kompatybilności,
+- częściowo zakończone migracje,
+- niedokończoną migrację modułu zarobków,
+- wiele modalów i rendererów.
+
+Wykonane testy bazowe:
+- inline scripts przeszły node --check,
+- znaleziono brakujące literalne referencje ID części nowego UI,
+- istnieje podwójna deklaracja _doMarkShipmentOrdered,
+- istnieje duplikat ID label-file-input,
+- addAutosaveRule() jest legacy/no-op,
+- istnieją ślady niedokończonej migracji incomeProfiles.
+
+Nie usuwać kodu tylko na podstawie nazwy. Każdy potencjalnie martwy
+fragment trzeba sprawdzić przez referencje i testy.
+
+Kolejność:
+1. backup,
+2. testy regresyjne,
+3. wydzielenie logiki,
+4. migracja danych,
+5. usuwanie legacy.
+
+============================================================
+7. RESPONSIVE DESIGN
+============================================================
+
+Obecny problem desktopu:
+główna zawartość jest zbyt mocno ograniczona i centrowana, przez co
+na dużym monitorze powstają duże puste przestrzenie.
+
+DESKTOP:
+- wykorzystanie dostępnej szerokości,
+- rozsądny max-width całego dashboardu,
+- wielokolumnowy grid,
+- sidebar,
+- szerokie wykresy,
+- widgety różnych rozmiarów.
+
+TABLET:
+- mniejszy grid,
+- zwijany sidebar.
+
+MOBILE:
+- projektowany osobno,
+- nie jest pomniejszonym desktopem,
+- dolna nawigacja 4–5 najważniejszych elementów,
+- reszta pod "Więcej",
+- centralny przycisk szybkiego dodawania,
+- pionowe karty i wykresy.
+
+============================================================
+8. NAWIGACJA
+============================================================
+
+GŁÓWNE
+- Przegląd
+- Pieniądze
+- Budżet
+- Cele
+- Zarobek
+
+PLANOWANIE
+- Cykliczne
+- Należności
+- Zobowiązania
+
+ANALIZA
+- Statystyki
+- Raporty
+
+POZOSTAŁE
+- Przypomnienia
+- Ustawienia
+
+MOJE MODUŁY
+- Giełda
+- Resale
+- Strony
+- inne aktywowane moduły
+
+Moduły personalne nie są automatycznie widoczne dla wszystkich.
+
+============================================================
+9. PERSONALIZOWANE MODUŁY
+============================================================
+
+Użytkownik może wybierać potrzebne funkcje.
+
+Standard:
+- finanse osobiste.
+
+Moje moduły:
+- Giełda,
+- Resale,
+- Strony.
+
+Przyszłe opcjonalne:
+- Nieruchomości,
+- Samochód,
+- Kryptowaluty,
+- Biznes,
+- Freelancer.
+
+Dzięki temu Finora jest prosta dla nowych użytkowników i rozbudowana
+dla power userów.
+
+============================================================
+10. DASHBOARD — PRZEGLĄD
+============================================================
+
+Najważniejszy ekran.
+
+Nagłówek:
+- powitanie,
+- okres,
+- szybkie akcje,
+- powiadomienia,
+- ustawienia.
+
+Majątek netto:
+- wartość,
+- zmiana,
+- mini wykres.
+
+Bezpieczne wydanie:
+- kwota możliwa do bezpiecznego wydania,
+- kwota dzienna,
+- dni do końca okresu,
+- uwzględnienie nadchodzących zobowiązań.
+
+Bilans miesiąca:
+- przychody,
+- wydatki,
+- saldo,
+- porównanie.
+
+Konta:
+- skrócona lista i salda.
+
+Oszczędności:
+- suma,
+- zmiana,
+- cele.
+
+Inwestycje:
+- widoczne zależnie od aktywnego modułu.
+
+Budżet:
+- najważniejsze kategorie,
+- limity,
+- wykorzystanie,
+- przekroczenia.
+
+Cashflow:
+- przychody,
+- wydatki,
+- saldo,
+- trend.
+
+Ostatnie transakcje:
+- ikona,
+- nazwa,
+- kategoria,
+- konto,
+- kwota,
+- data.
+
+Nadchodzące:
+- rachunki,
+- wypłaty,
+- raty,
+- cykliczne,
+- terminy celów.
+
+Intelligent Insight:
+np. "Wydatki na jedzenie są o 18% wyższe niż zwykle."
+
+Dashboard jest konfigurowalny.
+
+============================================================
+11. PERSONALIZOWANY DASHBOARD
+============================================================
+
+Funkcja zostaje i zostaje rozbudowana.
+
+Tryb normalny:
+- automatyczny układ,
+- inteligentna hierarchia.
+
+Tryb "Dostosuj":
+- drag & drop,
+- kolejność,
+- ukrywanie,
+- dodawanie,
+- zmiana rozmiaru tam, gdzie ma sens.
+
+Widgety:
+- majątek netto,
+- bezpieczne wydanie,
+- bilans,
+- cashflow,
+- konta,
+- budżet,
+- cele,
+- transakcje,
+- cykliczne,
+- należności,
+- zobowiązania,
+- inwestycje,
+- Financial Health,
+- insights,
+- nadchodzące.
+
+Układ zapisywany lokalnie.
+
+============================================================
+12. PIENIĄDZE
+============================================================
+
+Główne akcje:
++ Wydatek
++ Wpływ
+<-> Przelew
+
+Dodawanie transakcji ma być maksymalnie szybkie.
+
+Podstawowe pola:
+- kwota,
+- typ,
+- kategoria,
+- konto,
+- data,
+- opis.
+
+Opcjonalne:
+- odbiorca,
+- tag,
+- załącznik,
+- notatka.
+
+Historia:
+- wyszukiwanie,
+- zakres dat,
+- konto,
+- kategoria,
+- typ,
+- kwota,
+- filtry.
+
+Po operacji: Undo.
+
+============================================================
+13. KONTA
+============================================================
+
+Obsługa:
+- konto bankowe,
+- gotówka,
+- oszczędnościowe,
+- karta kredytowa,
+- inwestycyjne,
+- inne.
+
+Transfer jest osobnym typem i nie jest liczony jako przychód ani wydatek.
+
+Widok konta:
+- saldo,
+- dostępne środki,
+- ostatnie operacje,
+- historia salda.
+
+============================================================
+14. BUDŻET
+============================================================
+
+Odpowiada na:
+Ile planowałem?
+Ile wydałem?
+Ile zostało?
+Czy przekroczę limit?
+
+Widok:
+- budżet,
+- wydatki,
+- pozostało,
+- procent,
+- prognoza.
+
+Kategorie:
+- limit,
+- wydane,
+- pozostało,
+- trend,
+- pasek postępu.
+
+WHAT-IF BUDGET:
+"Co jeśli zmniejszę jedzenie o 300 zł?"
+
+Wynik:
+- nowy bilans,
+- oszczędności,
+- wpływ na cele,
+- cashflow.
+
+============================================================
+15. CELE / OSZCZĘDZANIE
+============================================================
+
+Cele:
+- nazwa,
+- kwota docelowa,
+- obecna kwota,
+- procent,
+- termin,
+- prognozowana data,
+- tempo.
+
+Oddzielić CELE od AUTOMATYZACJI OSZCZĘDZANIA.
+
+Automatyzacje:
+- stała kwota,
+- procent wpływu,
+- reguła po transakcji,
+- zaokrąglanie,
+- harmonogram.
+
+============================================================
+16. CYKLICZNE
+============================================================
+
+Centrum stałych przepływów.
+
+Widoki:
+- 7 dni,
+- 30 dni,
+- miesiąc,
+- wszystkie.
+
+Typy:
+- rachunki,
+- subskrypcje,
+- raty,
+- wynagrodzenia,
+- inne wpływy.
+
+Pokazywać:
+- stałe wydatki miesięcznie,
+- stałe wpływy,
+- kwotę po kosztach stałych,
+- koszt subskrypcji miesięcznie i rocznie,
+- wzrosty opłat.
+
+============================================================
+17. NALEŻNOŚCI I ZOBOWIĄZANIA
+============================================================
+
+DŁUGI -> NALEŻNOŚCI:
+inni są winni pieniądze użytkownikowi.
+
+POŻYCZKI -> ZOBOWIĄZANIA:
+użytkownik jest winien pieniądze.
+
+Należności:
+- osoba,
+- kwota,
+- termin,
+- status,
+- spłaty.
+
+Zobowiązania:
+- wierzyciel,
+- kwota,
+- oprocentowanie,
+- rata,
+- termin,
+- pozostało,
+- historia.
+
+============================================================
+18. ZAROBEK
+============================================================
+
+STANDARD:
+- źródła dochodu,
+- miesięczna wartość,
+- zmienność,
+- historia.
+
+ADVANCED/PERSONAL:
+- projekty,
+- klienci,
+- produkty,
+- sprzedaż,
+- zadania,
+- moduły biznesowe.
+
+Nie mieszać prostego dochodu osobistego z pełnym systemem biznesowym.
+
+============================================================
+19. STATYSTYKI
+============================================================
+
+Cztery główne widoki:
+1. Overview
+2. Wydatki
+3. Cashflow
+4. Majątek
+
+Overview:
+- zmiany,
+- porównania.
+
+Wydatki:
+- kategorie,
+- trendy,
+- średnie,
+- największe wydatki.
+
+Cashflow:
+- wpływy,
+- wydatki,
+- saldo,
+- prognoza.
+
+Majątek:
+- majątek netto,
+- konta,
+- oszczędności,
+- inwestycje,
+- zobowiązania.
+
+============================================================
+20. RAPORTY
+============================================================
+
+STATYSTYKI = eksplorowanie danych.
+RAPORT = gotowa odpowiedź i wnioski.
+
+Przykład:
+RAPORT WRZESIEŃ 2026
+- Przychody,
+- Wydatki,
+- Oszczędności,
+- największa kategoria,
+- największa zmiana,
+- najważniejszy insight.
+
+Raporty:
+- przegląd,
+- zapis,
+- eksport,
+- później automatyczne generowanie.
+
+============================================================
+21. PRZYPOMNIENIA
+============================================================
+
+- rachunki,
+- raty,
+- cele,
+- własne przypomnienia,
+- ważne wydarzenia.
+
+Później:
+- inteligentne przypomnienia,
+- powiadomienia lokalne,
+- sugestie działania.
+
+============================================================
+22. FINORA INTELLIGENCE
+============================================================
+
+Nie tylko chatbot AI. To warstwa analityczna.
+
+Funkcje:
+1. automatyczna kategoryzacja,
+2. nietypowe wydatki,
+3. zmiany trendów,
+4. prognoza salda,
+5. prognoza cashflow,
+6. prognoza celu,
+7. analiza subskrypcji,
+8. analiza budżetu,
+9. sugestie oszczędności,
+10. Financial Health Score,
+11. miesięczne podsumowanie,
+12. sugestie działań.
+
+Przykład:
+"W tym miesiącu wydałeś 23% więcej na restauracje niż średnio
+w ostatnich 3 miesiącach."
+
+============================================================
+23. WHAT-IF / SYMULACJE
+============================================================
+
+Przykład:
+"Co jeśli kupię komputer za 4 000 zł?"
+
+Symulacja:
+- saldo,
+- budżet,
+- oszczędności,
+- cele,
+- cashflow,
+- przyszła sytuacja.
+
+Inne:
+- dodatkowe 500 zł oszczędzania,
+- rezygnacja z subskrypcji,
+- termin osiągnięcia celu.
+
+============================================================
+24. FINANCIAL HEALTH
+============================================================
+
+Opcjonalny wynik kondycji finansowej.
+
+Składniki:
+- płynność,
+- oszczędzanie,
+- zobowiązania,
+- budżet,
+- stabilność cashflow,
+- cele.
+
+Wynik musi być transparentny:
+np. 82/100 + wyjaśnienie plusów i minusów.
+
+============================================================
+25. FINANCIAL TIMELINE
+============================================================
+
+Jedna oś czasu przyszłych wydarzeń:
+DZIŚ -> Wypłata -> Czynsz -> Rata -> Wpływ -> Cel -> Koniec miesiąca.
+
+Użytkownik widzi przyszłość finansową, nie tylko historię.
+
+============================================================
+26. SZYBKIE AKCJE
+============================================================
+
+Desktop: + Dodaj
+Mobile: centralny +
+
+Opcje:
+- Wydatek,
+- Wpływ,
+- Przelew,
+- Cel,
+- Cykliczne,
+- Należność,
+- Zobowiązanie.
+
+Później skróty klawiaturowe.
+
+============================================================
+27. BEZPIECZEŃSTWO
+============================================================
+
+Przed synchronizacją pełny audyt:
+- lokalna baza,
+- szyfrowanie backupu,
+- autoryzacja,
+- synchronizacja,
+- konflikty,
+- Firebase Security Rules, jeśli zostanie użyty,
+- dostęp do danych,
+- udostępnianie należności.
+
+Obecne ścieżki udostępniania danych wymagają ponownego audytu
+przed użyciem produkcyjnym.
+
+Ukrycie elementu w UI nie jest zabezpieczeniem.
+
+============================================================
+28. DANE I MIGRACJE
+============================================================
+
+Wymagane:
+- wersjonowanie schematu,
+- migracje,
+- walidacja,
+- backup przed migracją,
+- rollback.
+
+Schemat:
+stary schemat -> backup -> walidacja -> migracja -> walidacja nowego.
+
+Nie kasować starego modelu bez możliwości odtworzenia.
+
+============================================================
+29. DESIGN SYSTEM
+============================================================
+
+Baza:
+- deep navy / near-black.
+
+Surface:
+- kilka poziomów powierzchni.
+
+Accent:
+- blue/cyan.
+
+Semantic:
+- green / red / amber.
+
+Tekst:
+- primary / secondary / muted.
+
+Spójne:
+- radius,
+- spacing,
+- inputy,
+- ikony,
+- buttony,
+- modale.
+
+Unikać:
+- nadmiernego glow,
+- przypadkowych gradientów,
+- przesadnych cieni,
+- zbyt wielu kolorów,
+- ogromnych kart,
+- każdego elementu jako "pigułki".
+
+============================================================
+30. DASHBOARD GRID
+============================================================
+
+Prawdziwy CSS Grid zamiast pionowej listy.
+
+Widgety:
+- small,
+- medium,
+- large,
+- full.
+
+Grid responsywny i kompatybilny z drag & drop.
+
+============================================================
+31. MOBILE
+============================================================
+
+Mobile jako osobny projekt UX.
+
+Top:
+Finora + powiadomienia.
+
+Najważniejsze:
+Przegląd | Pieniądze | Budżet | Cele
+
+Dolny pasek:
+- Przegląd,
+- Pieniądze,
+- +,
+- Statystyki,
+- Więcej.
+
+Więcej:
+- Cykliczne,
+- Należności,
+- Zobowiązania,
+- Raporty,
+- Przypomnienia,
+- moduły,
+- ustawienia.
+
+============================================================
+32. DOSTĘPNOŚĆ
+============================================================
+
+- odpowiedni kontrast,
+- focus states,
+- klawiatura,
+- aria-label,
+- prawidłowa tabulacja,
+- czytelne błędy,
+- nie polegać wyłącznie na kolorach,
+- odpowiednie rozmiary dotykowe.
+
+============================================================
+33. OBSŁUGA BŁĘDÓW
+============================================================
+
+Każda operacja:
+SUCCESS / ERROR / LOADING / EMPTY / OFFLINE / SYNC ERROR
+
+Komunikaty mają być zrozumiałe dla użytkownika, a nie techniczne.
+
+============================================================
+34. TESTOWANIE
+============================================================
+
+UNIT:
+- obliczenia,
+- budżety,
+- cashflow,
+- procenty,
+- daty,
+- prognozy,
+- migracje.
+
+INTEGRATION:
+- konto,
+- wpływ,
+- wydatek,
+- transfer,
+- budżet,
+- cel,
+- cykliczne.
+
+SECURITY:
+- izolacja użytkowników,
+- brak nieautoryzowanego zapisu,
+- backup/restore,
+- synchronizacja.
+
+UI:
+- desktop,
+- tablet,
+- mobile,
+- dark,
+- light.
+
+REGRESSION:
+- istniejące funkcje po każdej zmianie.
+
+DATA EDGE CASES:
+- puste dane,
+- dużo transakcji,
+- zero,
+- wartości ujemne tam, gdzie dozwolone,
+- duże kwoty,
+- daty,
+- przełom miesiąca/roku.
+
+OFFLINE:
+- start bez internetu,
+- zapis offline,
+- restart,
+- restore,
+- późniejsza synchronizacja.
+
+============================================================
+35. TESTY E2E
+============================================================
+
+Krytyczne przepływy:
+1. uruchomienie,
+2. utworzenie danych,
+3. konto,
+4. wpływ,
+5. wydatek,
+6. transfer,
+7. budżet,
+8. cel,
+9. cykliczna płatność,
+10. raport,
+11. backup,
+12. restore,
+13. motyw,
+14. layout,
+15. offline.
+
+Etap nie jest ukończony bez odpowiednich testów.
+
+============================================================
+36. WERYFIKACJA PRACY AI PROGRAMUJĄCEGO
+============================================================
+
+AI nie może kończyć zadania tylko komunikatem "gotowe".
+
+Musi podać:
+- zmienione pliki,
+- zakres zmian,
+- testy,
+- wyniki,
+- problemy,
+- screenshoty/artefakty UI, gdy potrzebne,
+- build/lint,
+- migracje,
+- bezpieczeństwo.
+
+AI powinno samodzielnie:
+- uruchomić aplikację,
+- przetestować krytyczne ścieżki,
+- sprawdzić konsolę,
+- sprawdzić runtime,
+- wykonać regresję,
+- sprawdzić desktop/mobile.
+
+============================================================
+37. FAZY REALIZACJI
+============================================================
+
+FAZA 0 — BASELINE
+- backup,
+- pełny audyt,
+- testy,
+- dokumentacja danych,
+- legacy inventory.
+
+FAZA 1 — ARCHITEKTURA
+- warstwy,
+- repository,
+- domain logic,
+- storage abstraction,
+- wersjonowanie,
+- migracje.
+
+FAZA 2 — LOCAL-FIRST
+- lokalna baza,
+- zapis/odczyt,
+- offline,
+- migracje,
+- backup/restore.
+
+FAZA 3 — DESIGN SYSTEM
+- branding,
+- logo,
+- dark,
+- light,
+- typography,
+- spacing,
+- komponenty,
+- responsive.
+
+FAZA 4 — CORE UI
+- sidebar,
+- mobile navigation,
+- header,
+- search,
+- quick actions,
+- modale,
+- notifications.
+
+FAZA 5 — PRZEGLĄD
+- dashboard,
+- grid,
+- widgety,
+- personalizacja,
+- cashflow,
+- safe-to-spend,
+- insights.
+
+FAZA 6 — PIENIĄDZE
+- konta,
+- transakcje,
+- transfery,
+- historia,
+- filtry,
+- szybkie dodawanie.
+
+FAZA 7 — PLANOWANIE
+- budżet,
+- cele,
+- cykliczne,
+- należności,
+- zobowiązania,
+- przypomnienia.
+
+FAZA 8 — ANALITYKA
+- statystyki,
+- raporty,
+- Financial Health,
+- timeline.
+
+FAZA 9 — MODUŁY PERSONALNE
+- Giełda,
+- Resale,
+- Strony,
+- system modułów.
+
+FAZA 10 — INTELLIGENCE
+- auto-kategoryzacja,
+- anomaly detection,
+- forecast,
+- goal prediction,
+- insights,
+- what-if.
+
+FAZA 11 — SYNCHRONIZACJA
+- konto opcjonalne,
+- szyfrowanie,
+- sync,
+- conflict resolution,
+- multi-device.
+
+FAZA 12 — AI
+- AI Financial Assistant,
+- analiza danych,
+- podsumowania,
+- konsultowanie decyzji,
+- kontrolowany dostęp do danych.
+
+FAZA 13 — FINAL HARDENING
+- security audit,
+- performance,
+- accessibility,
+- mobile,
+- E2E,
+- backup/restore,
+- regression,
+- release candidate.
+
+============================================================
+38. GOOGLE AI / API
+============================================================
+
+Google AI API nie jest wymagane na początku.
+
+Najpierw:
+- model danych,
+- lokalne obliczenia,
+- analityka,
+- forecast,
+- reguły,
+- Intelligence.
+
+Później:
+
+IntelligenceService
+  +-- Local Rules
+  +-- AI Provider
+          +-- Google AI API
+
+API ma być abstrakcją, aby można było zmienić dostawcę.
+
+Klucz API nie może być ujawniany w kodzie klienta. Jeżeli potrzebny
+jest backend, klucz pozostaje po stronie serwera.
+
+============================================================
+39. AUTOMATYZACJA — PRZYSZŁOŚĆ
+============================================================
+
+Możliwe:
+- automatyczne kategorie,
+- reguły,
+- import bankowy,
+- automatyczne raporty,
+- przypomnienia,
+- planowanie oszczędności,
+- prognozy,
+- AI,
+- synchronizacja.
+
+Każda automatyzacja musi mieć:
+- możliwość wyłączenia,
+- możliwość cofnięcia,
+- historię,
+- jasne wyjaśnienie.
+
+============================================================
+40. IMPORT / EKSPORT
+============================================================
+
+Zachować i rozbudować:
+- CSV export,
+- PDF/report export.
+
+Dodać:
+- CSV import,
+- backup Finora,
+- restore,
+- walidację,
+- preview przed importem.
+
+Przykład:
+"Znaleziono 428 transakcji. 412 poprawnych. 16 wymaga uwagi."
+
+============================================================
+41. PERFORMANCE
+============================================================
+
+Docelowo:
+- selektywne aktualizacje,
+- memoizacja tam, gdzie potrzebna,
+- paginacja/list virtualization,
+- indeksowanie lokalnej bazy,
+- lazy loading modułów,
+- wykresy tylko gdy potrzebne.
+
+Aplikacja ma pozostać szybka przy wieloletniej historii.
+
+============================================================
+42. GLOBAL SEARCH
+============================================================
+
+Wyszukiwanie:
+- transakcje,
+- konta,
+- kategorie,
+- cele,
+- należności,
+- zobowiązania,
+- cykliczne,
+- raporty.
+
+Później:
+"wydatki na jedzenie w czerwcu"
+
+czyli wyszukiwanie semantyczne.
+
+============================================================
+43. HISTORIA ZMIAN / UNDO
+============================================================
+
+Dla ważnych operacji:
+- historia,
+- cofanie,
+- źródło zmiany.
+
+Przykład:
+"Zmieniono kategorię: Jedzenie -> Rozrywka"
+[Cofnij]
+
+============================================================
+44. USTAWIENIA
+============================================================
+
+WYGLĄD
+- dark,
+- light,
+- system,
+- gęstość UI.
+
+DASHBOARD
+- widgety,
+- kolejność,
+- reset.
+
+DANE
+- backup,
+- restore,
+- import,
+- eksport.
+
+PRYWATNOŚĆ
+- lokalne dane,
+- synchronizacja,
+- AI,
+- dane wysyłane poza urządzenie.
+
+MODUŁY
+- aktywacja/dezaktywacja.
+
+POWIADOMIENIA
+- przypomnienia,
+- insighty,
+- alerty.
+
+============================================================
+45. REDUKCJA NIEPOTRZEBNEJ ZŁOŻONOŚCI
+============================================================
+
+Po weryfikacji usunąć lub przebudować:
+- legacy autosave modal,
+- no-op addAutosaveRule,
+- duplikaty funkcji,
+- duplikaty ID,
+- stare ścieżki kompatybilności,
+- niedokończone modele,
+- nieużywane funkcje,
+- zbędne modalne przepływy.
+
+Zasada:
+najpierw udowodnić brak użycia, potem usuwać.
+
+============================================================
+46. PRIORYTETY
+============================================================
+
+P0 — MUSI BYĆ
+- poprawność danych,
+- bezpieczeństwo,
+- backup/restore,
+- local-first,
+- transakcje,
+- konta,
+- budżet,
+- responsywność,
+- stabilność.
+
+P1 — BARDZO WAŻNE
+- dashboard,
+- cele,
+- cykliczne,
+- statystyki,
+- raporty,
+- personalizacja,
+- design system.
+
+P2 — ROZWÓJ
+- Financial Health,
+- timeline,
+- what-if,
+- intelligence,
+- automatyzacja.
+
+P3 — PRZYSZŁOŚĆ
+- AI,
+- synchronizacja,
+- integracje bankowe,
+- kolejne moduły.
+
+============================================================
+47. KRYTERIUM DONE
+============================================================
+
+Etap jest DONE dopiero gdy:
+- funkcja działa,
+- testy przechodzą,
+- brak błędów konsoli,
+- build przechodzi,
+- desktop/mobile działa,
+- dark/light działa,
+- dane są poprawne,
+- edge cases są obsłużone,
+- bezpieczeństwo jest sprawdzone,
+- regresja nie wykazuje problemów,
+- są dowody wykonania.
+
+============================================================
+48. DOCELOWY OBRAZ FINORY
+============================================================
+
+Finora ma być:
+- nowoczesna,
+- szybka,
+- prywatna,
+- lokalna,
+- inteligentna,
+- konfigurowalna,
+- responsywna,
+- przyszłościowa.
+
+Po otwarciu użytkownik powinien wiedzieć:
+"Gdzie jestem finansowo?"
+"Co wydarzy się dalej?"
+"Czy jestem na dobrej drodze?"
+"Co mogę zrobić lepiej?"
+
+Finora ma pomagać zarządzać przyszłością, nie tylko rejestrować przeszłość.
+
+============================================================
+49. ZASADA REALIZACJI
+============================================================
+
+Nie wykonywać wszystkich faz jednocześnie.
+
+Przed każdą fazą:
+- specyfikacja etapu,
+- kryteria akceptacji,
+- testy,
+- implementacja,
+- audyt,
+- dopiero przejście dalej.
+
+Konkretne frameworki i biblioteki należy dobrać po audycie aktualnego
+projektu, zamiast zakładać je z góry.
+
+============================================================
+KONIEC PLANU
+============================================================

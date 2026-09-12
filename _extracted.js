@@ -1,25 +1,7 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moje Finanse</title>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>
-  if (localStorage.getItem('finapp_theme') === 'dark') document.documentElement.classList.add('dark');
   tailwind.config = { darkMode: 'class' };
   if (new URLSearchParams(window.location.search).get('view') === 'debt') {
     document.documentElement.classList.add('is-guest-mode');
   }
-</script>
-<script>
   /* Inicjalizacja Firebase — przeniesiona tutaj (z dawnego miejsca w środku pliku),
      żeby firebase.auth() był gotowy zanim uruchomi się ekran logowania w <body>. */
   const firebaseConfig = {
@@ -33,591 +15,6 @@
     measurementId: "G-66WSEQC5RE"
   };
   firebase.initializeApp(firebaseConfig);
-</script>
-<style>
-  body { font-family: 'Inter', system-ui, sans-serif; }
-  .is-guest-mode aside { display: none !important; }
-  .is-guest-mode .md\:hidden.flex.items-center.justify-between.mb-6 { display: none !important; }
-  .is-guest-mode nav.md\:hidden.fixed.bottom-0 { display: none !important; }
-  /* Guard: guest mode may only ever show the guest-view tab, regardless of any
-     other JS trying to switch tabs. This is a client-side safety net on top of
-     the JS-level guest routing — it does not by itself guarantee data isolation
-     (see security notes), but prevents accidental UI leakage of other tabs. */
-  .is-guest-mode .tab-content:not(#tab-guest-view) { display: none !important; }
-  .is-guest-mode #global-search-overlay { display: none !important; }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; animation: fadeIn .2s ease; }
-
-  /* Dashboard: kontener konfigurowalnych kafelków (HOME / STATYSTYKI / RAPORT).
-     Domyślnie: pojedyncza kolumna z odstępem równym dawnemu space-y-5
-     sekcji nadrzędnej (1.25rem) — układ kolumnowy/siatkowy oraz obsługa
-     przeciągania (SortableJS) zostaną dopięte w kolejnym kroku. */
-  .dashboard-grid { display: flex; flex-direction: column; gap: 1.25rem; }
-  .dashboard-tile { min-width: 0; position: relative; }
-
-  /* Dashboard: tryb edycji — kafelki dostają przerywaną ramkę + lekką
-     "wibrację" (jak ikony na ekranie startowym telefonu), sygnalizując,
-     że można je przeciągać i usuwać. */
-  .dashboard-grid.edit-mode .dashboard-tile {
-    border: 2px dashed #a5b4fc;
-    border-radius: 1rem;
-    cursor: grab;
-    animation: dashboardTileWiggle .22s ease-in-out infinite;
-    user-select: none;
-  }
-  .dark .dashboard-grid.edit-mode .dashboard-tile { border-color: #6366f1; }
-  .dashboard-grid.edit-mode .dashboard-tile:nth-child(even) { animation-delay: .09s; }
-  .dashboard-grid.edit-mode .dashboard-tile:active { cursor: grabbing; }
-  @keyframes dashboardTileWiggle {
-    0%   { transform: rotate(-0.5deg); }
-    50%  { transform: rotate(0.5deg); }
-    100% { transform: rotate(-0.5deg); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .dashboard-grid.edit-mode .dashboard-tile { animation: none; }
-  }
-  /* W trybie edycji linki/przyciski WEWNĄTRZ kafelka (np. "Zobacz", karty kont)
-     wizualnie nie reagują — nawigację blokuje też JS (dashboardEditClickGuard),
-     to tylko podpowiedź wizualna że kafelek jest teraz "nieaktywny". */
-  .dashboard-grid.edit-mode .dashboard-tile { opacity: .97; }
-
-  /* Czerwony przycisk "X" do ukrywania kafelka — widoczny tylko w trybie edycji */
-  .dashboard-tile-remove-btn {
-    position: absolute; top: -9px; right: -9px; z-index: 5;
-    width: 26px; height: 26px; border-radius: 999px;
-    background: #ef4444; color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,.25);
-    border: 2px solid #fff; cursor: pointer;
-    transition: transform .12s ease;
-  }
-  .dark .dashboard-tile-remove-btn { border-color: #0f172a; }
-  .dashboard-tile-remove-btn:hover { background: #dc2626; }
-  .dashboard-tile-remove-btn:active { transform: scale(.9); }
-
-  /* Przycisk "+ Dodaj kafelek" — pojawia się na dole siatki w trybie edycji */
-  .dashboard-add-tile-btn {
-    display: flex; align-items: center; justify-content: center; gap: .5rem;
-    width: 100%; padding: .9rem; border-radius: 1rem;
-    border: 2px dashed #c7d2fe; color: #6366f1; font-weight: 700; font-size: .8rem;
-    background: transparent; cursor: pointer; transition: .15s;
-  }
-  .dashboard-add-tile-btn:hover { background: #eef2ff; border-color: #a5b4fc; }
-  .dark .dashboard-add-tile-btn { border-color: #3730a3; color: #a5b4fc; }
-  .dark .dashboard-add-tile-btn:hover { background: rgba(99,102,241,.1); }
-
-  /* Klasy nadawane przez SortableJS podczas przeciągania */
-  .dashboard-tile-ghost  { opacity: .35; }
-  .dashboard-tile-chosen { box-shadow: 0 14px 30px -8px rgba(99,102,241,.4); }
-  .dashboard-tile-drag   { cursor: grabbing !important; }
-
-  /* Przycisk "Edytuj układ" / "Zapisz układ" */
-  .dashboard-edit-btn.is-editing {
-    background: linear-gradient(135deg,#10b981,#059669) !important;
-    border-color: #059669 !important;
-    color: #fff !important;
-  }
-  .dark .dashboard-edit-btn.is-editing { background: linear-gradient(135deg,#059669,#047857) !important; }
-  @keyframes fadeIn { from {opacity:0;transform:translateY(5px)} to {opacity:1;transform:translateY(0)} }
-
-  /* Tryb Dyskretny: płynne przejście przy maskowaniu/odsłanianiu kwot */
-  @keyframes privacyFade { 0%{opacity:.35; filter:blur(3px);} 100%{opacity:1; filter:blur(0);} }
-  .privacy-fade { animation: privacyFade .4s ease; }
-  #privacy-toggle-desktop.privacy-active, #privacy-toggle-mobile.privacy-active { color:#6366f1; }
-  .dark #privacy-toggle-desktop.privacy-active, .dark #privacy-toggle-mobile.privacy-active { color:#a5b4fc; }
-  #privacy-toggle-desktop i, #privacy-toggle-mobile i { transition: transform .25s ease, opacity .25s ease; }
-  @media(prefers-reduced-motion:reduce){ .privacy-fade { animation:none; } }
-  .nav-btn { color: #6b7280; }
-  .nav-btn.active { background:#fff; color:#4f46e5; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .dark .nav-btn { color:#94a3b8; }
-  .dark .nav-btn.active { background:#1e293b; color:#a5b4fc; box-shadow:0 1px 3px rgba(0,0,0,.3); }
-  ::-webkit-scrollbar{width:5px;height:5px}
-  ::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:10px}
-  .dark ::-webkit-scrollbar-thumb{background:#475569}
-  .budget-bar { transition: width .6s cubic-bezier(.4,0,.2,1); }
-  .goal-bar   { transition: width .6s cubic-bezier(.4,0,.2,1); }
-  input[type=range]{accent-color:#6366f1}
-  .toast { animation: toastIn .3s ease, toastOut .3s ease 2.7s forwards; }
-  @keyframes toastIn  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-  @keyframes toastOut { from{opacity:1} to{opacity:0;pointer-events:none} }
-
-  /* Money tab: place sub-tabs (Konto / Skarbonka / Giełda) */
-  .money-place-tab-btn { position:relative; }
-  .money-place-tab-btn.active[data-place-tab="konto"]     { border-color:#3b82f6 !important; background:linear-gradient(135deg,#eff6ff,#dbeafe) !important; color:#1d4ed8 !important; box-shadow:0 6px 18px -6px rgba(59,130,246,.4); }
-  .money-place-tab-btn.active[data-place-tab="skarbonka"] { border-color:#10b981 !important; background:linear-gradient(135deg,#ecfdf5,#d1fae5) !important; color:#065f46 !important; box-shadow:0 6px 18px -6px rgba(16,185,129,.4); }
-  .money-place-tab-btn.active[data-place-tab="gielda"]    { border-color:#f59e0b !important; background:linear-gradient(135deg,#fffbeb,#fef3c7) !important; color:#92400e !important; box-shadow:0 6px 18px -6px rgba(245,158,11,.4); }
-  .dark .money-place-tab-btn.active[data-place-tab="konto"]     { background:linear-gradient(135deg,#1e3a5f,#1e2f4d) !important; border-color:#3b82f6 !important; color:#60a5fa !important; box-shadow:0 6px 18px -6px rgba(59,130,246,.3); }
-  .dark .money-place-tab-btn.active[data-place-tab="skarbonka"] { background:linear-gradient(135deg,#022c22,#04231c) !important; border-color:#10b981 !important; color:#34d399 !important; box-shadow:0 6px 18px -6px rgba(16,185,129,.3); }
-  .dark .money-place-tab-btn.active[data-place-tab="gielda"]    { background:linear-gradient(135deg,#451a03,#3a1502) !important; border-color:#f59e0b !important; color:#fbbf24 !important; box-shadow:0 6px 18px -6px rgba(245,158,11,.3); }
-
-  /* Money tab: type toggle */
-  .type-toggle-btn { color:#94a3b8; transition:.18s; }
-  .type-toggle-btn.active[data-type="expense"] { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#e11d48; box-shadow:0 2px 8px rgba(225,29,72,.18), inset 0 0 0 1.5px rgba(225,29,72,.25); }
-  .type-toggle-btn.active[data-type="income"]  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#059669; box-shadow:0 2px 8px rgba(5,150,105,.18), inset 0 0 0 1.5px rgba(5,150,105,.25); }
-  .dark .type-toggle-btn.active[data-type="expense"] { background:linear-gradient(135deg,#3f1725,#2a0f19); color:#fb7185; box-shadow:0 2px 10px rgba(0,0,0,.3), inset 0 0 0 1.5px rgba(251,113,133,.3); }
-  .dark .type-toggle-btn.active[data-type="income"]  { background:linear-gradient(135deg,#0b2e22,#062017); color:#34d399; box-shadow:0 2px 10px rgba(0,0,0,.3), inset 0 0 0 1.5px rgba(52,211,153,.3); }
-
-  /* Earn tab: type toggle (Krok 10) */
-  .earn-type-toggle-btn { color:#94a3b8; }
-  .earn-type-toggle-btn.active[data-type="expense"] { background:#fff; color:#e11d48; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .earn-type-toggle-btn.active[data-type="income"]  { background:#fff; color:#059669; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .dark .earn-type-toggle-btn.active[data-type="expense"] { background:#1e293b; color:#fb7185; box-shadow:0 1px 3px rgba(0,0,0,.3); }
-  .dark .earn-type-toggle-btn.active[data-type="income"]  { background:#1e293b; color:#34d399; box-shadow:0 1px 3px rgba(0,0,0,.3); }
-
-  /* Money tab: category / place pickers */
-  .pick-btn {
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.3rem;
-    padding:.6rem .4rem; border-radius:.9rem; border:1.5px solid transparent;
-    background:#f8fafc; cursor:pointer; transition:.15s; text-align:center;
-  }
-  .dark .pick-btn { background:#1e293b; }
-  .pick-btn span { font-size:.68rem; font-weight:600; line-height:1.1; color:#64748b; }
-  .dark .pick-btn span { color:#94a3b8; }
-  .pick-btn:hover { border-color:#c7d2fe; }
-  .pick-btn.selected { border-color:currentColor; background:color-mix(in srgb, currentColor 12%, transparent); }
-  .pick-btn.selected span { color:inherit; }
-  .pick-icon-wrap {
-    width:2rem; height:2rem; border-radius:.65rem; display:flex; align-items:center; justify-content:center;
-  }
-
-  /* Money tab: category grid — mini "app tile" treatment (scoped to #t-category-grid only) */
-  #t-category-grid .pick-btn {
-    padding:.75rem .5rem; border-radius:1.15rem;
-    box-shadow:0 1px 2px rgba(0,0,0,.03);
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-  }
-  #t-category-grid .pick-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 18px -6px rgba(0,0,0,.10);
-  }
-  .dark #t-category-grid .pick-btn:hover { box-shadow: 0 8px 18px -6px rgba(0,0,0,.4); }
-  #t-category-grid .pick-btn.selected {
-    box-shadow: 0 8px 20px -6px color-mix(in srgb, currentColor 45%, transparent);
-  }
-  #t-category-grid .pick-btn span { font-size:.63rem; letter-spacing:.01em; }
-  #t-category-grid .pick-icon-wrap { box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-
-  /* Money tab: day group header — pill date badge + accent line */
-  .day-group-header {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:.4rem .5rem .4rem .75rem; font-size:.7rem; font-weight:700; letter-spacing:.03em;
-    color:#94a3b8; text-transform:uppercase;
-    position:relative;
-  }
-  .day-group-header::before {
-    content:''; position:absolute; left:0; top:50%; transform:translateY(-50%);
-    width:3px; height:65%; border-radius:3px;
-    background:linear-gradient(180deg,#818cf8,#c084fc);
-  }
-  .day-group-header > span:first-child {
-    display:inline-flex; align-items:center;
-    background:#f1f5f9; border-radius:999px; padding:.3rem .7rem;
-  }
-  .dark .day-group-header > span:first-child { background:#1e293b; }
-
-  /* Goals: ring progress */
-  .goal-ring-bg { stroke:#f1f5f9; }
-  .dark .goal-ring-bg { stroke:#1e293b; }
-  .goal-ring-fg { transition: stroke-dashoffset .6s cubic-bezier(.4,0,.2,1); }
-
-  /* Tags */
-  .tag-chip {
-    display:inline-flex; align-items:center; gap:.25rem;
-    padding:.15rem .5rem; border-radius:.5rem; font-size:.65rem; font-weight:700;
-    background:#e0e7ff; color:#4f46e5; cursor:pointer; transition:.15s; white-space:nowrap;
-  }
-  .dark .tag-chip { background:#312e81; color:#a5b4fc; }
-  .tag-chip:hover { background:#c7d2fe; }
-  .dark .tag-chip:hover { background:#3730a3; }
-  .tag-chip.active { background:#6366f1; color:#fff; }
-  .dark .tag-chip.active { background:#4f46e5; color:#fff; }
-  .tag-input-wrap { display:flex; flex-wrap:wrap; gap:.35rem; align-items:center; padding:.4rem .6rem; border-radius:.75rem; border:1.5px solid #e2e8f0; background:#f8fafc; min-height:2.5rem; cursor:text; transition:.15s; }
-  .dark .tag-input-wrap { border-color:#334155; background:#1e293b; }
-  .tag-input-wrap:focus-within { border-color:#a5b4fc; box-shadow:0 0 0 3px rgba(165,180,252,.15); }
-  .tag-input-wrap input { flex:1; min-width:80px; background:transparent; outline:none; border:none; font-size:.8rem; color:inherit; }
-
-  /* Global search overlay */
-  #global-search-overlay { animation: fadeIn .15s ease; }
-  #global-search-overlay.closing { animation: fadeOut .15s ease forwards; }
-  @keyframes fadeOut { from{opacity:1} to{opacity:0} }
-  .gsearch-result-item { transition:.12s; cursor:pointer; }
-  .gsearch-result-item:hover { background:#f1f5f9; }
-  .dark .gsearch-result-item:hover { background:#1e293b; }
-  mark.ghl { background:transparent; color:#6366f1; font-weight:700; }
-  .dark mark.ghl { color:#a5b4fc; }
-  /* Giełda op-type buttons */
-  .gielda-op-btn.active[data-gop="wplata"]  { border-color:#3b82f6 !important; background:#eff6ff !important; color:#1d4ed8 !important; }
-  .gielda-op-btn.active[data-gop="wyplata"] { border-color:#ef4444 !important; background:#fef2f2 !important; color:#b91c1c !important; }
-  .gielda-op-btn.active[data-gop="zarobek"] { border-color:#10b981 !important; background:#ecfdf5 !important; color:#065f46 !important; }
-  .gielda-op-btn.active[data-gop="strata"]  { border-color:#f59e0b !important; background:#fffbeb !important; color:#92400e !important; }
-  .dark .gielda-op-btn.active[data-gop="wplata"]  { background:#1e3a5f !important; color:#93c5fd !important; }
-  .dark .gielda-op-btn.active[data-gop="wyplata"] { background:#450a0a !important; color:#fca5a5 !important; }
-  .dark .gielda-op-btn.active[data-gop="zarobek"] { background:#022c22 !important; color:#6ee7b7 !important; }
-  .dark .gielda-op-btn.active[data-gop="strata"]  { background:#451a03 !important; color:#fcd34d !important; }
-
-  /* Debtor export modal: scope/format toggle buttons */
-  .export-scope-btn, .export-format-btn { background:#fff; border-color:#e2e8f0; color:#64748b; }
-  .export-scope-btn.active, .export-format-btn.active { border-color:#6366f1 !important; background:#eef2ff !important; color:#4338ca !important; }
-  .dark .export-scope-btn, .dark .export-format-btn { background:#1e293b; border-color:#334155; color:#94a3b8; }
-  .dark .export-scope-btn.active, .dark .export-format-btn.active { background:#312e81 !important; border-color:#6366f1 !important; color:#c7d2fe !important; }
-
-  /* ── ENHANCED HOME & MONEY STYLES ── */
-
-  /* Wealth hero card — glassmorphic fin-tech redesign */
-  .hero-wealth-card {
-    background:
-      radial-gradient(circle at 1px 1px, rgba(255,255,255,.14) 1px, transparent 0) 0 0/20px 20px,
-      radial-gradient(130% 95% at 12% -15%, rgba(199,193,255,.45) 0%, transparent 60%),
-      linear-gradient(135deg, #4f46e5 0%, #7c3aed 52%, #5b21b6 100%);
-    border-radius: 2rem;
-    padding: 2rem 2.25rem;
-    color: white;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 20px 60px -10px rgba(99,102,241,.4);
-  }
-  .dark .hero-wealth-card {
-    background:
-      radial-gradient(circle at 1px 1px, rgba(255,255,255,.09) 1px, transparent 0) 0 0/20px 20px,
-      radial-gradient(130% 95% at 12% -15%, rgba(129,120,255,.35) 0%, transparent 60%),
-      linear-gradient(135deg, #3730a3 0%, #5b21b6 55%, #4c1d95 100%);
-    box-shadow: 0 20px 60px -10px rgba(99,102,241,.22);
-  }
-  .hero-wealth-card::before {
-    content:''; position:absolute; top:-40px; right:-40px;
-    width:220px; height:220px; border-radius:50%;
-    background: radial-gradient(circle, rgba(255,255,255,.14) 0%, transparent 70%);
-    filter: blur(2px);
-  }
-  .hero-wealth-card::after {
-    content:''; position:absolute; bottom:-60px; left:-30px;
-    width:180px; height:180px; border-radius:50%;
-    background: radial-gradient(circle, rgba(255,255,255,.08) 0%, transparent 70%);
-    filter: blur(2px);
-  }
-
-  /* Account card enhanced */
-  .account-card {
-    background: #fff;
-    border-radius: 1.5rem;
-    padding: 1.4rem;
-    border: 1.5px solid #e2e8f0; /* slate-200 */
-    box-shadow: 0 2px 12px rgba(0,0,0,.04);
-    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-    cursor: pointer;
-  }
-  .dark .account-card { background:#0f172a; border-color:#1e293b; box-shadow:none; } /* slate-800 */
-  .account-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,.09); border-color:#cbd5e1; }
-  .dark .account-card:hover { box-shadow: 0 12px 28px rgba(0,0,0,.35); border-color:#334155; }
-
-  .account-card-icon {
-    width: 3rem; height: 3rem; border-radius: 1rem;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: .9rem;
-    position: relative;
-  }
-  /* Glow blur sitting behind the icon circle — color set per variant below */
-  .account-card-icon::after {
-    content:''; position:absolute; inset:-8px; border-radius:1.35rem;
-    filter: blur(11px); z-index:-1; opacity:.6; transition: opacity .18s ease;
-  }
-  .account-card:hover .account-card-icon::after { opacity:.85; }
-  .account-card-icon-blue::after     { background: radial-gradient(circle, rgba(59,130,246,.55) 0%, transparent 72%); }
-  .account-card-icon-emerald::after  { background: radial-gradient(circle, rgba(16,185,129,.55) 0%, transparent 72%); }
-  .account-card-icon-amber::after    { background: radial-gradient(circle, rgba(245,158,11,.55) 0%, transparent 72%); }
-
-  .account-card-amount {
-    font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; line-height: 1;
-    margin-bottom: .25rem;
-  }
-
-  .account-card-label {
-    font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
-    color: #94a3b8;
-  }
-
-  /* Quick stat pill — premium 3-col grid tile */
-  .stat-pill {
-    background: #f8fafc; border: 1.5px solid #e2e8f0;
-    border-radius: 1rem; /* rounded-2xl */
-    padding: .95rem 1.1rem;
-    display: flex; align-items: center; justify-content: space-between; gap: .75rem;
-    box-shadow: 0 1px 3px 0 rgba(0,0,0,.05), 0 1px 2px -1px rgba(0,0,0,.05); /* shadow-sm */
-    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease, background .18s ease;
-  }
-  .dark .stat-pill { background:#0f172a; border-color:#1e293b; box-shadow:none; }
-  .stat-pill:hover {
-    border-color:#a5b4fc; transform: translateY(-2px);
-    box-shadow: 0 10px 24px -6px rgba(99,102,241,.18);
-    background: #fff;
-  }
-  .dark .stat-pill:hover { background:#131f38; box-shadow: 0 10px 24px -6px rgba(99,102,241,.25); }
-  .stat-pill-icon {
-    width: 2.4rem; height: 2.4rem; border-radius: .75rem;
-    display: flex; align-items: center; justify-content: center; shrink-0: 0;
-    flex-shrink: 0;
-  }
-
-  /* Home section cards */
-  .home-section-card {
-    background: #fff; border-radius: 1.5rem;
-    border: 1.5px solid #f1f5f9;
-    box-shadow: 0 2px 12px rgba(0,0,0,.04);
-    overflow: hidden;
-  }
-  .dark .home-section-card { background:#0f172a; border-color:#1e293b; box-shadow:none; }
-  .home-section-card-header {
-    padding: 1rem; border-bottom: 1.5px solid #f1f5f9;
-    display: flex; align-items: center; justify-content: space-between;
-    background: linear-gradient(180deg, rgba(248,250,252,.7) 0%, rgba(248,250,252,0) 100%);
-  }
-  .dark .home-section-card-header {
-    border-bottom-color:#1e293b;
-    background: linear-gradient(180deg, rgba(30,41,59,.35) 0%, rgba(30,41,59,0) 100%);
-  }
-  @media (min-width: 640px) {
-    .home-section-card-header { padding: 1.25rem 1.5rem; }
-  }
-  .home-section-card-body { padding: 1.1rem 1.4rem; }
-
-  /* Recent transaction row */
-  .recent-tx-row {
-    display: flex; align-items: center; gap: .75rem;
-    padding: .6rem .75rem; border-radius: 1rem;
-    transition: background .12s;
-  }
-  .recent-tx-row:hover { background: #f8fafc; }
-  .dark .recent-tx-row:hover { background:#1e293b; }
-
-  /* Alternating micro-background for the Home "recent transactions" list only */
-  #recent-transactions > div:nth-child(even) {
-    background: rgba(248,250,252,.75); border-radius: .9rem;
-  }
-  .dark #recent-transactions > div:nth-child(even) {
-    background: rgba(30,41,59,.4);
-  }
-
-  /* ── Money tab enhanced ── */
-  .place-tab-card {
-    border-radius: 1.25rem; padding: .85rem 1rem;
-    border: 2px solid transparent; cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; gap: .35rem;
-    transition: all .18s ease;
-    background: #fff;
-  }
-  .dark .place-tab-card { background:#1e293b; }
-  .place-tab-card:hover { border-color:#c7d2fe; }
-  .place-tab-card.active-konto    { border-color:#3b82f6; background:#eff6ff; }
-  .place-tab-card.active-skarbonka{ border-color:#10b981; background:#ecfdf5; }
-  .dark .place-tab-card.active-konto     { background:#1e3a5f; border-color:#3b82f6; }
-  .dark .place-tab-card.active-skarbonka { background:#022c22; border-color:#10b981; }
-
-  /* Money hero bar enhanced */
-  .money-hero-bar {
-    border-radius: 1.75rem; padding: 1.5rem 1.75rem; color: white;
-    position: relative; overflow: hidden;
-    box-shadow: 0 16px 40px -14px rgba(30,64,175,.45);
-  }
-  .dark .money-hero-bar { box-shadow: 0 16px 40px -14px rgba(30,64,175,.25); }
-  .money-hero-bar::before {
-    content:''; position:absolute; top:-30px; right:-30px;
-    width:170px; height:170px; border-radius:50%;
-    background: radial-gradient(circle, rgba(255,255,255,.16) 0%, transparent 70%);
-  }
-  .money-hero-bar::after {
-    content:''; position:absolute; bottom:-45px; left:12%;
-    width:140px; height:140px; border-radius:50%;
-    background: radial-gradient(circle, rgba(255,255,255,.08) 0%, transparent 70%);
-  }
-  .money-hero-bar .stat-item { text-align: center; }
-  .money-hero-bar .stat-item-val { font-size: 1.05rem; font-weight:900; line-height:1; letter-spacing:-.01em; }
-  .money-hero-bar .stat-item-label { font-size:.65rem; font-weight:600; opacity:.75; margin-top:.25rem; text-transform:uppercase; letter-spacing:.06em; }
-  #money-place-total { text-shadow: 0 2px 10px rgba(0,0,0,.18); }
-
-  /* Form card Money */
-  .money-form-card {
-    background:#fff; border-radius:1.5rem;
-    border:1.5px solid #f1f5f9; box-shadow:0 2px 12px rgba(0,0,0,.04);
-    overflow:hidden;
-  }
-  .dark .money-form-card { background:#0f172a; border-color:#1e293b; box-shadow:none; }
-  .money-form-header {
-    background: linear-gradient(135deg,#f8fafc,#f1f5f9);
-    padding:.9rem 1.4rem; border-bottom:1.5px solid #f1f5f9;
-    display:flex; align-items:center; justify-content:space-between;
-  }
-  .dark .money-form-header { background:linear-gradient(135deg,#1e293b,#0f172a); border-bottom-color:#1e293b; }
-  .money-form-body { padding:1.3rem 1.4rem; }
-
-  /* Big amount input */
-  .amount-input-wrap {
-    background: linear-gradient(135deg,#f8fafc,#f1f5f9);
-    border:2px solid #e2e8f0; border-radius:1.25rem;
-    padding:.75rem 1rem; display:flex; align-items:center; gap:.75rem;
-    transition:border-color .15s, box-shadow .15s;
-  }
-  .dark .amount-input-wrap { background:#1e293b; border-color:#334155; }
-  .amount-input-wrap:focus-within { border-color:#818cf8; box-shadow:0 0 0 4px rgba(129,140,248,.12); }
-  .amount-input-wrap input {
-    background:transparent; border:none; outline:none;
-    font-size:1.9rem; font-weight:800; letter-spacing:-.02em;
-    color:#1e293b; width:100%;
-  }
-  .dark .amount-input-wrap input { color:#f1f5f9; }
-
-  /* Money tab: #t-amount "digital display" variant — scoped so other amount
-     inputs elsewhere in the app (which override via inline style anyway)
-     keep their own look */
-  .amount-input-wrap.t-amount-display {
-    background: linear-gradient(135deg,#f8fafc,#f1f5f9);
-    border-radius:1.5rem; padding:1.25rem 1.5rem;
-    justify-content:center; gap:.5rem;
-  }
-  .dark .amount-input-wrap.t-amount-display { background:linear-gradient(135deg,#1e293b,#0f172a); }
-  .amount-input-wrap.t-amount-display input {
-    font-size:2.75rem; font-weight:900; letter-spacing:-.03em;
-    text-align:center; width:auto; flex:0 1 auto; max-width:65%;
-  }
-  .amount-input-wrap.t-amount-display .amount-currency {
-    font-size:1.35rem; font-weight:800;
-    background:#e2e8f0; color:#64748b; border-radius:.75rem; padding:.2rem .6rem;
-  }
-  .dark .amount-input-wrap.t-amount-display .amount-currency { background:#334155; color:#cbd5e1; }
-  .amount-currency {
-    font-size:1.1rem; font-weight:700; color:#94a3b8; flex-shrink:0;
-  }
-
-  /* Submit button glow */
-  .btn-add-expense {
-    background: linear-gradient(135deg,#e11d48,#f43f5e);
-    box-shadow: 0 4px 20px rgba(225,29,72,.3);
-    color:white; border-radius:1rem; padding:.75rem 1.5rem;
-    font-weight:700; font-size:.9rem; transition:all .18s; border:none; cursor:pointer;
-    display:flex; align-items:center; gap:.5rem;
-  }
-  .btn-add-expense:hover { box-shadow:0 6px 28px rgba(225,29,72,.4); transform:translateY(-1px); }
-  .btn-add-income {
-    background: linear-gradient(135deg,#059669,#10b981);
-    box-shadow: 0 4px 20px rgba(5,150,105,.3);
-    color:white; border-radius:1rem; padding:.75rem 1.5rem;
-    font-weight:700; font-size:.9rem; transition:all .18s; border:none; cursor:pointer;
-    display:flex; align-items:center; gap:.5rem;
-  }
-  .btn-add-income:hover { box-shadow:0 6px 28px rgba(5,150,105,.4); transform:translateY(-1px); }
-
-  /* Section eyebrow label */
-  .eyebrow {
-    font-size:.65rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
-    color:#94a3b8;
-  }
-
-  /* Pulse dot for live/active indicators */
-  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.4)} }
-  .pulse-dot { width:7px; height:7px; border-radius:50%; display:inline-block; animation:pulse-dot 2s ease infinite; }
-
-  /* Micro chart bar */
-  .micro-bar-bg { height:.5rem; border-radius:99px; background:#f1f5f9; overflow:hidden; }
-  .dark .micro-bar-bg { background:#1e293b; }
-  .micro-bar-fill { height:100%; border-radius:99px; transition:width .6s cubic-bezier(.4,0,.2,1); }
-
-  @media(prefers-reduced-motion:reduce){
-    .account-card,.btn-add-expense,.btn-add-income { transition:none; }
-    .account-card:hover { transform:none; }
-  }
-
-  /* ═══════════ Wspólne klasy karty (używane przez ekran logowania) ═══════════ */
-  .auth-brand-card {
-    width:100%; max-width:320px; margin:0 1.25rem;
-    background:rgba(255,255,255,.06); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-    border:1px solid rgba(255,255,255,.12); border-radius:1.75rem;
-    padding:2rem 1.75rem 1.75rem; box-shadow:0 20px 60px -15px rgba(0,0,0,.6);
-    text-align:center;
-  }
-  .auth-brand-icon {
-    width:3.25rem; height:3.25rem; border-radius:1.1rem; margin:0 auto .9rem;
-    display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 8px 24px -6px rgba(99,102,241,.5);
-    color:#fff;
-  }
-  .auth-brand-title { color:#f1f5f9; font-size:1.05rem; font-weight:700; letter-spacing:.01em; }
-  .auth-brand-subtitle { color:#94a3b8; font-size:.75rem; margin-top:.25rem; }
-
-  /* ═══════════ AUTH OVERLAY (logowanie / rejestracja) ═══════════ */
-  #auth-overlay {
-    position:fixed; inset:0; z-index:10000;
-    display:flex; align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at top,#1e1b4b 0%,#0f172a 55%,#020617 100%);
-  }
-  #auth-overlay.hidden { display:none !important; }
-  .auth-card { max-width:340px; padding:2rem 1.75rem 1.75rem; }
-  .auth-error {
-    background:rgba(251,113,133,.12); border:1px solid rgba(251,113,133,.3);
-    color:#fda4af; font-size:.72rem; font-weight:600; border-radius:.75rem;
-    padding:.55rem .75rem; margin:.9rem 0 0; text-align:left;
-  }
-  .auth-error.hidden { display:none; }
-  .auth-form { display:flex; flex-direction:column; gap:.6rem; margin-top:1.1rem; }
-  .auth-input {
-    width:100%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14);
-    border-radius:.9rem; padding:.7rem .9rem; color:#f1f5f9; font-size:.85rem;
-    outline:none; transition:border-color .15s ease, background .15s ease;
-  }
-  .auth-input::placeholder { color:#64748b; }
-  .auth-input:focus { border-color:#a5b4fc; background:rgba(255,255,255,.09); }
-  .auth-primary-btn {
-    margin-top:.3rem; width:100%; padding:.75rem; border-radius:.9rem; border:none;
-    background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; font-size:.85rem; font-weight:700;
-    cursor:pointer; box-shadow:0 8px 20px -6px rgba(99,102,241,.5); transition:transform .1s ease, opacity .15s ease;
-  }
-  .auth-primary-btn:hover { opacity:.92; }
-  .auth-primary-btn:active { transform:scale(.98); }
-  .auth-primary-btn:disabled { opacity:.6; cursor:default; }
-  .auth-divider { display:flex; align-items:center; gap:.75rem; margin:1.1rem 0; color:#475569; font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
-  .auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.1); }
-  .auth-google-btn {
-    width:100%; display:flex; align-items:center; justify-content:center; gap:.6rem;
-    padding:.68rem; border-radius:.9rem; border:1px solid rgba(255,255,255,.14);
-    background:rgba(255,255,255,.04); color:#e2e8f0; font-size:.8rem; font-weight:600;
-    cursor:pointer; transition:background .15s ease;
-  }
-  .auth-google-btn:hover { background:rgba(255,255,255,.09); }
-  .auth-google-btn:disabled { opacity:.6; cursor:default; }
-  .auth-switch-line { margin-top:1.1rem; font-size:.75rem; color:#94a3b8; }
-  .auth-switch-btn { background:none; border:none; color:#a5b4fc; font-weight:700; cursor:pointer; margin-left:.3rem; padding:0; font-size:.75rem; }
-  .auth-switch-btn:hover { text-decoration:underline; }
-</style>
-</head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen pb-20 md:pb-0 transition-colors duration-200">
-
-<!-- ═══════════ AUTH OVERLAY (logowanie / rejestracja) ═══════════ -->
-<div id="auth-overlay">
-  <div class="auth-brand-card auth-card" id="auth-card">
-    <div class="auth-brand-icon"><i data-lucide="wallet" class="w-6 h-6"></i></div>
-    <p class="auth-brand-title">Moje Finanse</p>
-    <p class="auth-brand-subtitle" id="auth-subtitle">Zaloguj się, aby zobaczyć swoje dane</p>
-
-    <div id="auth-error-msg" class="auth-error hidden"></div>
-
-    <form id="auth-form" class="auth-form" onsubmit="return false;">
-      <input type="email" id="auth-email" class="auth-input" placeholder="E-mail" autocomplete="email" required>
-      <input type="password" id="auth-password" class="auth-input" placeholder="Hasło" autocomplete="current-password" required>
-      <button type="button" id="auth-submit-btn" class="auth-primary-btn" onclick="handleAuthSubmit()">Zaloguj się</button>
-    </form>
-
-    <div class="auth-divider"><span>lub</span></div>
-
-    <button type="button" id="auth-google-btn" class="auth-google-btn" onclick="handleGoogleSignIn()">
-      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.5-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.5 5.1 29.6 3 24 3c-7.5 0-14 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.9 14.1-5.1l-6.5-5.5C29.5 36 26.9 37 24 37c-5.3 0-9.7-3.1-11.3-7.9l-6.6 5C9.9 40.6 16.4 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.5 5.5C41.3 36.4 45 30.9 45 24c0-1.4-.1-2.5-.4-3.5z"/></svg>
-      Kontynuuj z Google
-    </button>
-
-    <p class="auth-switch-line">
-      <span id="auth-switch-text">Nie masz konta?</span>
-      <button type="button" class="auth-switch-btn" id="auth-switch-btn" onclick="toggleAuthMode()">Zarejestruj się</button>
-    </p>
-  </div>
-</div>
-<script>
 (function() {
   const _isGuestLink = new URLSearchParams(window.location.search).get('view') === 'debt';
   const overlay = document.getElementById('auth-overlay');
@@ -720,2714 +117,6 @@
     }
   });
 })();
-</script>
-
-<div class="md:flex">
-
-  <!-- SIDEBAR -->
-  <aside class="hidden md:flex md:flex-col md:w-64 md:min-h-screen bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-6 transition-colors duration-200 shrink-0">
-    <div class="flex items-center gap-2.5 mb-10">
-      <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 dark:shadow-none">
-        <i data-lucide="wallet" class="w-5 h-5"></i>
-      </div>
-      <span class="text-lg font-bold">Moje Finanse</span>
-    </div>
-    <nav class="flex flex-col gap-0.5" id="desktop-nav"></nav>
-    <div class="mt-auto space-y-1">
-      <div id="sidebar-user-info" class="flex items-center gap-2.5 px-3 py-2.5 mb-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-        <div id="sidebar-user-avatar" class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">?</div>
-        <span id="sidebar-user-email" class="text-xs font-medium text-slate-600 dark:text-slate-300 truncate">—</span>
-      </div>
-      <button onclick="openGlobalSearch()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition w-full">
-        <i data-lucide="search" class="w-4 h-4"></i> Szukaj globalnie <kbd class="ml-auto text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5">Ctrl+K</kbd>
-      </button>
-      <button onclick="switchTab('export')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition w-full">
-        <i data-lucide="download" class="w-4 h-4"></i> Eksportuj
-      </button>
-      <button onclick="printPDF()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition w-full">
-        <i data-lucide="printer" class="w-4 h-4"></i> Drukuj / PDF
-      </button>
-      <button id="theme-toggle-desktop" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition w-full">
-        <i data-lucide="moon" class="w-4 h-4 theme-icon-dark"></i>
-        <i data-lucide="sun" class="w-4 h-4 theme-icon-light hidden"></i>
-        <span class="theme-toggle-label">Tryb ciemny</span>
-      </button>
-      <button id="privacy-toggle-desktop" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition w-full">
-        <i data-lucide="eye" class="w-4 h-4 privacy-icon-off"></i>
-        <i data-lucide="eye-off" class="w-4 h-4 privacy-icon-on hidden"></i>
-        <span class="privacy-toggle-label">Tryb dyskretny</span>
-      </button>
-      <button onclick="handleSignOut()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition w-full">
-        <i data-lucide="log-out" class="w-4 h-4"></i> Wyloguj się
-      </button>
-      <p class="text-xs text-slate-400 px-3 pt-2">Dane zapisane na Twoim koncie.</p>
-    </div>
-  </aside>
-
-  <!-- MAIN -->
-  <main class="flex-1 min-w-0 max-w-5xl mx-auto w-full px-4 md:px-8 py-6">
-
-    <!-- Mobile header -->
-    <div class="md:hidden flex items-center justify-between mb-6">
-      <div class="flex items-center gap-2">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white">
-          <i data-lucide="wallet" class="w-4 h-4"></i>
-        </div>
-        <span class="text-lg font-bold">Moje Finanse</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <button onclick="openGlobalSearch()" class="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300" title="Szukaj (Ctrl+K)">
-          <i data-lucide="search" class="w-4 h-4"></i>
-        </button>
-        <button id="privacy-toggle-mobile" class="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300" title="Tryb dyskretny">
-          <i data-lucide="eye" class="w-4 h-4 privacy-icon-off"></i>
-          <i data-lucide="eye-off" class="w-4 h-4 privacy-icon-on hidden"></i>
-        </button>
-        <button id="theme-toggle-mobile" class="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300">
-          <i data-lucide="moon" class="w-4 h-4 theme-icon-dark"></i>
-          <i data-lucide="sun" class="w-4 h-4 theme-icon-light hidden"></i>
-        </button>
-        <button onclick="handleSignOut()" class="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-rose-500 dark:text-rose-400" title="Wyloguj się">
-          <i data-lucide="log-out" class="w-4 h-4"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- ═══════════ TAB: HOME ═══════════ -->
-    <section id="tab-home" class="tab-content active space-y-5">
-
-      <!-- Page header -->
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="eyebrow mb-1">Przegląd</p>
-          <h1 class="text-2xl font-bold tracking-tight">Twoje finanse</h1>
-        </div>
-        <div class="flex items-center gap-2">
-          <div class="text-xs text-slate-400 text-right hidden sm:block bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-1.5" id="home-month-label"></div>
-          <button id="dashboard-edit-btn-home" type="button" onclick="toggleDashboardEditMode('home')"
-            class="dashboard-edit-btn shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-            <i data-lucide="pencil" class="w-3.5 h-3.5"></i><span>Edytuj układ</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="dashboard-grid" data-tab="home">
-
-      <!-- Wealth hero card — redesigned -->
-      <div class="dashboard-tile hero-wealth-card cursor-pointer hover:brightness-110 active:scale-[0.99] transition" data-widget-id="net_worth" onclick="openWealthStatsModal()" title="Zobacz statystyki miesięczne majątku">
-        <div class="relative z-10">
-          <p class="text-indigo-100/90 dark:text-indigo-200/80 text-xs font-semibold uppercase tracking-widest mb-2">Całkowity majątek netto</p>
-          <p id="total-wealth" class="text-5xl md:text-6xl font-black tracking-tight mb-1 leading-none drop-shadow-[0_2px_10px_rgba(0,0,0,.18)]">0,00 zł</p>
-          <p class="text-indigo-200/70 text-[11px] font-medium mb-0.5 flex items-center gap-1"><i data-lucide="bar-chart-2" class="w-3 h-3"></i> Statystyki miesięczne</p>
-          <p id="hero-debts-note" class="text-xs text-indigo-200/80 mb-4 hidden">w tym <span id="hero-debts-val" class="font-semibold text-white"></span> do odzyskania od dłużników</p>
-          <!-- Month stats row -->
-          <div class="flex flex-wrap gap-1.5 mt-5 pt-4 border-t border-white/15">
-            <div class="flex-1 min-w-[80px] bg-white/10 rounded-2xl p-3 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,.15)]">
-              <p class="text-indigo-100/80 text-[10px] font-semibold uppercase tracking-wide">Przychody</p>
-              <p id="home-month-income" class="text-white font-bold text-sm mt-0.5">+0,00 zł</p>
-            </div>
-            <div class="flex-1 min-w-[80px] bg-white/10 rounded-2xl p-3 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,.15)]">
-              <p class="text-indigo-100/80 text-[10px] font-semibold uppercase tracking-wide">Wydatki</p>
-              <p id="home-month-expense" class="text-white font-bold text-sm mt-0.5">−0,00 zł</p>
-            </div>
-            <div class="flex-1 min-w-[80px] bg-white/10 rounded-2xl p-3 backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,.15)]">
-              <p class="text-indigo-100/80 text-[10px] font-semibold uppercase tracking-wide">Saldo mc</p>
-              <p id="home-month-balance" class="text-white font-bold text-sm mt-0.5">0,00 zł</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Widget: Safe-to-Spend (bezpieczny budżet dzienny) -->
-      <div id="safe-to-spend-widget" class="dashboard-tile home-section-card ring-1 ring-inset ring-slate-100 dark:ring-slate-800/60" data-widget-id="safe_to_spend">
-        <div class="home-section-card-body" style="padding:1.1rem 1.4rem;">
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-              <div id="sts-icon-wrap" class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center shrink-0 shadow-[0_0_0_6px_rgba(16,185,129,.06)]">
-                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-500"></i>
-              </div>
-              <div class="min-w-0">
-                <div class="flex items-center gap-1 mb-0.5">
-                  <p class="eyebrow">Dzienny Budżet (Safe-to-Spend)</p>
-                  <div class="relative group shrink-0">
-                    <i data-lucide="info" class="w-3 h-3 text-slate-300 dark:text-slate-600 cursor-help"></i>
-                    <div class="pointer-events-none opacity-0 group-hover:opacity-100 transition absolute z-20 left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 text-[11px] leading-snug font-normal normal-case text-white bg-slate-800 dark:bg-slate-700 rounded-xl px-3 py-2 shadow-xl">
-                      Kwota, którą możesz bezpiecznie wydać każdego dnia do końca miesiąca po zabezpieczeniu środków na rachunki i oszczędności.
-                      <div class="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 dark:bg-slate-700 rotate-45 -mt-1"></div>
-                    </div>
-                  </div>
-                </div>
-                <p id="sts-amount" class="text-xl font-black leading-none text-emerald-600 dark:text-emerald-400">0,00 zł <span class="text-xs font-semibold text-slate-400">/ dzień</span></p>
-              </div>
-            </div>
-            <div class="text-right shrink-0">
-              <p class="eyebrow mb-0.5">Dni do końca mies.</p>
-              <p id="sts-days-left" class="text-sm font-bold text-slate-400">0</p>
-            </div>
-          </div>
-          <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p class="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Wolne środki</p>
-              <p id="sts-free-funds" class="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">0,00 zł</p>
-            </div>
-            <div>
-              <p class="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Rachunki</p>
-              <p id="sts-bills" class="text-xs font-bold text-rose-500 mt-0.5">0,00 zł</p>
-            </div>
-            <div>
-              <p class="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Cele</p>
-              <p id="sts-goals" class="text-xs font-bold text-indigo-500 mt-0.5">0,00 zł</p>
-            </div>
-          </div>
-          <p id="sts-warning" class="hidden text-xs text-rose-500 font-semibold mt-2 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 shrink-0"></i><span></span></p>
-        </div>
-      </div>
-
-      <!-- Account cards — enhanced with icon accent + hover -->
-      <div class="dashboard-tile grid grid-cols-1 sm:grid-cols-3 gap-3" data-widget-id="accounts_summary">
-        <!-- Konto -->
-        <div class="account-card" onclick="switchTab('money')">
-          <div class="account-card-icon account-card-icon-blue bg-blue-50 dark:bg-blue-500/10">
-            <i data-lucide="landmark" class="w-5 h-5 text-blue-500"></i>
-          </div>
-          <p class="account-card-label">Konto bankowe</p>
-          <p id="sum-konto" class="account-card-amount text-blue-600 dark:text-blue-400">0,00 zł</p>
-          <div class="micro-bar-bg w-full mt-3">
-            <div class="micro-bar-fill bg-blue-400" id="bar-konto" style="width:0%"></div>
-          </div>
-        </div>
-        <!-- Skarbonka -->
-        <div class="account-card" onclick="switchTab('money')">
-          <div class="account-card-icon account-card-icon-emerald bg-emerald-50 dark:bg-emerald-500/10">
-            <i data-lucide="piggy-bank" class="w-5 h-5 text-emerald-500"></i>
-          </div>
-          <p class="account-card-label">Skarbonka</p>
-          <p id="sum-skarbonka" class="account-card-amount text-emerald-600 dark:text-emerald-400">0,00 zł</p>
-          <div class="micro-bar-bg w-full mt-3">
-            <div class="micro-bar-fill bg-emerald-400" id="bar-skarbonka" style="width:0%"></div>
-          </div>
-        </div>
-        <!-- Giełda -->
-        <div class="account-card" onclick="switchTab('money')">
-          <div class="account-card-icon account-card-icon-amber bg-amber-50 dark:bg-amber-500/10">
-            <i data-lucide="trending-up" class="w-5 h-5 text-amber-500"></i>
-          </div>
-          <p class="account-card-label">Giełda</p>
-          <p id="sum-gielda" class="account-card-amount text-amber-600 dark:text-amber-400">0,00 zł</p>
-          <div class="micro-bar-bg w-full mt-3">
-            <div class="micro-bar-fill bg-amber-400" id="bar-gielda" style="width:0%"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Widget: Dzisiaj wydałem -->
-      <div id="today-spent-widget" class="dashboard-tile home-section-card ring-1 ring-inset ring-slate-100 dark:ring-slate-800/60" data-widget-id="today_spent">
-        <div class="home-section-card-body" style="padding:1.1rem 1.4rem;">
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="relative w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center shrink-0 shadow-[0_0_0_6px_rgba(244,63,94,.06)]">
-                <i data-lucide="receipt" class="w-5 h-5 text-rose-500"></i>
-              </div>
-              <div class="min-w-0">
-                <p class="eyebrow mb-0.5">Dzisiaj wydałem</p>
-                <p id="today-spent-amount" class="text-xl font-black leading-none text-slate-800 dark:text-slate-100">0,00 zł</p>
-              </div>
-            </div>
-            <div class="text-right shrink-0">
-              <p class="eyebrow mb-0.5">Śr. dzienna</p>
-              <p id="today-avg-amount" class="text-sm font-bold text-slate-400">0,00 zł</p>
-            </div>
-          </div>
-          <!-- Progress bar relative to daily average -->
-          <div class="mt-3">
-            <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
-              <div id="today-spent-bar" class="h-2.5 rounded-full transition-all duration-700 ease-out bg-emerald-400" style="width:0%"></div>
-            </div>
-            <p id="today-spent-label" class="text-xs text-slate-400 mt-1.5 font-medium">Brak wydatków dzisiaj</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick stat pills: Debts / Goals / Loans -->
-      <div class="dashboard-tile grid grid-cols-1 sm:grid-cols-3 gap-3" data-widget-id="quick_stats">
-        <div class="stat-pill">
-          <div class="flex items-center gap-3">
-            <div class="stat-pill-icon bg-rose-50 dark:bg-rose-500/10">
-              <i data-lucide="hand-coins" class="w-4 h-4 text-rose-500"></i>
-            </div>
-            <div>
-              <p class="eyebrow mb-0.5">Inni mi winni</p>
-              <p id="sum-debts" class="text-lg font-bold leading-none">0,00 zł</p>
-            </div>
-          </div>
-          <button onclick="switchTab('debts')" class="text-xs text-indigo-500 font-bold hover:text-indigo-700 transition shrink-0 flex items-center gap-1">
-            <span>Zobacz</span><i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-        <div class="stat-pill">
-          <div class="flex items-center gap-3">
-            <div class="stat-pill-icon bg-violet-50 dark:bg-violet-500/10">
-              <i data-lucide="target" class="w-4 h-4 text-violet-500"></i>
-            </div>
-            <div>
-              <p class="eyebrow mb-0.5">Oszczędzanie</p>
-              <p id="sum-goals" class="text-lg font-bold leading-none">0 aktywnych</p>
-            </div>
-          </div>
-          <button onclick="switchTab('goals')" class="text-xs text-indigo-500 font-bold hover:text-indigo-700 transition shrink-0 flex items-center gap-1">
-            <span>Zobacz</span><i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-        <div class="stat-pill">
-          <div class="flex items-center gap-3">
-            <div class="stat-pill-icon bg-rose-50 dark:bg-rose-500/10">
-              <i data-lucide="credit-card" class="w-4 h-4 text-rose-500"></i>
-            </div>
-            <div>
-              <p class="eyebrow mb-0.5">Moje pożyczki</p>
-              <p id="sum-loans" class="text-lg font-bold leading-none">0,00 zł</p>
-            </div>
-          </div>
-          <button onclick="switchTab('loans')" class="text-xs text-indigo-500 font-bold hover:text-indigo-700 transition shrink-0 flex items-center gap-1">
-            <span>Zobacz</span><i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Rule 50/30/20 quick view — in card with header -->
-      <div id="home-rule-box" class="dashboard-tile home-section-card" data-widget-id="budget_rule">
-        <div class="home-section-card-header">
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/15 ring-1 ring-inset ring-indigo-500/10 flex items-center justify-center flex-shrink-0">
-              <i data-lucide="percent" class="w-4 h-4 text-indigo-500"></i>
-            </div>
-            <div>
-              <p class="font-bold text-sm leading-tight">Reguła budżetowa</p>
-              <p class="text-xs text-slate-400">50 / 30 / 20</p>
-            </div>
-          </div>
-          <button onclick="switchTab('reports')" class="text-xs text-indigo-500 font-bold hover:text-indigo-700 transition flex items-center gap-1">
-            <span>Raport</span><i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-        <div class="home-section-card-body">
-          <div id="home-rule-content" class="space-y-3"></div>
-        </div>
-      </div>
-
-      <!-- Budget quick summary — in card with header -->
-      <div id="home-budget-summary" class="dashboard-tile home-section-card" data-widget-id="monthly_budget">
-        <div class="home-section-card-header">
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/15 ring-1 ring-inset ring-indigo-500/10 flex items-center justify-center flex-shrink-0">
-              <i data-lucide="wallet-2" class="w-4 h-4 text-indigo-500"></i>
-            </div>
-            <div>
-              <p class="font-bold text-sm leading-tight">Budżet</p>
-              <p class="text-xs text-slate-400">Ten miesiąc</p>
-            </div>
-          </div>
-          <button onclick="switchTab('budget')" class="text-xs text-indigo-500 font-bold hover:text-indigo-700 transition flex items-center gap-1">
-            <span>Zarządzaj</span><i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-        <div class="home-section-card-body">
-          <div id="home-budget-bars" class="space-y-3"></div>
-        </div>
-      </div>
-
-      <!-- Recent transactions — in card -->
-      <div class="dashboard-tile home-section-card" data-widget-id="recent_transactions">
-        <div class="home-section-card-header">
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/15 ring-1 ring-inset ring-indigo-500/10 flex items-center justify-center flex-shrink-0">
-              <i data-lucide="clock" class="w-4 h-4 text-indigo-500"></i>
-            </div>
-            <div>
-              <p class="font-bold text-sm leading-tight">Ostatnie transakcje</p>
-              <p class="text-xs text-slate-400">Najnowsze operacje</p>
-            </div>
-          </div>
-          <button onclick="switchTab('money')" class="text-xs text-indigo-500 font-bold hover:text-indigo-700 transition flex items-center gap-1">
-            <span>Wszystkie</span><i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-        <div class="home-section-card-body">
-          <div id="recent-transactions" class="space-y-1"></div>
-        </div>
-      </div>
-
-      </div><!-- /.dashboard-grid[data-tab="home"] -->
-
-      <!-- Recurring due notice -->
-      <div id="home-recurring-banner" data-recurring-banner class="hidden bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700/50 rounded-2xl p-4 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-            <i data-lucide="repeat" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
-          </div>
-          <p class="text-sm text-amber-800 dark:text-amber-200 font-medium" id="recurring-due-home"></p>
-        </div>
-        <button onclick="switchTab('recurring')" class="px-3 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition shrink-0 flex items-center gap-1.5">
-          <i data-lucide="check" class="w-3.5 h-3.5"></i> Zaksięguj
-        </button>
-      </div>
-    </section>
-
-    <!-- ═══════════ TAB: MONEY ═══════════ -->
-    <section id="tab-money" class="tab-content space-y-5">
-      <!-- Header -->
-      <div>
-        <p class="eyebrow mb-1">Operacje</p>
-        <h1 class="text-2xl font-bold tracking-tight">Pieniądze</h1>
-      </div>
-
-      <!-- Place sub-tabs: Konto / Skarbonka — enhanced as cards -->
-      <div class="grid grid-cols-2 gap-3" id="money-place-tabs">
-        <button type="button" data-place-tab="konto" onclick="switchMoneyPlace('konto')"
-          class="money-place-tab-btn flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl text-sm font-bold transition-all duration-200 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-blue-300 hover:shadow-sm">
-          <div class="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-            <i data-lucide="landmark" class="w-4 h-4 text-blue-500"></i>
-          </div>
-          Konto bankowe
-        </button>
-        <button type="button" data-place-tab="skarbonka" onclick="switchMoneyPlace('skarbonka')"
-          class="money-place-tab-btn flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl text-sm font-bold transition-all duration-200 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-emerald-300 hover:shadow-sm">
-          <div class="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
-            <i data-lucide="piggy-bank" class="w-4 h-4 text-emerald-500"></i>
-          </div>
-          Skarbonka
-        </button>
-      </div>
-
-      <!-- Mini summary hero bar — enhanced -->
-      <div id="money-place-summary-bar" class="money-hero-bar" style="background:linear-gradient(135deg,#2563eb,#4f46e5)">
-        <div class="relative z-10">
-          <div class="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p id="money-place-hero-label" class="text-blue-100 text-[10px] font-black uppercase tracking-widest mb-1.5">Konto</p>
-              <p id="money-place-total" class="text-3xl font-black tracking-tight leading-none">0,00 zł</p>
-              <p id="money-place-hero-sub" class="text-blue-200 text-xs mt-1.5 font-medium">Saldo całkowite</p>
-            </div>
-            <div class="flex gap-3 flex-wrap">
-              <div class="bg-white/15 rounded-xl p-3 text-center min-w-[76px] backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,.18)]">
-                <p class="stat-item-label text-blue-100">Wpływy</p>
-                <p id="money-month-income" class="stat-item-val text-white mt-1">0,00 zł</p>
-              </div>
-              <div class="bg-white/15 rounded-xl p-3 text-center min-w-[76px] backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,.18)]">
-                <p class="stat-item-label text-blue-100">Wypłaty</p>
-                <p id="money-month-expense" class="stat-item-val text-white mt-1">0,00 zł</p>
-              </div>
-              <div class="bg-white/15 rounded-xl p-3 text-center min-w-[76px] backdrop-blur-md border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,.18)]">
-                <p class="stat-item-label text-blue-100">Saldo mc</p>
-                <p id="money-month-balance" class="stat-item-val text-white mt-1">0,00 zł</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Add transaction form — enhanced card -->
-      <div class="money-form-card">
-        <div class="money-form-header">
-          <div class="flex items-center gap-2.5">
-            <div class="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center">
-              <i data-lucide="circle-plus" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
-            </div>
-            <p class="font-bold text-sm">Nowa operacja</p>
-          </div>
-          <button type="button" onclick="openTemplatesModal()" class="flex items-center gap-1.5 text-xs font-bold text-indigo-500 hover:text-indigo-700 transition border border-indigo-200 dark:border-indigo-500/30 rounded-xl px-3 py-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-500/10">
-            <i data-lucide="bookmark" class="w-3.5 h-3.5"></i> Szablony
-          </button>
-        </div>
-        <form id="transaction-form" class="money-form-body space-y-4">
-
-          <!-- Type segmented toggle — bold pill style -->
-          <div class="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-800 rounded-2xl p-1.5">
-            <button type="button" data-type="expense" onclick="setTransactionType('expense')"
-              class="type-toggle-btn flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition">
-              <i data-lucide="trending-down" class="w-4 h-4"></i> Wydatek
-            </button>
-            <button type="button" data-type="income" onclick="setTransactionType('income')"
-              class="type-toggle-btn flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition">
-              <i data-lucide="trending-up" class="w-4 h-4"></i> Wpływ
-            </button>
-          </div>
-          <input type="hidden" id="t-type" value="expense">
-
-          <!-- Big amount input -->
-          <div>
-            <label class="eyebrow mb-2 block">Kwota</label>
-            <div class="amount-input-wrap t-amount-display">
-              <i data-lucide="banknote" class="w-5 h-5 text-slate-400 flex-shrink-0 hidden sm:block"></i>
-              <input required type="number" step="0.01" min="0.01" id="t-amount" placeholder="0,00">
-              <span class="amount-currency">zł</span>
-            </div>
-          </div>
-
-          <!-- Category picker (icon grid) -->
-          <div>
-            <label class="eyebrow mb-2 block">Kategoria</label>
-            <div id="t-category-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-2"></div>
-            <input type="hidden" id="t-category">
-          </div>
-
-          <!-- Place picker (hidden – set automatically from the active sub-tab) -->
-          <div class="hidden">
-            <div id="t-place-grid" class="grid grid-cols-3 gap-2"></div>
-            <input type="hidden" id="t-place" value="konto">
-          </div>
-
-          <!-- Desc + Date row -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="eyebrow mb-2 block">Opis</label>
-              <div class="relative">
-                <i data-lucide="pencil-line" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                <input required type="text" id="t-desc" placeholder="np. Zakupy Biedronka"
-                  class="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 pl-9 pr-3 py-2.5 text-sm font-medium focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20 transition">
-              </div>
-            </div>
-            <div>
-              <label class="eyebrow mb-2 block">Data</label>
-              <div class="relative">
-                <i data-lucide="calendar" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                <input required type="date" id="t-date"
-                  class="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 pl-9 pr-3 py-2.5 text-sm font-medium focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20 transition">
-              </div>
-            </div>
-          </div>
-
-          <!-- Action row -->
-          <div class="flex flex-wrap items-center gap-2 pt-1">
-            <button type="submit" id="t-submit-btn" class="btn-add-expense flex-1 sm:flex-none justify-center">
-              <i data-lucide="plus" class="w-4 h-4"></i> Dodaj operację
-            </button>
-            <button type="button" onclick="saveCurrentAsTemplate()" class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-500 transition border-2 border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 hover:border-indigo-200 dark:hover:border-indigo-500/30">
-              <i data-lucide="bookmark-plus" class="w-3.5 h-3.5"></i> Zapisz szablon
-            </button>
-          </div>
-
-          <!-- Tags + Notes expandable row -->
-          <div class="pt-1 border-t border-slate-100 dark:border-slate-800">
-            <button type="button" onclick="toggleTagsNotesPanel()" class="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-indigo-500 transition mt-2" id="tags-notes-toggle-btn">
-              <i data-lucide="tag" class="w-3.5 h-3.5"></i> Tagi i notatka
-              <i data-lucide="chevron-down" class="w-3 h-3 transition-transform" id="tags-notes-chevron"></i>
-            </button>
-            <div id="tags-notes-panel" class="hidden space-y-3 mt-3">
-              <div>
-                <label class="eyebrow mb-1.5 block">Tagi <span class="text-slate-400 font-normal normal-case">(Enter lub przecinek, żeby dodać)</span></label>
-                <div class="tag-input-wrap" id="t-tags-wrap" onclick="document.getElementById('t-tag-input').focus()">
-                  <div id="t-tags-chips" class="contents"></div>
-                  <input id="t-tag-input" type="text" placeholder="np. #urlop, #dom, #pilne" autocomplete="off"
-                    onkeydown="handleTagInput(event,'t')" oninput="showTagSuggestions('t')">
-                </div>
-                <div id="t-tag-suggestions" class="hidden absolute z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto text-sm"></div>
-                <input type="hidden" id="t-tags-value">
-              </div>
-              <div>
-                <label class="eyebrow mb-1.5 block">Notatka</label>
-                <textarea id="t-note" rows="2" placeholder="Dodatkowe informacje do tej transakcji…"
-                  class="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20 transition resize-none"></textarea>
-              </div>
-            </div>
-          </div>
-
-          <!-- Duplicate warning banner -->
-          <div id="duplicate-warning" class="hidden items-center gap-2 bg-amber-50 dark:bg-amber-500/10 border-2 border-amber-200 dark:border-amber-500/30 rounded-2xl px-4 py-3 text-amber-700 dark:text-amber-400">
-            <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
-            <p class="text-xs font-semibold flex-1" id="duplicate-warning-text">Wykryto podobną transakcję.</p>
-            <button type="button" onclick="dismissDuplicateWarning()" class="text-amber-500 hover:text-amber-700 transition shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Transactions list -->
-      <div class="home-section-card">
-        <div class="home-section-card-header">
-          <div class="flex items-center gap-2.5">
-            <div class="w-7 h-7 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/15 ring-1 ring-inset ring-indigo-500/10 flex items-center justify-center">
-              <i data-lucide="list" class="w-4 h-4 text-indigo-500"></i>
-            </div>
-            <p class="font-bold text-sm">Historia operacji <span id="money-place-list-label" class="text-slate-400 font-normal"></span></p>
-          </div>
-          <div class="flex items-center gap-2">
-            <p id="transactions-count" class="text-xs text-slate-400 font-medium"></p>
-            <button onclick="toggleMoneyFilters()" id="money-filters-toggle" class="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-500 transition border-2 border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 hover:border-indigo-200">
-              <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i> Filtry
-            </button>
-          </div>
-        </div>
-
-        <!-- Filters (collapsible) -->
-        <div id="money-filters" class="hidden px-5 pt-4 pb-5 border-b border-slate-100 dark:border-slate-800 space-y-3 bg-slate-50/70 dark:bg-slate-800/30">
-          <div class="relative">
-            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-            <input id="filter-search" oninput="renderTransactions()" type="text" placeholder="Szukaj opisu…"
-              class="w-full rounded-2xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 bg-white pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-indigo-400 transition">
-          </div>
-          <div class="flex flex-wrap gap-2 items-center">
-            <select id="filter-type" onchange="renderTransactions()" class="rounded-2xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 bg-white px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-indigo-400 transition">
-              <option value="">Wszystkie typy</option>
-              <option value="expense">Wydatki</option>
-              <option value="income">Wpływy</option>
-            </select>
-            <select id="filter-category" onchange="renderTransactions()" class="rounded-2xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 bg-white px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-indigo-400 transition">
-              <option value="">Wszystkie kategorie</option>
-            </select>
-            <select id="filter-month" onchange="renderTransactions()" class="rounded-2xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 bg-white px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-indigo-400 transition">
-              <option value="">Wszystkie miesiące</option>
-            </select>
-            <select id="filter-place" onchange="renderTransactions()" class="hidden rounded-2xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 bg-white px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-indigo-400 transition">
-              <option value="">Wszystkie miejsca</option>
-              <option value="konto">Konto bankowe</option>
-              <option value="skarbonka">Skarbonka</option>
-              <option value="gielda">Giełda</option>
-            </select>
-            <button onclick="clearFilters()" class="text-xs text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition px-2 py-1.5 font-semibold">✕ Wyczyść</button>
-          </div>
-          <!-- Active tag filter chips -->
-          <div id="filter-tags-row" class="hidden flex-wrap gap-1.5 pt-1"></div>
-        </div>
-
-        <div class="home-section-card-body">
-          <div id="transactions-list" class="space-y-4"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════ TAB: BUDGET ═══════════ -->
-    <section id="tab-budget" class="tab-content space-y-5">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">Budżet</h1>
-          <p class="text-slate-500 text-sm mt-0.5">Limity wydatków per kategoria.</p>
-        </div>
-        <button onclick="openBudgetModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition shadow-sm shadow-indigo-200 dark:shadow-none">
-          <i data-lucide="plus" class="w-4 h-4"></i> Nowy limit
-        </button>
-      </div>
-
-      <!-- Month selector -->
-      <div class="flex items-center gap-2">
-        <button onclick="budgetMonthOffset--; renderBudget()" class="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-          <i data-lucide="chevron-left" class="w-4 h-4"></i>
-        </button>
-        <span id="budget-month-label" class="text-sm font-semibold min-w-[120px] text-center"></span>
-        <button onclick="budgetMonthOffset++; renderBudget()" class="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-          <i data-lucide="chevron-right" class="w-4 h-4"></i>
-        </button>
-      </div>
-
-      <!-- Overview card -->
-      <div id="budget-overview" class="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none relative overflow-hidden hidden">
-        <div class="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full"></div>
-        <div class="absolute -bottom-6 -left-6 w-28 h-28 bg-white/5 rounded-full"></div>
-        <div class="flex items-center justify-between gap-4 flex-wrap relative">
-          <div>
-            <p class="text-indigo-100 text-sm font-medium mb-1">Wydano łącznie</p>
-            <p id="budget-overview-spent" class="text-3xl md:text-4xl font-bold tracking-tight">0,00 zł</p>
-            <p id="budget-overview-limit" class="text-xs text-indigo-200 mt-1">z limitu 0,00 zł</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="relative w-16 h-16 shrink-0">
-              <svg viewBox="0 0 36 36" class="w-16 h-16 -rotate-90">
-                <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="3"></circle>
-                <circle id="budget-overview-ring" cx="18" cy="18" r="15.5" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-dasharray="97.4" stroke-dashoffset="97.4"></circle>
-              </svg>
-              <div class="absolute inset-0 flex items-center justify-center">
-                <span id="budget-overview-pct" class="text-sm font-bold">0%</span>
-              </div>
-            </div>
-            <div class="text-right">
-              <p class="text-xs text-indigo-200">Kategorie</p>
-              <p id="budget-overview-count" class="text-sm font-semibold"></p>
-              <p id="budget-overview-over" class="text-xs text-rose-200 mt-1 hidden"></p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="budget-list" class="space-y-3"></div>
-
-      <!-- Suggestions for categories without a budget -->
-      <div id="budget-suggestions" class="hidden">
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 px-1">Dodaj limit dla</p>
-        <div id="budget-suggestions-list" class="flex flex-wrap gap-2"></div>
-      </div>
-    </section>
-
-    <!-- ═══════════ TAB: GOALS ═══════════ -->
-    <section id="tab-goals" class="tab-content space-y-5">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">Oszczędzanie</h1>
-          <p class="text-slate-500 text-sm mt-0.5">Śledź postępy oszczędzania i automatyzuj odkładanie pieniędzy.</p>
-        </div>
-        <button onclick="openGoalModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition shadow-sm shadow-indigo-200 dark:shadow-none">
-          <i data-lucide="plus" class="w-4 h-4"></i> Nowy cel
-        </button>
-      </div>
-
-      <!-- Overview card -->
-      <div id="goals-overview" class="bg-gradient-to-br from-violet-500 to-indigo-600 rounded-3xl p-6 text-white shadow-lg shadow-violet-200 dark:shadow-none relative overflow-hidden hidden">
-        <div class="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full"></div>
-        <div class="absolute -bottom-6 -left-6 w-28 h-28 bg-white/5 rounded-full"></div>
-        <div class="flex items-center justify-between gap-4 flex-wrap relative">
-          <div>
-            <p class="text-violet-100 text-sm font-medium mb-1">Odłożone na cele</p>
-            <p id="goals-overview-current" class="text-3xl md:text-4xl font-bold tracking-tight">0,00 zł</p>
-            <p id="goals-overview-target" class="text-xs text-violet-200 mt-1">z 0,00 zł celu łącznie</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="relative w-16 h-16 shrink-0">
-              <svg viewBox="0 0 36 36" class="w-16 h-16 -rotate-90">
-                <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="3"></circle>
-                <circle id="goals-overview-ring" cx="18" cy="18" r="15.5" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-dasharray="97.4" stroke-dashoffset="97.4"></circle>
-              </svg>
-              <div class="absolute inset-0 flex items-center justify-center">
-                <span id="goals-overview-pct" class="text-sm font-bold">0%</span>
-              </div>
-            </div>
-            <div class="text-right">
-              <p class="text-xs text-violet-200">Cele</p>
-              <p id="goals-overview-count" class="text-sm font-semibold"></p>
-              <p id="goals-overview-done" class="text-xs text-emerald-200 mt-1 hidden"></p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="goals-list" class="space-y-4"></div>
-    </section>
-
-    <!-- ═══════════ TAB: CYKLICZNE ═══════════ -->
-    <section id="tab-recurring" class="tab-content space-y-5">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">Transakcje cykliczne</h1>
-          <p class="text-slate-500 text-sm mt-0.5">Automatyczne wpisy co miesiąc, tydzień lub rok.</p>
-        </div>
-        <button onclick="openRecurringModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition shadow-sm shadow-indigo-200 dark:shadow-none">
-          <i data-lucide="plus" class="w-4 h-4"></i> Nowa
-        </button>
-      </div>
-
-      <!-- Wolna gotówka po stałych kosztach -->
-      <div id="recurring-freecash-hero" class="money-hero-bar" style="background:linear-gradient(135deg,#0f766e,#0d9488)">
-        <div class="relative z-10 flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <p class="text-teal-100 text-[10px] font-black uppercase tracking-widest mb-1.5">Wolna gotówka po stałych kosztach</p>
-            <p id="recurring-freecash-amount" class="text-3xl font-black tracking-tight leading-none">0,00 zł</p>
-            <p class="text-teal-200 text-xs mt-1.5 font-medium">miesięcznie: wpływy cykliczne − wydatki cykliczne</p>
-          </div>
-          <div class="flex gap-3 flex-wrap">
-            <div class="bg-white/10 rounded-xl p-2.5 text-center min-w-[72px] backdrop-blur-sm">
-              <p class="stat-item-label text-teal-100">Wpływy/mc</p>
-              <p id="recurring-freecash-income" class="stat-item-val text-white mt-1">0,00 zł</p>
-            </div>
-            <div class="bg-white/10 rounded-xl p-2.5 text-center min-w-[72px] backdrop-blur-sm">
-              <p class="stat-item-label text-teal-100">Wydatki/mc</p>
-              <p id="recurring-freecash-expense" class="stat-item-val text-white mt-1">0,00 zł</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Summary strip -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="recurring-summary"></div>
-
-      <!-- Book now banner -->
-      <div id="recurring-due-banner" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl p-4 flex items-start gap-3">
-        <i data-lucide="clock" class="w-5 h-5 text-amber-500 shrink-0 mt-0.5"></i>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">Masz transakcje do zaksięgowania</p>
-          <p class="text-xs text-amber-600 dark:text-amber-400 mb-3" id="recurring-due-text"></p>
-          <button onclick="bookAllDue()" class="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition">Zaksięguj wszystkie</button>
-        </div>
-      </div>
-
-      <!-- Kalendarz nadchodzących płatności (30 dni) -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
-        <div class="flex items-center justify-between gap-3 mb-1 flex-wrap">
-          <p class="text-sm font-semibold flex items-center gap-2">
-            <i data-lucide="calendar-days" class="w-4 h-4 text-indigo-400"></i>Nadchodzące płatności — 30 dni
-          </p>
-          <p class="text-xs font-semibold text-slate-400" id="recurring-calendar-total">Razem: 0,00 zł</p>
-        </div>
-        <div id="recurring-calendar-list" class="pt-3"></div>
-        <div id="recurring-calendar-empty" class="hidden text-center py-6">
-          <p class="text-sm text-slate-400">Brak nadchodzących płatności w ciągu najbliższych 30 dni.</p>
-        </div>
-      </div>
-
-      <!-- ═══ VIEW TOGGLE ═══ -->
-      <div class="flex gap-2 bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 w-fit">
-        <button id="rec-view-all-btn" onclick="setRecurringView('all')"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm">
-          <i data-lucide="list" class="w-4 h-4"></i> Wszystkie
-        </button>
-        <button id="rec-view-sub-btn" onclick="setRecurringView('subscriptions')"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition text-slate-500 hover:text-purple-600">
-          <i data-lucide="rss" class="w-4 h-4"></i> Subskrypcje
-        </button>
-      </div>
-
-      <!-- ═══ SUBSCRIPTION GROUP PANEL ═══ -->
-      <div id="subscription-panel" class="hidden space-y-4">
-        <!-- Sub hero -->
-        <div id="sub-hero" class="bg-gradient-to-br from-purple-500 to-violet-600 rounded-3xl p-6 text-white shadow-lg shadow-purple-200 dark:shadow-none relative overflow-hidden">
-          <div class="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full"></div>
-          <div class="absolute -bottom-6 -left-6 w-28 h-28 bg-white/5 rounded-full"></div>
-          <p class="text-purple-100 text-sm font-medium mb-1">Łączny koszt subskrypcji</p>
-          <p id="sub-total-monthly" class="text-4xl font-bold tracking-tight">0,00 zł</p>
-          <p class="text-purple-200 text-xs mt-1">miesięcznie</p>
-          <div class="flex gap-5 mt-4">
-            <div><p class="text-xs text-purple-200">Rocznie</p><p id="sub-total-yearly" class="text-sm font-bold">0,00 zł</p></div>
-            <div><p class="text-xs text-purple-200">Aktywne</p><p id="sub-count-active" class="text-sm font-bold">0</p></div>
-            <div><p class="text-xs text-purple-200">Wstrzymane</p><p id="sub-count-paused" class="text-sm font-bold">0</p></div>
-          </div>
-        </div>
-
-        <!-- Group by service category -->
-        <div id="sub-groups" class="space-y-3"></div>
-
-        <!-- Sub empty -->
-        <div id="sub-empty" class="hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-10 text-center flex flex-col items-center gap-3">
-          <div class="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
-            <i data-lucide="rss" class="w-7 h-7 text-purple-400"></i>
-          </div>
-          <p class="font-semibold">Brak subskrypcji</p>
-          <p class="text-sm text-slate-400 max-w-xs">Dodaj transakcję cykliczną z kategorią <strong>Subskrypcja</strong> lub oznacz istniejącą jako subskrypcję.</p>
-          <button onclick="openRecurringModal()" class="mt-1 px-4 py-2 rounded-xl bg-purple-500 text-white text-sm font-semibold hover:bg-purple-600 transition flex items-center gap-2">
-            <i data-lucide="plus" class="w-4 h-4"></i> Dodaj subskrypcję
-          </button>
-        </div>
-      </div>
-
-      <!-- List (all view) -->
-      <div id="recurring-list" class="space-y-3"></div>
-
-      <!-- Empty state -->
-      <div id="recurring-empty" class="hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-12 text-center flex flex-col items-center gap-3">
-        <div class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-slate-800 flex items-center justify-center">
-          <i data-lucide="repeat" class="w-6 h-6 text-indigo-400"></i>
-        </div>
-        <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Brak transakcji cyklicznych</p>
-        <p class="text-xs text-slate-400">Kliknij „Nowa", aby dodać stały wydatek lub przychód (czynsz, subskrypcja, pensja…).</p>
-        <button onclick="openRecurringModal()" class="mt-1 px-4 py-2 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition">Dodaj pierwszą</button>
-      </div>
-    </section>
-
-    <!-- ═══════════ TAB: DEBTS ═══════════ -->
-    <section id="tab-debts" class="tab-content space-y-5">
-      <div>
-        <h1 class="text-2xl font-bold">Długi</h1>
-        <p class="text-slate-500 text-sm mt-0.5">Osoby, które są Ci winne pieniądze.</p>
-      </div>
-      <div id="debtor-selector-bar" class="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800"></div>
-      <div id="debtor-detail"></div>
-    </section>
-
-
-    <!-- ═══════════ TAB: POZYCZKI ═══════════ -->
-    <section id="tab-loans" class="tab-content space-y-5">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">Pożyczki</h1>
-          <p class="text-slate-500 text-sm mt-0.5">Osoby i instytucje, którym jesteś winien pieniądze.</p>
-        </div>
-      </div>
-      <div id="loans-hero" class="hidden bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-6 md:p-8 text-white shadow-lg shadow-rose-200 dark:shadow-none relative overflow-hidden">
-        <div class="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full"></div>
-        <div class="absolute -bottom-6 -left-6 w-28 h-28 bg-white/5 rounded-full"></div>
-        <p class="text-rose-100 text-sm font-medium mb-1">Łącznie do spłaty</p>
-        <p id="loans-hero-total" class="text-4xl md:text-5xl font-bold tracking-tight">0,00 zł</p>
-        <div class="flex gap-4 mt-4">
-          <div><p class="text-xs text-rose-200">Wierzyciele</p><p id="loans-hero-count" class="text-sm font-semibold">0</p></div>
-          <div><p class="text-xs text-rose-200">Aktywne pożyczki</p><p id="loans-hero-active" class="text-sm font-semibold">0</p></div>
-          <div><p class="text-xs text-rose-200">Spłacone</p><p id="loans-hero-paid" class="text-sm font-semibold">0</p></div>
-        </div>
-      </div>
-      <div id="creditor-selector-bar" class="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800"></div>
-      <div id="creditor-detail"></div>
-    </section>
-    <!-- ═══════════ TAB: ZAROBEK ═══════════ -->
-    <section id="tab-earn" class="tab-content space-y-5">
-
-      <!-- Header -->
-      <div>
-        <p class="eyebrow mb-1">Przychody</p>
-        <h1 class="text-2xl font-bold tracking-tight">Zarobek</h1>
-      </div>
-
-      <!-- Pulpit: łączny zarobek netto ze wszystkich źródeł -->
-      <div id="earn-overview-hero" onclick="openEarnStatsModal()" class="hidden money-hero-bar cursor-pointer hover:brightness-110 active:scale-[0.99] transition" style="background:linear-gradient(135deg,#4338ca,#7c3aed)" title="Zobacz statystyki miesięczne">
-        <div class="relative z-10">
-          <div class="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p class="text-violet-100 text-[10px] font-black uppercase tracking-widest mb-1.5">Łączny zarobek netto · wszystkie źródła</p>
-              <p id="earn-overview-total" class="text-3xl font-black tracking-tight leading-none">0,00 zł</p>
-              <div class="flex items-center gap-2 mt-2 flex-wrap">
-                <span class="text-violet-200 text-xs font-medium">vs poprz. mies. <span id="earn-overview-prev" class="font-semibold text-white">0,00 zł</span></span>
-                <span id="earn-overview-delta" class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/15 text-white"></span>
-              </div>
-            </div>
-            <div id="earn-overview-breakdown" class="flex gap-2.5 flex-wrap"></div>
-          </div>
-          <div class="absolute top-0 right-0 w-7 h-7 rounded-full bg-white/15 flex items-center justify-center">
-            <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-white"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- earn-main-tabs hidden – Giełda is now a profile chip in source-selector-bar -->
-      <div class="hidden" id="earn-main-tabs"></div>
-
-      <!-- === PANEL: ZAROBKI (Strony / Resale) === -->
-      <div id="earn-panel-sources">
-        <!-- Source selector bar — styled as a card with header -->
-        <div class="home-section-card">
-          <div class="home-section-card-header">
-            <div class="flex items-center gap-2.5">
-              <div class="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
-                <i data-lucide="briefcase" class="w-4 h-4 text-indigo-500"></i>
-              </div>
-              <p class="font-bold text-sm">Źródła zarobku</p>
-            </div>
-          </div>
-          <div class="home-section-card-body pt-3 pb-3">
-            <div id="source-selector-bar"></div>
-          </div>
-        </div>
-        <div id="source-detail" class="mt-4"></div>
-      </div>
-
-      <!-- === PANEL: GIEŁDA === -->
-      <div id="earn-panel-gielda" class="hidden space-y-5">
-
-        <!-- D1: Hero Giełda — enhanced -->
-        <div class="money-hero-bar relative" style="background:linear-gradient(135deg,#b45309,#d97706,#f59e0b)">
-          <div class="relative z-10">
-            <p class="text-[10px] font-black uppercase tracking-widest text-amber-100 mb-1.5">Giełda — portfel</p>
-            <p id="gielda-hero-balance" class="text-4xl font-black tracking-tight leading-none mb-1">0,00 zł</p>
-            <p class="text-amber-200 text-xs font-medium mb-4">Aktualne saldo</p>
-            <div class="grid grid-cols-3 gap-2">
-              <div class="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm">
-                <p class="text-[10px] font-bold uppercase tracking-wide text-amber-100 mb-1">Wpłacono</p>
-                <p id="gielda-hero-deposited" class="text-sm font-black">0,00 zł</p>
-              </div>
-              <div class="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm">
-                <p class="text-[10px] font-bold uppercase tracking-wide text-amber-100 mb-1">Zarobiono</p>
-                <p id="gielda-hero-earned" class="text-sm font-black text-emerald-200">0,00 zł</p>
-              </div>
-              <div class="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm">
-                <p class="text-[10px] font-bold uppercase tracking-wide text-amber-100 mb-1">Wypłacono</p>
-                <p id="gielda-hero-withdrawn" class="text-sm font-black text-rose-200">0,00 zł</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sub-tabs: Operacje / Statystyki — enhanced -->
-        <div class="grid grid-cols-2 gap-3">
-          <button type="button" id="gielda-sub-btn-ops" onclick="switchGieldaSubTab('ops')"
-            class="gielda-sub-btn flex items-center justify-center gap-2 py-3 px-4 rounded-2xl text-sm font-bold transition-all bg-white dark:bg-slate-900 border-2 border-amber-400 text-amber-600 shadow-sm">
-            <i data-lucide="list" class="w-4 h-4"></i> Operacje
-          </button>
-          <button type="button" id="gielda-sub-btn-stats" onclick="switchGieldaSubTab('stats')"
-            class="gielda-sub-btn flex items-center justify-center gap-2 py-3 px-4 rounded-2xl text-sm font-bold transition-all bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-amber-300">
-            <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Statystyki
-          </button>
-        </div>
-
-        <!-- PANEL: Operacje -->
-        <div id="gielda-panel-ops" class="space-y-5">
-
-          <!-- D2: Panel dodawania operacji — enhanced card -->
-          <div class="money-form-card">
-            <div class="money-form-header">
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
-                  <i data-lucide="circle-plus" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
-                </div>
-                <p class="font-bold text-sm">Nowa operacja giełdowa</p>
-              </div>
-            </div>
-            <div class="money-form-body space-y-4">
-
-              <!-- Typ operacji — 4 duże przyciski -->
-              <div>
-                <label class="eyebrow mb-2 block">Typ operacji</label>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <button type="button" data-gop="wplata" onclick="selectGieldaOpType('wplata')"
-                    class="gielda-op-btn flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 hover:border-blue-400 transition-all font-bold text-xs">
-                    <div class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-                      <i data-lucide="arrow-down-circle" class="w-5 h-5 text-blue-500"></i>
-                    </div>
-                    Wpłata
-                  </button>
-                  <button type="button" data-gop="wyplata" onclick="selectGieldaOpType('wyplata')"
-                    class="gielda-op-btn flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 hover:border-rose-400 transition-all font-bold text-xs">
-                    <div class="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center">
-                      <i data-lucide="arrow-up-circle" class="w-5 h-5 text-rose-500"></i>
-                    </div>
-                    Wypłata
-                  </button>
-                  <button type="button" data-gop="zarobek" onclick="selectGieldaOpType('zarobek')"
-                    class="gielda-op-btn flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 hover:border-emerald-400 transition-all font-bold text-xs">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
-                      <i data-lucide="trending-up" class="w-5 h-5 text-emerald-500"></i>
-                    </div>
-                    Zarobek
-                  </button>
-                  <button type="button" data-gop="strata" onclick="selectGieldaOpType('strata')"
-                    class="gielda-op-btn flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 hover:border-amber-400 transition-all font-bold text-xs">
-                    <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
-                      <i data-lucide="trending-down" class="w-5 h-5 text-amber-500"></i>
-                    </div>
-                    Strata
-                  </button>
-                </div>
-              </div>
-              <input type="hidden" id="gielda-op-type" value="wplata">
-
-              <form id="gielda-op-form" class="space-y-3">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label class="eyebrow mb-1.5 block">Nazwa / opis</label>
-                    <div class="relative">
-                      <i data-lucide="pencil-line" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                      <input required type="text" id="gielda-op-name" placeholder="np. Kupno akcji Apple"
-                        class="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 pl-9 pr-3 py-2.5 text-sm font-medium focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-500/20 transition">
-                    </div>
-                  </div>
-                  <div>
-                    <label class="eyebrow mb-1.5 block">Wartość (zł)</label>
-                    <div class="amount-input-wrap">
-                      <i data-lucide="banknote" class="w-5 h-5 text-slate-400 flex-shrink-0"></i>
-                      <input required type="number" step="0.01" min="0.01" id="gielda-op-amount" placeholder="0,00"
-                        style="font-size:1.2rem;font-weight:800;letter-spacing:-.01em;background:transparent;border:none;outline:none;width:100%;color:inherit;">
-                      <span class="amount-currency">zł</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Pole "Gdzie" – tylko dla Wpłata / Wypłata -->
-                <div id="gielda-op-where-wrap" class="hidden">
-                  <label class="eyebrow mb-1.5 block" id="gielda-op-where-label">Skąd / Dokąd</label>
-                  <select id="gielda-op-where"
-                    class="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-amber-400 transition">
-                    <option value="konto">🏦 Konto</option>
-                    <option value="skarbonka">🐷 Skarbonka</option>
-                    <option value="inne">Inne</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="eyebrow mb-1.5 block">Data</label>
-                  <div class="relative">
-                    <i data-lucide="calendar" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                    <input required type="date" id="gielda-op-date"
-                      class="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 pl-9 pr-3 py-2.5 text-sm font-medium focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-500/20 transition">
-                  </div>
-                </div>
-
-                <button type="submit" id="gielda-op-submit"
-                  class="w-full px-5 py-3 rounded-2xl font-bold text-sm text-white transition-all flex items-center justify-center gap-2"
-                  style="background:linear-gradient(135deg,#d97706,#f59e0b);box-shadow:0 4px 20px rgba(217,119,6,.3);">
-                  <i data-lucide="plus" class="w-4 h-4"></i> Dodaj wpłatę
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <!-- D3: Historia operacji — in section card -->
-          <div class="home-section-card">
-            <div class="home-section-card-header">
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
-                  <i data-lucide="history" class="w-4 h-4 text-amber-500"></i>
-                </div>
-                <p class="font-bold text-sm">Historia operacji</p>
-              </div>
-            </div>
-            <div class="home-section-card-body">
-              <div id="gielda-history-list" class="space-y-0.5">
-                <p class="text-sm text-slate-400 text-center py-8">Brak operacji.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- E1: PANEL: Statystyki — enhanced cards -->
-        <div id="gielda-panel-stats" class="hidden space-y-5">
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="gielda-stats-kpis"></div>
-
-          <div class="home-section-card">
-            <div class="home-section-card-header">
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
-                  <i data-lucide="calendar" class="w-4 h-4 text-amber-500"></i>
-                </div>
-                <div>
-                  <p class="font-bold text-sm leading-tight">Zarobek / Strata</p>
-                  <p class="text-xs text-slate-400">Ostatnie 6 miesięcy</p>
-                </div>
-              </div>
-            </div>
-            <div class="home-section-card-body">
-              <div id="gielda-stats-monthly" class="space-y-3"></div>
-            </div>
-          </div>
-
-          <div class="home-section-card">
-            <div class="home-section-card-header">
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
-                  <i data-lucide="pie-chart" class="w-4 h-4 text-amber-500"></i>
-                </div>
-                <p class="font-bold text-sm">Struktura operacji</p>
-              </div>
-            </div>
-            <div class="home-section-card-body">
-              <div id="gielda-stats-breakdown" class="space-y-3"></div>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- end earn-panel-gielda -->
-    </section>
-
-    <!-- ═══════════ MODAL: STATYSTYKI ZAROBKÓW (miesięczne) ═══════════ -->
-    <div id="earn-stats-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeEarnStatsModal()"></div>
-      <div class="relative bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg max-h-[85vh] shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden">
-        <div class="p-5 pb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <button id="earn-stats-back-btn" onclick="renderEarnStatsList()" class="hidden text-slate-400 hover:text-indigo-500 transition p-1.5 -ml-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0">
-              <i data-lucide="arrow-left" class="w-4 h-4"></i>
-            </button>
-            <h3 id="earn-stats-title" class="text-base font-bold truncate">Statystyki zarobków</h3>
-          </div>
-          <button onclick="closeEarnStatsModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
-        </div>
-        <div id="earn-stats-body" class="p-5 overflow-y-auto"></div>
-      </div>
-    </div>
-
-    <!-- ═══════════ MODAL: STATYSTYKI MAJĄTKU (Home) ═══════════ -->
-    <div id="wealth-stats-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeWealthStatsModal()"></div>
-      <div class="relative bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg max-h-[85vh] shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden">
-        <div class="p-5 pb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <button id="wealth-stats-back-btn" class="hidden text-slate-400 hover:text-indigo-500 transition p-1.5 -ml-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0">
-              <i data-lucide="arrow-left" class="w-4 h-4"></i>
-            </button>
-            <h3 id="wealth-stats-title" class="text-base font-bold truncate">Statystyki majątku</h3>
-          </div>
-          <button onclick="closeWealthStatsModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
-        </div>
-        <div id="wealth-stats-body" class="p-5 overflow-y-auto"></div>
-      </div>
-    </div>
-
-    <!-- ═══════════ TAB: OSZCZĘDZANIE ═══════════ -->
-    <section id="tab-saving" class="tab-content space-y-5">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">Oszczędzanie</h1>
-          <p class="text-slate-500 text-sm mt-0.5">Automatyczne reguły odkładania pieniędzy.</p>
-        </div>
-        <button onclick="openAddSavingRuleModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition shadow-sm shadow-emerald-200 dark:shadow-none">
-          <i data-lucide="plus" class="w-4 h-4"></i> Nowa reguła
-        </button>
-      </div>
-
-      <!-- Hero stats -->
-      <div id="saving-hero" class="hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-6 md:p-8 text-white shadow-lg shadow-emerald-200 dark:shadow-none relative overflow-hidden">
-        <div class="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full"></div>
-        <div class="absolute -bottom-6 -left-6 w-28 h-28 bg-white/5 rounded-full"></div>
-        <p class="text-emerald-100 text-sm font-medium mb-1">Odłożono automatycznie (łącznie)</p>
-        <p id="saving-hero-total" class="text-4xl md:text-5xl font-bold tracking-tight">0,00 zł</p>
-        <div class="flex gap-4 mt-4">
-          <div><p class="text-xs text-emerald-200">Aktywne reguły</p><p id="saving-hero-active" class="text-sm font-semibold">0</p></div>
-          <div><p class="text-xs text-emerald-200">Ten miesiąc</p><p id="saving-hero-month" class="text-sm font-semibold">0,00 zł</p></div>
-          <div><p class="text-xs text-emerald-200">Wszystkie reguły</p><p id="saving-hero-count" class="text-sm font-semibold">0</p></div>
-        </div>
-      </div>
-
-      <!-- No rules empty state -->
-      <div id="saving-empty" class="bg-white dark:bg-slate-900 rounded-2xl p-10 shadow-sm border border-slate-100 dark:border-slate-800 text-center flex flex-col items-center gap-3">
-        <div class="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
-          <i data-lucide="piggy-bank" class="w-8 h-8 text-emerald-400"></i>
-        </div>
-        <p class="font-semibold text-slate-700 dark:text-slate-200">Brak reguł oszczędzania</p>
-        <p class="text-sm text-slate-400 max-w-sm">Utwórz regułę, a aplikacja będzie automatycznie odkładać procent z każdej wpłaty zarobku na wybrany cel.</p>
-        <button onclick="openAddSavingRuleModal()" class="mt-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition flex items-center gap-2">
-          <i data-lucide="plus" class="w-4 h-4"></i> Dodaj pierwszą regułę
-        </button>
-      </div>
-
-      <!-- Rules list -->
-      <div id="saving-rules-list" class="space-y-3"></div>
-
-      <!-- History of auto-saves -->
-      <div id="saving-history-box" class="hidden bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
-        <p class="font-semibold mb-1 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-emerald-500"></i> Historia auto-odkładania</p>
-        <p class="text-xs text-slate-400 mb-4">Pogrupowana wg reguły — widać od razu, która z nich faktycznie pracuje.</p>
-        <div id="saving-history-list" class="space-y-3"></div>
-      </div>
-    </section>
-
-    <!-- ═══════════ TAB: STATS ═══════════ -->
-    <section id="tab-stats" class="tab-content space-y-5">
-      <div class="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 class="text-2xl font-bold">Statystyki</h1>
-          <p class="text-slate-500 text-sm mt-0.5">Wizualny przegląd finansów.</p>
-        </div>
-        <button id="dashboard-edit-btn-stats" type="button" onclick="toggleDashboardEditMode('stats')"
-          class="dashboard-edit-btn shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-          <i data-lucide="pencil" class="w-3.5 h-3.5"></i><span>Edytuj układ</span>
-        </button>
-      </div>
-
-      <!-- Month selector for stats -->
-      <div class="flex items-center gap-2">
-        <button onclick="statsMonthOffset--; renderCharts()" class="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-          <i data-lucide="chevron-left" class="w-4 h-4"></i>
-        </button>
-        <span id="stats-month-label" class="text-sm font-semibold min-w-[120px] text-center"></span>
-        <button onclick="statsMonthOffset++; renderCharts()" class="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-          <i data-lucide="chevron-right" class="w-4 h-4"></i>
-        </button>
-      </div>
-
-      <div class="dashboard-grid" data-tab="stats">
-
-      <!-- KPI row -->
-      <div class="dashboard-tile grid grid-cols-2 sm:grid-cols-5 gap-3" id="stats-kpi" data-widget-id="kpi_row"></div>
-
-      <!-- Month-over-month comparison -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="mom_comparison">
-        <p class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="arrow-left-right" class="w-4 h-4 text-indigo-500"></i> Porównanie miesiąc do miesiąca</p>
-        <div id="stats-mom" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
-      </div>
-
-      <!-- Forecast -->
-      <div class="dashboard-tile bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none relative overflow-hidden" data-widget-id="forecast">
-        <div class="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full"></div>
-        <div class="absolute -bottom-6 -left-6 w-28 h-28 bg-white/5 rounded-full"></div>
-        <p class="font-semibold mb-3 flex items-center gap-2 relative"><i data-lucide="line-chart" class="w-4 h-4"></i> Prognoza na następny miesiąc</p>
-        <div id="stats-forecast" class="grid grid-cols-1 sm:grid-cols-3 gap-4 relative"></div>
-        <p class="text-xs text-indigo-200 mt-3 relative">Na podstawie średniej z ostatnich 3 miesięcy.</p>
-      </div>
-
-      <!-- Cashflow Forecast: historia + prognoza 3 miesięcy naprzód -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="cashflow_chart">
-        <div class="flex items-center justify-between gap-3 mb-1 flex-wrap">
-          <p class="font-semibold flex items-center gap-2">
-            <i data-lucide="line-chart" class="w-4 h-4 text-violet-500"></i> Trend i Prognoza Finansowa (Cashflow)
-          </p>
-          <div class="flex items-center gap-3 text-[11px] font-medium text-slate-400">
-            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>Historia</span>
-            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>Obecny miesiąc</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-0 border-t-2 border-dashed border-violet-500 inline-block"></span>Prognoza</span>
-          </div>
-        </div>
-        <p class="text-xs text-slate-400 mb-4">Prognozowane saldo wszystkich kont na kolejne 3 miesiące — na bazie historii, reguł cyklicznych i terminowych spłat.</p>
-        <div class="max-w-full"><canvas id="chart-cashflow" height="110"></canvas></div>
-        <p id="chart-cashflow-empty" class="text-sm text-slate-400 text-center py-6 hidden">Za mało danych historycznych, aby zbudować prognozę.</p>
-        <p id="chart-cashflow-note" class="text-[11px] text-slate-400 mt-3"></p>
-      </div>
-
-      <!-- Charts grid (spłaszczone do 2 niezależnych kafelków) -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="income_expense_chart">
-        <p class="font-semibold mb-4">Wpływy vs Wydatki</p>
-        <div class="max-w-xs mx-auto"><canvas id="chart-ie"></canvas></div>
-        <p id="chart-ie-empty" class="text-sm text-slate-400 text-center py-6 hidden">Brak danych.</p>
-      </div>
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="category_breakdown">
-        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <p class="font-semibold" id="chart-cat-title">Wydatki wg kategorii</p>
-          <div class="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-            <button type="button" id="stats-cat-filter-expense" onclick="setStatsCatFilter('expense')" class="px-3 py-1 rounded-md text-xs font-semibold transition">Wydatki</button>
-            <button type="button" id="stats-cat-filter-income" onclick="setStatsCatFilter('income')" class="px-3 py-1 rounded-md text-xs font-semibold transition">Wpływy</button>
-          </div>
-        </div>
-        <div class="max-w-xs mx-auto"><canvas id="chart-cat"></canvas></div>
-        <p id="chart-cat-empty" class="text-sm text-slate-400 text-center py-6 hidden">Brak wydatków.</p>
-      </div>
-
-      <!-- Category ranking -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="category_ranking">
-        <p class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i> <span id="stats-cat-ranking-title">Ranking kategorii wydatków</span></p>
-        <div id="stats-cat-ranking" class="space-y-3"></div>
-        <p id="stats-cat-ranking-empty" class="text-sm text-slate-400 text-center py-6 hidden">Brak wydatków w tym miesiącu.</p>
-      </div>
-
-      <!-- Monthly trend (bar chart) -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="monthly_trend">
-        <p class="font-semibold mb-4">Trend ostatnich 6 miesięcy</p>
-        <canvas id="chart-trend" height="100"></canvas>
-        <p id="chart-trend-empty" class="text-sm text-slate-400 text-center py-6 hidden">Brak danych.</p>
-      </div>
-
-      <!-- Daily spending heatmap -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="daily_heatmap">
-        <p class="font-semibold mb-1 flex items-center gap-2"><i data-lucide="calendar-days" class="w-4 h-4 text-rose-500"></i> Mapa wydatków dziennych</p>
-        <p class="text-xs text-slate-400 mb-4">Intensywność koloru odpowiada wysokości wydatków danego dnia.</p>
-        <div id="stats-heatmap" class="flex flex-wrap gap-1.5"></div>
-        <div class="flex items-center gap-2 mt-4 text-xs text-slate-400">
-          <span>Mniej</span>
-          <div class="flex gap-1">
-            <div class="w-4 h-4 rounded bg-rose-100 dark:bg-rose-500/10"></div>
-            <div class="w-4 h-4 rounded bg-rose-300 dark:bg-rose-500/30"></div>
-            <div class="w-4 h-4 rounded bg-rose-500 dark:bg-rose-500/60"></div>
-            <div class="w-4 h-4 rounded bg-rose-700 dark:bg-rose-500"></div>
-          </div>
-          <span>Więcej</span>
-        </div>
-      </div>
-
-      <!-- Debts & Goals stats (spłaszczone do 2 niezależnych kafelków) -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="debts_stats">
-        <p class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="hand-coins" class="w-4 h-4 text-rose-500"></i> Statystyki długów</p>
-        <div id="stats-debts" class="space-y-3"></div>
-        <p id="stats-debts-empty" class="text-sm text-slate-400 text-center py-6 hidden">Nikt Ci nie jest winny pieniędzy.</p>
-      </div>
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="goals_stats">
-        <p class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-violet-500"></i> Statystyki celów</p>
-        <div id="stats-goals" class="space-y-3"></div>
-        <p id="stats-goals-empty" class="text-sm text-slate-400 text-center py-6 hidden">Brak ustawionych celów.</p>
-      </div>
-
-      <!-- Allocation -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4" data-widget-id="allocation">
-        <p class="font-semibold">Podział majątku</p>
-        <div>
-          <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-500">Konto bankowe</span><span id="pct-konto" class="font-semibold">0%</span></div>
-          <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5"><div id="stats-bar-konto" class="bg-blue-400 h-2.5 rounded-full transition-all" style="width:0%"></div></div>
-        </div>
-        <div>
-          <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-500">Skarbonka</span><span id="pct-skarbonka" class="font-semibold">0%</span></div>
-          <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5"><div id="stats-bar-skarbonka" class="bg-emerald-400 h-2.5 rounded-full transition-all" style="width:0%"></div></div>
-        </div>
-        <div>
-          <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-500">Giełda</span><span id="pct-gielda" class="font-semibold">0%</span></div>
-          <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5"><div id="stats-bar-gielda" class="bg-amber-400 h-2.5 rounded-full transition-all" style="width:0%"></div></div>
-        </div>
-        <div>
-          <div class="flex justify-between text-sm mb-1.5"><span class="text-slate-500">Długi (należności)</span><span id="pct-debts" class="font-semibold">0%</span></div>
-          <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5"><div id="stats-bar-debts" class="bg-rose-400 h-2.5 rounded-full transition-all" style="width:0%"></div></div>
-        </div>
-      </div>
-
-      </div><!-- /.dashboard-grid[data-tab="stats"] -->
-    </section>
-
-    <!-- ═══════════ TAB: REPORTS ═══════════ -->
-    <section id="tab-reports" class="tab-content space-y-5">
-      <div class="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 class="text-2xl font-bold">Raporty</h1>
-          <p class="text-slate-500 text-sm mt-0.5">Szczegółowa analiza finansów.</p>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <button onclick="reportsMonthOffset--; renderReports()" class="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-            <i data-lucide="chevron-left" class="w-4 h-4"></i>
-          </button>
-          <span id="reports-month-label" class="text-sm font-semibold min-w-[130px] text-center"></span>
-          <button onclick="reportsMonthOffset++; renderReports()" class="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-            <i data-lucide="chevron-right" class="w-4 h-4"></i>
-          </button>
-          <button id="dashboard-edit-btn-report" type="button" onclick="toggleDashboardEditMode('report')"
-            class="dashboard-edit-btn shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-            <i data-lucide="pencil" class="w-3.5 h-3.5"></i><span>Edytuj układ</span>
-          </button>
-        </div>
-      </div>
-      <div class="dashboard-grid" data-tab="report">
-
-      <!-- 50/30/20 rule -->
-      <div id="rule-502030" class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4" data-widget-id="rule_502030">
-        <div class="flex items-center justify-between">
-          <p class="font-semibold">Reguła budżetowa</p>
-          <button onclick="openRuleTargetsModal()" class="flex items-center gap-1.5 text-xs font-medium text-indigo-500 hover:text-indigo-700 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-2.5 py-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition">
-            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i> Dostosuj cele
-          </button>
-        </div>
-        <div id="rule-content"></div>
-      </div>
-      <!-- J1: Export section -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="export_tools">
-        <p class="font-semibold mb-1 flex items-center gap-2"><i data-lucide="download" class="w-4 h-4 text-indigo-500"></i> Eksport danych</p>
-        <p class="text-xs text-slate-400 mb-4">Pobierz dane do księgowej, Excela albo jako backup.</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button onclick="switchTab('export')" class="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition text-left">
-            <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center shrink-0">
-              <i data-lucide="file-spreadsheet" class="w-4 h-4 text-indigo-500"></i>
-            </div>
-            <div>
-              <p class="text-sm font-semibold">Eksportuj</p>
-              <p class="text-[11px] text-slate-400">Pełny eksport danych — ZIP / JSON / raport</p>
-            </div>
-          </button>
-          <button onclick="exportReportPDF()" class="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-rose-300 dark:hover:border-rose-500/50 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition text-left">
-            <div class="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center shrink-0">
-              <i data-lucide="file-text" class="w-4 h-4 text-rose-500"></i>
-            </div>
-            <div>
-              <p class="text-sm font-semibold">Raport PDF</p>
-              <p class="text-[11px] text-slate-400">Podsumowanie miesiąca, do druku</p>
-            </div>
-          </button>
-        </div>
-      </div>
-      <!-- Monthly summary table -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="category_table">
-        <p class="font-semibold mb-4">Wydatki wg kategorii</p>
-        <div id="reports-cat-table" class="space-y-2"></div>
-      </div>
-      <!-- Top expenses -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800" data-widget-id="top_expenses">
-        <p class="font-semibold mb-4">Największe wydatki miesiąca</p>
-        <div id="reports-top-expenses" class="space-y-1"></div>
-      </div>
-      <!-- ═══ KALENDARZ FINANSOWY ═══ -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4" data-widget-id="fin_calendar">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-            <i data-lucide="calendar-days" class="w-4 h-4 text-blue-500"></i>
-          </div>
-          <div>
-            <p class="font-semibold">Kalendarz finansowy</p>
-            <p class="text-xs text-slate-400">Kliknij dzień, aby zobaczyć operacje</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-7 gap-1.5 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-          <span>Pon</span><span>Wt</span><span>Śr</span><span>Czw</span><span>Pt</span><span>Sob</span><span>Nd</span>
-        </div>
-        <div id="fin-calendar-grid" class="grid grid-cols-7 gap-1.5"></div>
-        <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:rgba(225,29,72,.55)"></span> Wydatki</span>
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:rgba(5,150,105,.55)"></span> Wpływy</span>
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:rgba(99,102,241,.55)"></span> Oba</span>
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm shrink-0 ring-2 ring-indigo-400"></span> Dzisiaj</span>
-        </div>
-      </div>
-
-      <!-- ═══ RANKING DNI / TYGODNI ═══ -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-5" data-widget-id="day_week_ranking">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
-            <i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i>
-          </div>
-          <div>
-            <p class="font-semibold">Ranking dni i tygodni</p>
-            <p class="text-xs text-slate-400">Kiedy wydajesz najwięcej?</p>
-          </div>
-        </div>
-        <div>
-          <div class="flex items-center justify-between mb-2.5">
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dni tygodnia</p>
-            <select id="dow-range" onchange="renderDayWeekRanking(reportsMonthOffset)"
-              class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-300">
-              <option value="month" selected>Ten miesiąc</option>
-              <option value="all">Cały okres</option>
-            </select>
-          </div>
-          <div id="dow-ranking-list" class="space-y-2.5"></div>
-        </div>
-        <div>
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Tygodnie tego miesiąca</p>
-          <div id="week-ranking-list" class="space-y-3"></div>
-        </div>
-      </div>
-
-      <!-- ═══ ANOMALIE WYDATKÓW ═══ -->
-      <div id="anomaly-box" class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4" data-widget-id="anomalies">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
-              <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
-            </div>
-            <div>
-              <p class="font-semibold">Anomalie wydatków</p>
-              <p class="text-xs text-slate-400">Kategorie, które odchylają się od Twojej normy</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <label class="text-xs text-slate-400">Próg:</label>
-            <select id="anomaly-threshold" onchange="renderReports()"
-              class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-300">
-              <option value="30">30%</option>
-              <option value="50" selected>50%</option>
-              <option value="75">75%</option>
-              <option value="100">100%</option>
-            </select>
-          </div>
-        </div>
-        <div id="anomaly-list"></div>
-      </div>
-
-      <!-- ═══ PORÓWNANIE ROK DO ROKU ═══ -->
-      <div class="dashboard-tile bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4" data-widget-id="yoy_comparison">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
-              <i data-lucide="calendar-range" class="w-4 h-4 text-indigo-500"></i>
-            </div>
-            <div>
-              <p class="font-semibold">Porównanie rok do roku</p>
-              <p class="text-xs text-slate-400" id="yoy-subtitle">Wybrany miesiąc vs rok wcześniej</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <label class="text-xs text-slate-400">Widok:</label>
-            <select id="yoy-mode" onchange="renderReports()"
-              class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300">
-              <option value="month">Miesiąc vs miesiąc</option>
-              <option value="ytd">Cały rok (YTD)</option>
-            </select>
-          </div>
-        </div>
-        <!-- KPI cards -->
-        <div id="yoy-kpis" class="grid grid-cols-3 gap-3"></div>
-        <!-- Month-by-month chart canvas -->
-        <div id="yoy-chart-wrap" class="hidden">
-          <div style="position:relative;height:220px"><canvas id="yoy-chart"></canvas></div>
-        </div>
-        <!-- Per-category YoY table -->
-        <div id="yoy-cat-table" class="space-y-2"></div>
-      </div>
-
-      </div><!-- /.dashboard-grid[data-tab="report"] -->
-    </section>
-
-    <!-- ═══════════ TAB: CENTRUM EKSPORTU (Faza 6 planu — "wirtualny" tab, ═══════════
-         bez wpisu w NAV_ITEMS/menu głównym; otwierany wyłącznie przyciskiem
-         "Eksportuj" w Sidebarze i w zakładce Raporty, przez switchTab('export'). ═══ -->
-    <section id="tab-export" class="tab-content space-y-5">
-      <div id="export-center-content"></div>
-    </section>
-
-    <!-- ═══════════ TAB: REMINDERS ═══════════ -->
-    <section id="tab-reminders" class="tab-content space-y-5">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">Przypomnienia</h1>
-          <p class="text-slate-500 text-sm mt-0.5">Cykliczne i jednorazowe alerty.</p>
-        </div>
-        <button onclick="openReminderModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition">
-          <i data-lucide="plus" class="w-4 h-4"></i> Nowe
-        </button>
-      </div>
-      <!-- Notification permission banner -->
-      <div id="notif-banner" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl p-4 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <i data-lucide="bell" class="w-5 h-5 text-amber-500 shrink-0"></i>
-          <p class="text-sm text-amber-800 dark:text-amber-200">Włącz powiadomienia przeglądarki, aby otrzymywać alerty.</p>
-        </div>
-        <button onclick="requestNotifPermission()" class="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition shrink-0">Włącz</button>
-      </div>
-      <div id="reminders-list" class="space-y-3"></div>
-    </section>
-
-    <!-- ═══════════ TAB: GUEST VIEW ═══════════ -->
-    <section id="tab-guest-view" class="tab-content space-y-5">
-      <div id="guest-error" class="hidden bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-3xl p-6 text-center text-rose-800 dark:text-rose-200 max-w-md mx-auto my-10 shadow-lg">
-        <div class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center text-rose-500 mx-auto mb-3">
-          <i data-lucide="shield-alert" class="w-6 h-6"></i>
-        </div>
-        <h2 class="text-lg font-bold mb-1">Brak dostępu lub nieprawidłowy link</h2>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Podany kod dostępu jest nieprawidłowy lub właściciel wyłączył udostępnianie tego profilu.</p>
-      </div>
-      <div id="guest-content" class="hidden space-y-5"></div>
-    </section>
-
-  </main>
-</div>
-
-<!-- MOBILE BOTTOM NAV -->
-<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-1 py-1.5 z-50">
-  <div id="mobile-nav" class="flex justify-around"></div>
-</nav>
-
-<!-- ═══ MODAL: ADD DEBTOR ═══ -->
-<div id="debtor-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeDebtorModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold">Nowy dłużnik</p>
-      <button onclick="closeDebtorModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <form id="debtor-form" class="space-y-3">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Imię / pseudonim</label>
-        <input required type="text" id="debtor-name" placeholder="np. Mama"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition flex items-center justify-center gap-2">
-        <i data-lucide="user-plus" class="w-4 h-4"></i> Dodaj osobę
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: EXPORT DEBTOR FILE ═══ -->
-<div id="debtor-export-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeDebtorExportModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-1">
-      <p class="font-semibold">Eksportuj zestawienie</p>
-      <button onclick="closeDebtorExportModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <p id="debtor-export-name" class="text-xs text-slate-400 mb-4">—</p>
-    <form id="debtor-export-form" class="space-y-4">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1.5 block">Zakres długów</label>
-        <div class="grid grid-cols-2 gap-2">
-          <button type="button" data-scope="active" onclick="selectExportScope(this)" class="export-scope-btn active px-3 py-2.5 rounded-xl border-2 text-xs font-semibold transition">Tylko aktywne</button>
-          <button type="button" data-scope="all" onclick="selectExportScope(this)" class="export-scope-btn px-3 py-2.5 rounded-xl border-2 text-xs font-semibold transition">Wszystkie</button>
-        </div>
-        <input type="hidden" id="debtor-export-scope" value="active">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1.5 block">Format pliku</label>
-        <div class="grid grid-cols-2 gap-2">
-          <button type="button" data-format="txt" onclick="selectExportFormat(this)" class="export-format-btn active px-3 py-2.5 rounded-xl border-2 text-xs font-semibold transition">Tekstowy (.txt)</button>
-          <button type="button" data-format="csv" onclick="selectExportFormat(this)" class="export-format-btn px-3 py-2.5 rounded-xl border-2 text-xs font-semibold transition">CSV (.csv)</button>
-        </div>
-        <input type="hidden" id="debtor-export-format" value="txt">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1.5 block">Wiadomość <span class="font-normal text-slate-300">(opcjonalnie)</span></label>
-        <textarea id="debtor-export-note" rows="3" placeholder="np. Cześć! Przypominam o pożyczce…"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition flex items-center justify-center gap-2">
-        <i data-lucide="download" class="w-4 h-4"></i> Pobierz plik
-      </button>
-    </form>
-  </div>
-</div>
-
-
-<!-- ═══ MODAL: SHARE DEBTOR ═══ -->
-<div id="debtor-share-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeDebtorShareModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6 space-y-4">
-    <div class="flex items-center justify-between">
-      <p class="font-semibold">Udostępnij profil dłużnika</p>
-      <button onclick="closeDebtorShareModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    
-    <div class="space-y-4">
-      <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-        <div>
-          <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">Zezwól dłużnikowi na edycję</p>
-          <p class="text-[10px] text-slate-400">Dłużnik będzie mógł dodawać, edytować i usuwać pozycje</p>
-        </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" id="share-allow-edit-toggle" class="sr-only peer" onchange="toggleShareAllowEdit()">
-          <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-500"></div>
-        </label>
-      </div>
-
-      <div class="space-y-1">
-        <label class="text-xs font-medium text-slate-500 block">Link do udostępnienia</label>
-        <div class="flex gap-2">
-          <input readonly type="text" id="share-link-input" class="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-xs focus:outline-none dark:text-white truncate">
-          <button onclick="copyShareLink()" class="px-3 py-2 rounded-xl bg-indigo-500 text-white text-xs font-semibold hover:bg-indigo-600 transition flex items-center gap-1.5 shrink-0">
-            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Kopiuj
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<!-- ═══ MODAL: OGÓLNA SPŁATA DŁUGU (kwotowa, bez powiązania z transakcją) ═══ -->
-<div id="general-debt-repay-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeGeneralRepayModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold flex items-center gap-2"><i data-lucide="wallet" class="w-4 h-4 text-emerald-500"></i> Wpłać / Spłać kwotę</p>
-      <button onclick="closeGeneralRepayModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <div id="general-repay-info" class="mb-4 bg-slate-50 dark:bg-slate-800 rounded-xl p-3"></div>
-    <form id="general-debt-repay-form" class="space-y-3">
-      <input type="hidden" id="general-repay-debtor-id">
-      <div class="flex flex-col sm:flex-row gap-2">
-        <div class="flex-1">
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Kwota spłaty (zł)</label>
-          <input required type="number" step="0.01" min="0.01" id="general-repay-amount" placeholder="0,00"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:text-white">
-        </div>
-        <div class="flex-1">
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Data spłaty</label>
-          <input type="date" id="general-repay-date"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:text-white">
-        </div>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Dokąd trafia wpłata</label>
-        <select id="general-repay-place"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:text-white">
-          <option value="">🚫 Nigdzie / Tylko zmniejsz dług</option>
-          <option value="konto">🏦 Konto bankowe</option>
-          <option value="skarbonka">🐷 Skarbonka</option>
-          <option value="gielda">📈 Giełda</option>
-        </select>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Notatka <span class="font-normal text-slate-400">(opcjonalnie)</span></label>
-        <input type="text" id="general-repay-note" placeholder="np. przelew, gotówka…"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:text-white">
-      </div>
-      <p id="general-repay-error" class="hidden text-xs text-rose-500 font-medium"></p>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition flex items-center justify-center gap-2">
-        <i data-lucide="check" class="w-4 h-4"></i> Zatwierdź wpłatę
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: SPŁATA POJEDYNCZEJ TRANSAKCJI (wybór konta docelowego) ═══ -->
-<div id="single-debt-repay-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeSingleDebtRepayModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i> Potwierdź spłatę</p>
-      <button onclick="closeSingleDebtRepayModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <div id="single-repay-info" class="mb-4 bg-slate-50 dark:bg-slate-800 rounded-xl p-3"></div>
-    <form id="single-debt-repay-form" class="space-y-3">
-      <input type="hidden" id="single-repay-debtor-id">
-      <input type="hidden" id="single-repay-debt-id">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Data spłaty</label>
-        <input type="date" id="single-repay-date"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:text-white">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Dokąd trafia wpłata</label>
-        <select id="single-repay-place"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:text-white">
-          <option value="">🚫 Nigdzie / Nie wpływaj na saldo kont</option>
-          <option value="konto">🏦 Konto bankowe</option>
-          <option value="skarbonka">🐷 Skarbonka</option>
-          <option value="gielda">📈 Giełda</option>
-        </select>
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition flex items-center justify-center gap-2">
-        <i data-lucide="check" class="w-4 h-4"></i> Potwierdź spłatę
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: MASOWA SPŁATA ZAZNACZONYCH TRANSAKCJI ═══ -->
-<div id="bulk-debt-repay-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeBulkRepayModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold flex items-center gap-2"><i data-lucide="check-check" class="w-4 h-4 text-emerald-500"></i> Spłać zaznaczone</p>
-      <button onclick="closeBulkRepayModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <div id="bulk-repay-info" class="mb-4 bg-slate-50 dark:bg-slate-800 rounded-xl p-3"></div>
-    <form id="bulk-debt-repay-form" class="space-y-3">
-      <input type="hidden" id="bulk-repay-debtor-id">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Data spłaty</label>
-        <input type="date" id="bulk-repay-date"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:text-white">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Dokąd trafia wpłata</label>
-        <select id="bulk-repay-place"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:text-white">
-          <option value="">🚫 Nigdzie / Nie wpływaj na saldo kont</option>
-          <option value="konto">🏦 Konto bankowe</option>
-          <option value="skarbonka">🐷 Skarbonka</option>
-          <option value="gielda">📈 Giełda</option>
-        </select>
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition flex items-center justify-center gap-2">
-        <i data-lucide="check-check" class="w-4 h-4"></i> Spłać zaznaczone
-      </button>
-    </form>
-  </div>
-</div>
-
-<div id="creditor-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeCreditorModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold">Nowy wierzyciel</p>
-      <button onclick="closeCreditorModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <form id="creditor-form" class="space-y-3">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Nazwa (osoba lub instytucja)</label>
-        <input required type="text" id="creditor-name" placeholder="np. Bank PKO, Mama, Znajomy"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Ikona</label>
-        <div id="creditor-icon-grid" class="flex flex-wrap gap-2"></div>
-        <input type="hidden" id="creditor-icon-input" value="credit-card">
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-semibold hover:bg-rose-600 transition flex items-center justify-center gap-2">
-        <i data-lucide="user-plus" class="w-4 h-4"></i> Dodaj wierzyciela
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: ADD LOAN ═══ -->
-<div id="loan-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeLoanModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6 max-h-[92vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold" id="loan-modal-title">Dodaj pożyczkę</p>
-      <button onclick="closeLoanModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <form id="loan-form" class="space-y-3">
-      <input type="hidden" id="loan-creditor-id">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Opis pożyczki</label>
-        <input required type="text" id="loan-desc" placeholder="np. kredyt samochodowy, pożyczka na remont"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-      </div>
-      <div class="flex flex-col sm:flex-row gap-2">
-        <div class="flex-1">
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Kwota (zł)</label>
-          <input required type="number" step="0.01" min="0.01" id="loan-amount" placeholder="0,00"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-        </div>
-        <div class="flex-1">
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Data zaciągnięcia</label>
-          <input type="date" id="loan-date"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-        </div>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Termin spłaty <span class="font-normal text-slate-400">(opcjonalnie)</span></label>
-        <input type="date" id="loan-due"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Skąd pochodzi kwota <span class="font-normal text-slate-400">(opcjonalnie)</span></label>
-        <select id="loan-dest"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-          <option value="">— nie dodawaj do bilansu</option>
-          <option value="konto">🏦 Konto bankowe</option>
-          <option value="skarbonka">🐷 Skarbonka</option>
-          <option value="gielda">📈 Giełda</option>
-        </select>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Oprocentowanie % rocznie <span class="font-normal text-slate-400">(opcjonalnie)</span></label>
-        <input type="number" step="0.1" min="0" id="loan-interest" placeholder="np. 5.5"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-semibold hover:bg-rose-600 transition flex items-center justify-center gap-2">
-        <i data-lucide="credit-card" class="w-4 h-4"></i> Dodaj pożyczkę
-      </button>
-    </form>
-  </div>
-</div>
-<!-- ═══ MODAL: PARTIAL REPAYMENT ═══ -->
-<div id="repayment-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeRepaymentModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold flex items-center gap-2"><i data-lucide="hand-coins" class="w-4 h-4 text-emerald-500"></i> Częściowa spłata</p>
-      <button onclick="closeRepaymentModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <div id="repayment-loan-info" class="mb-4 bg-slate-50 dark:bg-slate-800 rounded-xl p-3 space-y-1.5"></div>
-    <form id="repayment-form" class="space-y-3">
-      <input type="hidden" id="repayment-creditor-id">
-      <input type="hidden" id="repayment-loan-id">
-      <div class="flex flex-col sm:flex-row gap-2">
-        <div class="flex-1">
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Kwota spłaty (zł)</label>
-          <input required type="number" step="0.01" min="0.01" id="repayment-amount" placeholder="0,00"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300">
-        </div>
-        <div class="flex-1">
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Data spłaty</label>
-          <input type="date" id="repayment-date"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300">
-        </div>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Skąd spłacasz <span class="font-normal text-slate-400">(opcjonalnie)</span></label>
-        <select id="repayment-place"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300">
-          <option value="">— nie odejmuj z bilansu</option>
-          <option value="konto">🏦 Konto bankowe</option>
-          <option value="skarbonka">🐷 Skarbonka</option>
-          <option value="gielda">📈 Giełda</option>
-        </select>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Notatka <span class="font-normal text-slate-400">(opcjonalnie)</span></label>
-        <input type="text" id="repayment-note" placeholder="np. rata miesięczna, balonik…"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300">
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition flex items-center justify-center gap-2">
-        <i data-lucide="check" class="w-4 h-4"></i> Zarejestruj spłatę
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: LOAN DETAIL ═══ -->
-<div id="loan-detail-modal" class="hidden fixed inset-0 z-[65] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeLoanDetailModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-lg p-0 max-h-[90vh] flex flex-col overflow-hidden">
-    <div class="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
-      <p class="font-semibold flex items-center gap-2"><i data-lucide="credit-card" class="w-4 h-4 text-rose-500"></i> <span id="loan-detail-title">Szczegóły pożyczki</span></p>
-      <button onclick="closeLoanDetailModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <div id="loan-detail-content" class="overflow-y-auto flex-1 p-5 space-y-4"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: INCOME SOURCE ═══ -->
-<div id="source-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeSourceModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold">Nowe źródło zarobku</p>
-      <button onclick="closeSourceModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <form id="source-form" class="space-y-3">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Nazwa źródła</label>
-        <input required type="text" id="source-name" placeholder="np. Praca, Freelance, Stypendium"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition flex items-center justify-center gap-2">
-        <i data-lucide="plus" class="w-4 h-4"></i> Dodaj źródło
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: NOWY PROFIL ZAROBKOWY (users/{uid}/incomeProfiles) ═══ -->
-<div id="add-income-profile-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeAddProfileModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold flex items-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4 text-indigo-500"></i> Nowy profil zarobkowy</p>
-      <button type="button" onclick="closeAddProfileModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-
-    <form id="add-income-profile-form" class="space-y-4" onsubmit="event.preventDefault(); saveNewIncomeProfile();">
-      <!-- 1) Nazwa profilu -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Nazwa profilu</label>
-        <input required type="text" id="income-profile-name" placeholder="np. Fryzjer, Korepetycje, Etykiety"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-
-      <!-- 2) Wybór ikony -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-2 block">Ikona</label>
-        <div id="income-profile-icon-picker" class="grid grid-cols-4 gap-2">
-          <!-- wypełniane przez renderIncomeProfileIconPicker() -->
-        </div>
-      </div>
-
-      <!-- 3) Moduły (podzakładki) -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-2 block">Moduły (podzakładki)</label>
-        <div class="space-y-2">
-          <label class="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer transition">
-            <input type="checkbox" class="income-profile-module-cb mt-0.5 accent-indigo-500" data-modules="profits" checked>
-            <span class="text-sm"><span class="font-semibold block">Zyski</span>
-              <span class="text-xs text-slate-400">Rejestr zysków i operacji</span></span>
-          </label>
-          <label class="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer transition">
-            <input type="checkbox" class="income-profile-module-cb mt-0.5 accent-indigo-500" data-modules="products">
-            <span class="text-sm"><span class="font-semibold block">Produkty</span>
-              <span class="text-xs text-slate-400">Baza produktów i magazyn</span></span>
-          </label>
-          <label class="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer transition">
-            <input type="checkbox" class="income-profile-module-cb mt-0.5 accent-indigo-500" data-modules="sales">
-            <span class="text-sm"><span class="font-semibold block">Sprzedaż</span>
-              <span class="text-xs text-slate-400">Rejestr sprzedaży i paczek</span></span>
-          </label>
-          <label class="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer transition">
-            <input type="checkbox" class="income-profile-module-cb mt-0.5 accent-indigo-500" data-modules="todo">
-            <span class="text-sm"><span class="font-semibold block">Do zrobienia</span>
-              <span class="text-xs text-slate-400">Lista zadań</span></span>
-          </label>
-          <label class="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer transition">
-            <!-- Jeden checkbox włącza od razu dwa moduły: 'projects' + 'clients',
-                 zgodnie z etykietą "Projekt i Klienci (Projekty)" z wymagań. -->
-            <input type="checkbox" class="income-profile-module-cb mt-0.5 accent-indigo-500" data-modules="projects,clients">
-            <span class="text-sm"><span class="font-semibold block">Projekty</span>
-              <span class="text-xs text-slate-400">Projekt i Klienci</span></span>
-          </label>
-        </div>
-      </div>
-
-      <p id="income-profile-error" class="hidden text-xs text-rose-500 font-medium"></p>
-
-      <!-- 4) Zapisz -->
-      <button type="submit" id="income-profile-save-btn"
-        class="w-full px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
-        <i data-lucide="save" class="w-4 h-4"></i> Zapisz profil
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: BUDGET ═══ -->
-<div id="budget-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeBudgetModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-indigo-500"></i> Limit budżetu</p>
-      <button onclick="closeBudgetModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <form id="budget-form" class="space-y-4">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1.5 block">Kategoria</label>
-        <div id="budget-category-grid" class="grid grid-cols-3 gap-2"></div>
-        <input type="hidden" id="budget-category">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Limit miesięczny (zł)</label>
-        <div class="relative">
-          <i data-lucide="banknote" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-          <input required type="number" step="1" min="1" id="budget-limit" placeholder="np. 500"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 pl-9 pr-3 py-2.5 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-300">
-        </div>
-        <p id="budget-current-spend" class="text-xs text-slate-400 mt-1.5"></p>
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition">Zapisz limit</button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: USTAWIENIA RESALE (Faza 2, pkt.11) ═══ -->
-<div id="resale-settings-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeResaleSettingsModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6 max-h-[85vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4 text-amber-500"></i> Ustawienia Resale</p>
-      <button onclick="closeResaleSettingsModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <form id="resale-settings-form" class="space-y-4">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Próg "martwego stanu" (dni bez sprzedaży)</label>
-        <input required type="number" step="1" min="1" id="rset-stale-days"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Domyślny próg niskiego stanu magazynowego</label>
-        <input required type="number" step="1" min="0" id="rset-min-stock"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300">
-        <p class="text-[11px] text-slate-400 mt-1">Używany dla produktów, które nie mają ustawionego własnego progu.</p>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Stawka wysyłki (zł/kg)</label>
-        <input required type="number" step="0.5" min="0" id="rset-ship-per-kg"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1.5 block">Prowizje platform (%)</label>
-        <div class="grid grid-cols-2 gap-2">
-          <div><label class="text-[10px] text-slate-400 block mb-0.5">Vinted</label><input type="number" step="0.1" min="0" id="rset-comm-vinted" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5 text-sm"></div>
-          <div><label class="text-[10px] text-slate-400 block mb-0.5">Allegro</label><input type="number" step="0.1" min="0" id="rset-comm-allegro" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5 text-sm"></div>
-          <div><label class="text-[10px] text-slate-400 block mb-0.5">OLX</label><input type="number" step="0.1" min="0" id="rset-comm-olx" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5 text-sm"></div>
-          <div><label class="text-[10px] text-slate-400 block mb-0.5">eBay</label><input type="number" step="0.1" min="0" id="rset-comm-ebay" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5 text-sm"></div>
-          <div><label class="text-[10px] text-slate-400 block mb-0.5">Facebook</label><input type="number" step="0.1" min="0" id="rset-comm-facebook" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5 text-sm"></div>
-          <div><label class="text-[10px] text-slate-400 block mb-0.5">Inne</label><input type="number" step="0.1" min="0" id="rset-comm-inne" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5 text-sm"></div>
-        </div>
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition">Zapisz ustawienia</button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: GOAL ═══ -->
-<div id="goal-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeGoalModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold" id="goal-modal-title">Nowy cel</p>
-      <button onclick="closeGoalModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <form id="goal-form" class="space-y-3">
-      <input type="hidden" id="goal-edit-id">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Nazwa celu</label>
-        <input required type="text" id="goal-name" placeholder="np. Wakacje w Grecji"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Cel (zł)</label>
-          <input required type="number" step="1" min="1" id="goal-target" placeholder="5000"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Już mam (zł)</label>
-          <input type="number" step="1" min="0" id="goal-current" placeholder="0"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-        </div>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Termin (opcjonalnie)</label>
-        <input type="date" id="goal-deadline"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-
-      <!-- Auto-Oszczędzanie: zaokrąglanie wydatków na rzecz tego celu.
-           Cel przechowuje TYLKO JEDNĄ aktywną regułę (pojedynczy obiekt
-           goal.autoSave, nie tablica) — z założenia wyklucza to możliwość
-           przypisania kilku równoległych reguł do jednego celu. -->
-      <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-800/60">
-        <label class="flex items-center justify-between gap-3 cursor-pointer select-none">
-          <span class="text-sm font-medium">Włącz Auto-Oszczędzanie dla tego celu</span>
-          <input type="checkbox" id="goal-autosave-enabled" onchange="toggleGoalAutosaveFields()"
-            class="w-4 h-4 rounded accent-emerald-500 cursor-pointer">
-        </label>
-        <p class="text-[11px] text-slate-400 mt-1">Przy każdym wydatku z wybranego konta różnica do pełnego zaokrąglenia trafi automatycznie na ten cel.</p>
-
-        <div id="goal-autosave-config" class="hidden mt-3 space-y-3">
-          <div>
-            <label class="text-xs font-medium text-slate-500 mb-1 block">Reguła auto-oszczędzania</label>
-            <select id="goal-autosave-rule"
-              class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-              <option value="round1">Zaokrąglanie wydatków do pełnych złotówek</option>
-              <option value="round5">Zaokrąglanie wydatków do 5 zł</option>
-              <option value="round10">Zaokrąglanie wydatków do 10 zł</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs font-medium text-slate-500 mb-1 block">Konto źródłowe</label>
-            <select id="goal-autosave-source"
-              class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-              <option value="konto">🏦 Konto bankowe</option>
-              <option value="skarbonka">🐷 Skarbonka</option>
-              <option value="gielda">📈 Giełda</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1.5 block">Kolor</label>
-        <div id="goal-color-picker" class="flex flex-wrap gap-2 mb-3"></div>
-        <input type="hidden" id="goal-color" value="violet">
-        <label class="text-xs font-medium text-slate-500 mb-1.5 block">Ikona</label>
-        <div id="goal-icon-picker" class="grid grid-cols-5 gap-2"></div>
-        <input type="hidden" id="goal-icon" value="target">
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition">Zapisz cel</button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: REMINDER ═══ -->
-<div id="reminder-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeReminderModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold">Nowe przypomnienie</p>
-      <button onclick="closeReminderModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <form id="reminder-form" class="space-y-3">
-      <!-- K1: Szablony jednym kliknięciem -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1.5 block">Szybki start — gotowe szablony</label>
-        <div id="reminder-templates" class="flex flex-wrap gap-1.5"></div>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Tytuł</label>
-        <input required type="text" id="reminder-title" placeholder="np. Opłać czynsz"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Kwota (zł)</label>
-          <input type="number" step="0.01" min="0" id="reminder-amount" placeholder="0.00"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Dzień miesiąca</label>
-          <input required type="number" min="1" max="31" id="reminder-day" placeholder="np. 10"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-        </div>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Powtarzanie</label>
-        <select id="reminder-repeat" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-          <option value="monthly">Co miesiąc</option>
-          <option value="once">Jednorazowo</option>
-        </select>
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition">Dodaj przypomnienie</button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: DEPOSIT TO GOAL ═══ -->
-<div id="deposit-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeDepositModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold">Wpłać na cel</p>
-      <button onclick="closeDepositModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <p id="deposit-goal-name" class="text-sm text-slate-500 mb-4"></p>
-    <input type="hidden" id="deposit-goal-id">
-    <div class="space-y-3">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Kwota do dodania (zł)</label>
-        <input type="number" step="1" min="1" id="deposit-amount" placeholder="100"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Skąd odjąć</label>
-        <select id="deposit-source" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-          <option value="konto">🏦 Konto bankowe</option>
-          <option value="skarbonka">🐷 Skarbonka</option>
-          <option value="none">— Bez zmiany salda (tylko cel)</option>
-        </select>
-        <p id="deposit-source-balance" class="text-[11px] text-slate-400 mt-1"></p>
-      </div>
-      <button onclick="confirmDeposit()" class="w-full px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition">Wpłać</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: CALENDAR DAY DETAIL (Krok 9) ═══ -->
-<div id="calendar-day-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeCalendarDayModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-md p-6 max-h-[85vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-3">
-      <p class="font-semibold" id="cal-day-title">—</p>
-      <button onclick="closeCalendarDayModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <div id="cal-day-summary" class="flex items-center gap-3 text-sm mb-4"></div>
-    <div id="cal-day-tx-list" class="space-y-0.5 mb-4"></div>
-    <button onclick="addTransactionForCalDay()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition">
-      <i data-lucide="plus" class="w-4 h-4"></i> Dodaj operację na ten dzień
-    </button>
-  </div>
-</div>
-
-<!-- ═══ MODAL: EDIT TRANSACTION ═══ -->
-<div id="edit-transaction-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeEditTransactionModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold">Edytuj operację</p>
-      <button onclick="closeEditTransactionModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <form id="edit-transaction-form" class="space-y-3">
-      <input type="hidden" id="edit-t-id">
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Kwota (zł)</label>
-          <input required type="number" step="0.01" min="0.01" id="edit-t-amount"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Typ</label>
-          <select id="edit-t-type" onchange="updateEditCategoryOptions()" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="expense">Wydatek</option>
-            <option value="income">Wpływ</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Kategoria</label>
-          <select id="edit-t-category" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"></select>
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Miejsce</label>
-          <select id="edit-t-place" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="konto">Konto bankowe</option>
-            <option value="skarbonka">Skarbonka</option>
-            <option value="gielda">Giełda</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Data</label>
-        <input required type="date" id="edit-t-date"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Opis</label>
-        <input required type="text" id="edit-t-desc"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-      <!-- Tags edit -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Tagi <span class="text-slate-400 font-normal">(Enter lub przecinek)</span></label>
-        <div class="tag-input-wrap" id="edit-t-tags-wrap" onclick="document.getElementById('edit-t-tag-input').focus()">
-          <div id="edit-t-tags-chips" class="contents"></div>
-          <input id="edit-t-tag-input" type="text" placeholder="Dodaj tag…" autocomplete="off"
-            onkeydown="handleTagInput(event,'edit-t')" oninput="showTagSuggestions('edit-t')">
-        </div>
-        <div id="edit-t-tag-suggestions" class="hidden absolute z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto text-sm"></div>
-        <input type="hidden" id="edit-t-tags-value">
-      </div>
-      <!-- Note edit -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Notatka</label>
-        <textarea id="edit-t-note" rows="2" placeholder="Dodatkowe informacje…"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"></textarea>
-      </div>
-      <button type="submit" class="w-full px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition">Zapisz zmiany</button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: RECURRING TRANSACTION ═══ -->
-<div id="recurring-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeRecurringModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6 max-h-[92vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold" id="recurring-modal-title">Nowa transakcja cykliczna</p>
-      <button onclick="closeRecurringModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <form id="recurring-form" class="space-y-4">
-      <input type="hidden" id="rec-edit-id">
-
-      <!-- Type toggle -->
-      <div class="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
-        <button type="button" data-rtype="expense" onclick="setRecurringType('expense')"
-          class="rec-type-btn flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition text-slate-400">
-          <i data-lucide="trending-down" class="w-4 h-4"></i> Wydatek
-        </button>
-        <button type="button" data-rtype="income" onclick="setRecurringType('income')"
-          class="rec-type-btn flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition text-slate-400">
-          <i data-lucide="trending-up" class="w-4 h-4"></i> Wpływ
-        </button>
-      </div>
-      <input type="hidden" id="rec-type" value="expense">
-
-      <!-- Name -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Nazwa</label>
-        <input required type="text" id="rec-name" placeholder="np. Czynsz, Spotify, Pensja"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-
-      <!-- Amount -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Kwota (zł)</label>
-        <div class="relative">
-          <i data-lucide="banknote" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-          <input required type="number" step="0.01" min="0.01" id="rec-amount" placeholder="0,00"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 pl-9 pr-3 py-2.5 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-300">
-        </div>
-      </div>
-
-      <!-- Category -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1.5 block">Kategoria</label>
-        <div id="rec-category-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-2"></div>
-        <input type="hidden" id="rec-category">
-      </div>
-
-      <!-- Place -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1.5 block">Miejsce</label>
-        <div id="rec-place-grid" class="grid grid-cols-3 gap-2"></div>
-        <input type="hidden" id="rec-place" value="konto">
-      </div>
-
-      <!-- Frequency -->
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs font-medium text-slate-500 mb-1 block">Częstotliwość</label>
-          <select id="rec-freq" onchange="updateRecurringDayLabel()"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="monthly">Co miesiąc</option>
-            <option value="weekly">Co tydzień</option>
-            <option value="yearly">Co rok</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-500 mb-1 block" id="rec-day-label">Dzień miesiąca</label>
-          <input required type="number" id="rec-day" min="1" max="31" placeholder="1–31"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-        </div>
-      </div>
-
-      <!-- Start date -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Data pierwszego wpisu</label>
-        <input required type="date" id="rec-start"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-
-      <!-- Description (optional) -->
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Opis (opcjonalnie)</label>
-        <input type="text" id="rec-desc" placeholder="Dodatkowy opis transakcji"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-
-      <!-- Subscription toggle -->
-      <div id="rec-sub-toggle-wrap" class="flex items-center gap-3 bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 rounded-xl px-4 py-3">
-        <label class="flex items-center gap-3 cursor-pointer flex-1">
-          <div class="relative">
-            <input type="checkbox" id="rec-is-subscription" class="sr-only peer" onchange="onRecSubToggle()">
-            <div class="w-10 h-5 rounded-full bg-slate-200 dark:bg-slate-700 peer-checked:bg-purple-500 transition-colors"></div>
-            <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></div>
-          </div>
-          <div>
-            <p class="text-sm font-semibold text-purple-700 dark:text-purple-300">Subskrypcja</p>
-            <p class="text-xs text-purple-400" id="rec-sub-hint">Oznacz, jeśli to płatna usługa abonamentowa</p>
-          </div>
-        </label>
-        <i data-lucide="rss" class="w-5 h-5 text-purple-400 shrink-0"></i>
-      </div>
-
-      <button type="submit" id="rec-submit-btn" class="w-full px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition flex items-center justify-center gap-2">
-        <i data-lucide="plus" class="w-4 h-4"></i> Dodaj cykliczną
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- ═══ MODAL: TRANSACTION TEMPLATES ═══ -->
-<div id="templates-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeTemplatesModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-md p-6 max-h-[90vh] flex flex-col">
-    <div class="flex items-center justify-between mb-4 shrink-0">
-      <p class="font-semibold flex items-center gap-2"><i data-lucide="bookmark" class="w-4 h-4 text-indigo-500"></i> Szablony transakcji</p>
-      <button onclick="closeTemplatesModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <p class="text-xs text-slate-400 mb-4 shrink-0">Kliknij szablon, aby wczytać dane do formularza. Możesz go potem edytować przed dodaniem.</p>
-    <div id="templates-list" class="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1"></div>
-    <div id="templates-empty" class="hidden flex flex-col items-center justify-center py-10 gap-3">
-      <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-slate-800 flex items-center justify-center">
-        <i data-lucide="bookmark" class="w-5 h-5 text-indigo-300"></i>
-      </div>
-      <p class="text-sm text-slate-400 text-center">Brak szablonów.<br>Wypełnij formularz i kliknij „Zapisz jako szablon".</p>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: SAVE TEMPLATE ═══ -->
-<div id="save-template-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeSaveTemplateModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-semibold">Zapisz szablon</p>
-      <button onclick="closeSaveTemplateModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <div class="space-y-3">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">Nazwa szablonu</label>
-        <input type="text" id="template-name-input" placeholder="np. Czynsz miesięczny"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-      <div id="template-preview" class="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 text-xs text-slate-500 space-y-1"></div>
-      <button onclick="confirmSaveTemplate()" class="w-full px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition">Zapisz szablon</button>
-    </div>
-  </div>
-</div>
-
-<!-- Toast container -->
-<div id="toast-container" class="fixed bottom-24 md:bottom-6 right-4 z-[100] space-y-2 pointer-events-none"></div>
-
-<!-- ═══ GLOBAL SEARCH OVERLAY ═══ -->
-<div id="global-search-overlay" class="hidden fixed inset-0 z-[200] flex items-start justify-center p-4 pt-[10vh]">
-  <div class="absolute inset-0 bg-slate-900/50 dark:bg-slate-950/70 backdrop-blur-sm" onclick="closeGlobalSearch()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-xl flex flex-col max-h-[75vh]">
-    <!-- Search input bar -->
-    <div class="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
-      <i data-lucide="search" class="w-5 h-5 text-indigo-400 shrink-0"></i>
-      <input id="global-search-input" type="text" placeholder="Szukaj transakcji, tagów, notatek…"
-        class="flex-1 bg-transparent text-base focus:outline-none placeholder-slate-400"
-        oninput="runGlobalSearch()" onkeydown="globalSearchKeyNav(event)">
-      <kbd class="hidden sm:block text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 text-slate-400 shrink-0">Esc</kbd>
-      <button onclick="closeGlobalSearch()" class="md:hidden text-slate-400 hover:text-slate-600 p-1 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
-    </div>
-    <!-- Tag cloud quick filter -->
-    <div id="gsearch-tag-cloud" class="hidden px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-1.5 shrink-0"></div>
-    <!-- Results -->
-    <div id="gsearch-results" class="overflow-y-auto flex-1 min-h-0 py-2"></div>
-    <!-- Footer hint -->
-    <div class="px-4 py-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3 text-[10px] text-slate-400 shrink-0">
-      <span class="flex items-center gap-1"><kbd class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1">↑↓</kbd> nawigacja</span>
-      <span class="flex items-center gap-1"><kbd class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1">Enter</kbd> otwórz</span>
-      <span class="flex items-center gap-1"><kbd class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1">Esc</kbd> zamknij</span>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: DODAJ REGUŁĘ OSZCZĘDZANIA ═══ -->
-<div id="saving-rule-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeSavingRuleModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-md p-6 max-h-[92vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-5">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
-          <i data-lucide="piggy-bank" class="w-5 h-5 text-emerald-500"></i>
-        </div>
-        <div>
-          <p class="font-bold" id="saving-rule-modal-title">Nowa reguła oszczędzania</p>
-          <p class="text-xs text-slate-400">Automatycznie odkładaj % z zarobku</p>
-        </div>
-      </div>
-      <button onclick="closeSavingRuleModal()" class="text-slate-400 hover:text-slate-600 transition p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-
-    <div class="space-y-4">
-      <input type="hidden" id="saving-rule-edit-id">
-
-      <!-- Rule name -->
-      <div>
-        <label class="text-xs font-semibold text-slate-500 mb-1.5 block uppercase tracking-wide">Nazwa reguły</label>
-        <input type="text" id="sr-name" placeholder="np. Fundusz awaryjny, Wakacje, Emerytura…"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300">
-      </div>
-
-      <!-- Trigger: which income -->
-      <div>
-        <label class="text-xs font-semibold text-slate-500 mb-1.5 block uppercase tracking-wide">Wyzwalacz — skąd odkładać</label>
-        <div class="grid grid-cols-1 gap-2" id="sr-trigger-grid">
-          <button type="button" data-val="" onclick="selectSRTrigger(this)"
-            class="sr-trigger-btn flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 text-left transition">
-            <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
-              <i data-lucide="zap" class="w-4 h-4 text-emerald-600"></i>
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Każda wpłata zarobku</p>
-              <p class="text-xs text-slate-400">Reguła dotyczy wszystkich źródeł</p>
-            </div>
-          </button>
-        </div>
-        <input type="hidden" id="sr-source-id" value="">
-      </div>
-
-      <!-- Percentage with visual slider -->
-      <div>
-        <label class="text-xs font-semibold text-slate-500 mb-1.5 block uppercase tracking-wide">Procent do odkładania</label>
-        <div class="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-slate-500">Procent zarobku</span>
-            <div class="flex items-center gap-1">
-              <input type="number" id="sr-pct-num" min="1" max="99" step="1" value="10"
-                oninput="syncSRSlider()"
-                class="w-14 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-900 px-2 py-1 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-emerald-300">
-              <span class="text-sm font-bold text-slate-500">%</span>
-            </div>
-          </div>
-          <input type="range" id="sr-pct-range" min="1" max="99" step="1" value="10"
-            oninput="syncSRNum()"
-            class="w-full" style="accent-color:#10b981">
-          <!-- Quick preset buttons -->
-          <div class="flex gap-2 flex-wrap">
-            <span class="text-xs text-slate-400">Szybki wybór:</span>
-            <button type="button" onclick="setSRPct(5)"  class="text-xs px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 transition font-semibold">5%</button>
-            <button type="button" onclick="setSRPct(10)" class="text-xs px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 transition font-semibold">10%</button>
-            <button type="button" onclick="setSRPct(15)" class="text-xs px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 transition font-semibold">15%</button>
-            <button type="button" onclick="setSRPct(20)" class="text-xs px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 transition font-semibold">20%</button>
-            <button type="button" onclick="setSRPct(30)" class="text-xs px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 transition font-semibold">30%</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Destination account / goal -->
-      <div>
-        <label class="text-xs font-semibold text-slate-500 mb-1.5 block uppercase tracking-wide">Cel — gdzie odkładać</label>
-        <!-- Konta -->
-        <div class="grid grid-cols-3 gap-2" id="sr-dest-accounts">
-          <button type="button" data-dest="skarbonka" onclick="selectSRDest(this)"
-            class="sr-dest-btn flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 transition">
-            <span class="text-2xl">🐷</span>
-            <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Skarbonka</span>
-          </button>
-          <button type="button" data-dest="gielda" onclick="selectSRDest(this)"
-            class="sr-dest-btn flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-transparent bg-slate-50 dark:bg-slate-800 hover:border-amber-300 transition">
-            <span class="text-2xl">📈</span>
-            <span class="text-xs font-semibold text-slate-500">Giełda</span>
-          </button>
-          <button type="button" data-dest="konto" onclick="selectSRDest(this)"
-            class="sr-dest-btn flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-transparent bg-slate-50 dark:bg-slate-800 hover:border-blue-300 transition">
-            <span class="text-2xl">🏦</span>
-            <span class="text-xs font-semibold text-slate-500">Konto</span>
-          </button>
-        </div>
-        <!-- Cele oszczędnościowe -->
-        <div id="sr-goals-section" class="mt-3">
-          <p class="text-xs text-slate-400 mb-1.5 font-medium flex items-center gap-1"><i data-lucide="target" class="w-3 h-3"></i> Lub wybierz cel oszczędnościowy</p>
-          <div id="sr-dest-goals" class="grid grid-cols-1 gap-2"></div>
-          <p id="sr-goals-empty" class="text-xs text-slate-400 italic hidden">Brak zdefiniowanych celów — <button type="button" onclick="closeSavingRuleModal();switchTab('goals')" class="text-indigo-500 font-semibold hover:underline">Dodaj cel →</button></p>
-        </div>
-        <input type="hidden" id="sr-dest" value="skarbonka">
-      </div>
-
-      <!-- Live preview -->
-      <div id="sr-preview" class="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl p-4">
-        <p class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-2">Podgląd działania</p>
-        <p class="text-sm text-indigo-700 dark:text-indigo-300" id="sr-preview-text">
-          Przy każdej wpłacie zarobku aplikacja automatycznie odłoży <strong>10%</strong> kwoty na <strong>Skarbonkę</strong>.
-        </p>
-        <p class="text-xs text-indigo-400 mt-1.5">Np. zarobek 5 000 zł → odłożone <strong id="sr-preview-example">500,00 zł</strong></p>
-      </div>
-
-      <!-- H1: "Gdyby co by było" simulator -->
-      <div class="bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 rounded-xl p-4">
-        <p class="text-xs font-semibold text-violet-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i> Sprawdź: „A gdyby…"
-        </p>
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-sm text-slate-500 dark:text-slate-400">Hipotetyczny procent</span>
-          <span class="text-sm font-bold text-violet-600 dark:text-violet-400"><span id="sr-whatif-pct">10</span>%</span>
-        </div>
-        <input type="range" id="sr-whatif-range" min="1" max="99" step="1" value="10"
-          oninput="updateSRWhatIf()" class="w-full" style="accent-color:#8b5cf6">
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-2.5" id="sr-whatif-text"></p>
-      </div>
-
-      <button onclick="saveSavingRule()" class="w-full px-5 py-3 rounded-xl bg-emerald-500 text-white text-sm font-bold hover:bg-emerald-600 transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-200 dark:shadow-none">
-        <i data-lucide="check" class="w-4 h-4"></i> <span id="sr-save-label">Zapisz regułę</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: AUTO-SAVE RULES (legacy, kept for compatibility) ═══ -->
-<div id="autosave-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeAutosaveModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-4">
-      <p class="font-bold">Auto-odkładanie</p>
-      <button onclick="closeAutosaveModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <p class="text-sm text-slate-500 mb-4">Zarządzaj regułami w zakładce <button onclick="closeAutosaveModal();switchTab('saving')" class="text-emerald-600 font-semibold hover:underline">Oszczędzanie →</button></p>
-    <div id="autosave-rules-list" class="space-y-2"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: 50/30/20 CUSTOM TARGETS ═══ -->
-<div id="rule-targets-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeRuleTargetsModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6">
-    <div class="flex items-center justify-between mb-5">
-      <div class="flex items-center gap-2">
-        <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
-          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-500"></i>
-        </div>
-        <div>
-          <p class="font-bold">Dostosuj cele</p>
-          <p class="text-xs text-slate-400">Własne progi zamiast 50/30/20</p>
-        </div>
-      </div>
-      <button onclick="closeRuleTargetsModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <div class="space-y-4">
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <label class="text-sm font-medium">🔵 Potrzeby</label>
-          <span id="target-needs-val" class="text-sm font-bold text-blue-500">50%</span>
-        </div>
-        <input type="range" id="target-needs-range" min="10" max="80" step="5" value="50" oninput="updateTargetDisplay()"
-          class="w-full">
-      </div>
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <label class="text-sm font-medium">🟣 Zachcianki</label>
-          <span id="target-wants-val" class="text-sm font-bold text-violet-500">30%</span>
-        </div>
-        <input type="range" id="target-wants-range" min="5" max="60" step="5" value="30" oninput="updateTargetDisplay()"
-          class="w-full">
-      </div>
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <label class="text-sm font-medium">🟢 Oszczędności</label>
-          <span id="target-savings-val" class="text-sm font-bold text-emerald-500">20%</span>
-        </div>
-        <input type="range" id="target-savings-range" min="5" max="60" step="5" value="20" oninput="updateTargetDisplay()"
-          class="w-full">
-      </div>
-      <div id="target-sum-warning" class="hidden text-xs text-amber-600 bg-amber-50 dark:bg-amber-500/10 rounded-xl px-3 py-2 text-center"></div>
-      <button onclick="saveRuleTargets()" class="w-full px-4 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition">Zapisz cele</button>
-      <button onclick="resetRuleTargets()" class="w-full px-4 py-1.5 rounded-xl text-slate-500 text-sm hover:text-indigo-500 transition">Przywróć domyślne (50/30/20)</button>
-    </div>
-  </div>
-</div>
-
-<!-- Dashboard: modal "+ Dodaj kafelek" — wspólny dla HOME / STATYSTYKI / RAPORT,
-     zawartość listy budowana dynamicznie w JS (openAddWidgetModal) zależnie
-     od tego, na której zakładce użytkownik jest w trybie edycji. -->
-<div id="dashboard-add-widget-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" onclick="closeAddWidgetModal()"></div>
-  <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6 max-h-[80vh] flex flex-col">
-    <div class="flex items-center justify-between mb-5">
-      <div class="flex items-center gap-2">
-        <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
-          <i data-lucide="layout-grid" class="w-4 h-4 text-indigo-500"></i>
-        </div>
-        <div>
-          <p class="font-bold">Dodaj kafelek</p>
-          <p class="text-xs text-slate-400">Przywróć ukryty widget do widoku</p>
-        </div>
-      </div>
-      <button onclick="closeAddWidgetModal()" class="text-slate-400 hover:text-slate-600 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <div id="dashboard-add-widget-list" class="space-y-2 overflow-y-auto"></div>
-  </div>
-</div>
-
-<script src="src/storage/storage-adapter.js"></script>
-<script src="src/storage/firebase-storage-adapter.js"></script>
-<script src="src/storage/composition-root.js"></script>
-<script src="src/data-layer.js"></script>
-<script src="src/session-manager.js"></script>
-<script src="src/user-data-loader.js"></script>
-<script src="src/state/application-state.js"></script>
-<script src="src/state/dashboard-layouts-state.js"></script>
-<script src="src/repositories/dashboard-layouts-repository.js"></script>
-<script src="src/domain/safe-to-spend/safe-to-spend-calculator.js"></script>
-<script src="src/application/safe-to-spend/safe-to-spend-service.js"></script>
-<script src="src/domain/goals/goal-eta-calculator.js"></script>
-<script src="src/application/goals/goal-eta-service.js"></script>
-<script src="src/domain/resale/resale-balance-calculator.js"></script>
-<script src="src/application/resale/resale-balance-service.js"></script>
-  <script src="src/domain/income/source-monthly-earnings-calculator.js"></script>
-  <script src="src/domain/income/source-net-calculator.js"></script>
-  <script src="src/application/income/source-net-service.js"></script>
-  <script src="src/domain/income/month-earn-stats-calculator.js"></script>
-  <script src="src/application/income/month-earn-stats-service.js"></script>
-  <script src="src/domain/gielda/gielda-balance-calculator.js"></script>
-  <script src="src/application/gielda/gielda-balance-service.js"></script>
-  <script src="src/domain/income/income-profile-balance-calculator.js"></script>
-  <script src="src/application/income/income-profile-balance-service.js"></script>
-  <script src="src/domain/balances/balances-as-of-calculator.js"></script>
-  <script src="src/application/balances/balances-as-of-service.js"></script>
-  <script src="src/domain/dates/month-end-date-calculator.js"></script>
-  <script src="src/domain/debts/debts-as-of-calculator.js"></script>
-  <script src="src/domain/debts/debtor-remaining-calculator.js"></script>
-  <script src="src/domain/debts/debts-total-calculator.js"></script>
-  <script src="src/domain/loans/loan-remaining-calculator.js"></script>
-  <script src="src/domain/loans/loans-total-calculator.js"></script>
-  <script src="src/domain/wealth/wealth-month-transaction-stats-calculator.js"></script>
-  <script src="src/domain/transactions/month-category-breakdown-calculator.js"></script>
-  <script src="src/domain/recurring/recurring-next-date-calculator.js"></script>
-  <script src="src/domain/recurring/recurring-to-monthly-calculator.js"></script>
-  <script src="src/application/debts/debts-as-of-service.js"></script>
-<script>
 /* ══════════════════════════════════
    CATEGORIES
 ══════════════════════════════════ */
@@ -3569,28 +258,10 @@ const DEFAULT_LAYOUTS = {
    trzema zakładkami naraz) jest migrowana automatycznie — patrz
    ensureDashboardLayouts().
 ══════════════════════════════════ */
-/* Compatibility projections — read-only views onto DashboardLayoutsState.
-   UI code MUST NOT write to these globals. Any write triggers a console warning. */
-Object.defineProperty(window, 'dashboardLayouts', {
-  get() { return window.DashboardLayoutsState ? window.DashboardLayoutsState.layouts : null; },
-  set(v) { console.warn('[Compatibility] dashboardLayouts is read-only; use DashboardLayoutsState'); },
-  configurable: true,
-});
-Object.defineProperty(window, 'dashboardEditTab', {
-  get() { return window.DashboardLayoutsState ? window.DashboardLayoutsState.editTab : null; },
-  set(v) { console.warn('[Compatibility] dashboardEditTab is read-only; use DashboardLayoutsState'); },
-  configurable: true,
-});
-Object.defineProperty(window, 'dashboardSortable', {
-  get() { return window.DashboardLayoutsState ? window.DashboardLayoutsState.sortableInstance : null; },
-  set(v) { console.warn('[Compatibility] dashboardSortable is read-only; use DashboardLayoutsState'); },
-  configurable: true,
-});
-Object.defineProperty(window, 'dashboardAddModalTab', {
-  get() { return window.DashboardLayoutsState ? window.DashboardLayoutsState.addModalTab : null; },
-  set(v) { console.warn('[Compatibility] dashboardAddModalTab is read-only; use DashboardLayoutsState'); },
-  configurable: true,
-});
+let dashboardLayouts   = null;   // { home:{order:[...], hidden:[...]}, stats:{...}, report:{...} }
+let dashboardEditTab   = null;   // zakładka aktualnie w trybie edycji ('home'|'stats'|'report') lub null
+let dashboardSortable  = null;   // aktywna instancja Sortable.js (tylko jedna zakładka edytowana naraz)
+let dashboardAddModalTab = null; // dla którego taba otwarty jest modal "+ Dodaj kafelek"
 
 /* Mapuje ID zakładek używane przez switchTab() (home/stats/reports/...)
    na klucze dashboardu (home/stats/report) — jedyna niezgodność nazw. */
@@ -3616,38 +287,31 @@ function cloneDefaultDashboardLayouts() {
    trzymała wszystkie trzy zakładki pod jednym kluczem SK.dashboardLayouts
    (users/<uid>/finapp_dashboard_layouts) zamiast osobno pod
    settings/layouts/<tab> — patrz blok migracji na końcu funkcji. */
-function ensureDashboardLayouts(rootData) {
-  if (window.DashboardLayoutsState.layouts && window.DashboardLayoutsState.isAuthoritative()) return;
+function ensureDashboardLayouts() {
+  if (dashboardLayouts) return;
+  dashboardLayouts = cloneDefaultDashboardLayouts();
 
-  const data = rootData || dbData;
-  const settingsLayouts = (data.settings && data.settings.layouts) || null;
+  const settingsLayouts = (dbData.settings && dbData.settings.layouts) || null;
+  // Stary format sprzed wprowadzenia settings/layouts/<tab> — użyty tylko
+  // jako fallback, gdy nowej struktury jeszcze nie ma w bazie.
   const legacy = !settingsLayouts && typeof load === 'function' ? load(SK.dashboardLayouts, null) : null;
 
-  let merged = null;
-  if (settingsLayouts || legacy) {
-    const saved = settingsLayouts || legacy;
-    const result = {};
-    Object.keys(DEFAULT_LAYOUTS).forEach(tab => {
-      const savedTab = saved[tab];
-      if (!savedTab) return;
-      const allIds = Object.keys(WIDGET_REGISTRY).filter(id => WIDGET_REGISTRY[id].tab === tab);
-      const savedOrder = Array.isArray(savedTab.order) ? savedTab.order.filter(id => allIds.includes(id)) : [];
-      const savedHidden = Array.isArray(savedTab.hidden) ? savedTab.hidden.filter(id => allIds.includes(id)) : [];
-      const missing = allIds.filter(id => !savedOrder.includes(id) && !savedHidden.includes(id));
-      result[tab] = { order: [...savedOrder, ...missing], hidden: savedHidden };
-    });
-    merged = result;
-  }
+  Object.keys(dashboardLayouts).forEach(tab => {
+    const savedTab = (settingsLayouts && settingsLayouts[tab]) || (legacy && legacy[tab]) || null;
+    if (!savedTab) return; // brak zapisu dla tej zakładki -> zostaje DEFAULT_LAYOUTS
+    const allIds = Object.keys(WIDGET_REGISTRY).filter(id => WIDGET_REGISTRY[id].tab === tab);
+    const savedOrder  = Array.isArray(savedTab.order)  ? savedTab.order.filter(id => allIds.includes(id))  : [];
+    const savedHidden = Array.isArray(savedTab.hidden) ? savedTab.hidden.filter(id => allIds.includes(id)) : [];
+    const missing = allIds.filter(id => !savedOrder.includes(id) && !savedHidden.includes(id));
+    dashboardLayouts[tab] = { order: [...savedOrder, ...missing], hidden: savedHidden };
+  });
 
-  DashboardLayoutsState.initialize(merged);
-
-  if (rootData) {
-    window.DashboardLayoutsState.setAuthoritative(true);
-  }
-
+  // Migracja jednorazowa: dane istniały tylko pod starym, pojedynczym
+  // kluczem -> przepisz je pod nową strukturę per-zakładka i posprzątaj
+  // stary węzeł, żeby w bazie nie zostały dwa niespójne źródła prawdy.
   if (!settingsLayouts && legacy && currentUserRef) {
-    Object.keys(DashboardLayoutsState.layouts).forEach(tab => saveDashboardLayoutTab(tab, false));
-    DataLayer.remove(SK.dashboardLayouts).catch(err =>
+    Object.keys(dashboardLayouts).forEach(tab => saveDashboardLayoutTab(tab, false));
+    currentUserRef.child(SK.dashboardLayouts).remove().catch(err =>
       console.warn('Nie udało się usunąć starego węzła finapp_dashboard_layouts:', err)
     );
   }
@@ -3664,15 +328,23 @@ function saveDashboardLayoutTab(tab, showToast) {
     console.warn('saveDashboardLayoutTab() pominięty — brak zalogowanego użytkownika, zakładka:', tab);
     return;
   }
-
-  const promise = DashboardLayoutsRepository.saveTab(tab, showToast);
-  if (!showToast) return;
-
-  if (promise && typeof promise.then === 'function') {
-    promise.then(() => toast('Zapisano układ!')).catch(err => {
-      console.error('Firebase save error for settings/layouts/' + tab + ':', err);
-      toast('Nie udało się zapisać układu (' + tab + '): ' + (err && err.message ? err.message : err), 'error');
-    });
+  const layout = dashboardLayouts[tab];
+  if (!layout) return;
+  try {
+    const clean = _stripUndefinedDeep(layout);
+    const result = currentUserRef.child('settings/layouts/' + tab).set(clean);
+    const onSaved = () => { if (showToast) toast('Zapisano układ!'); };
+    if (result && typeof result.then === 'function') {
+      result.then(onSaved).catch(err => {
+        console.error('Firebase save error for settings/layouts/' + tab + ':', err);
+        toast('Nie udało się zapisać układu (' + tab + '): ' + (err && err.message ? err.message : err), 'error');
+      });
+    } else {
+      onSaved();
+    }
+  } catch (err) {
+    console.error('Firebase save threw synchronously for settings/layouts/' + tab + ':', err);
+    toast('Błąd zapisu układu (' + tab + '): ' + (err && err.message ? err.message : err), 'error');
   }
 }
 
@@ -3689,8 +361,7 @@ function applyDashboardLayout(tab) {
   ensureDashboardLayouts();
   const grid = getDashboardGrid(tab);
   if (!grid) return;
-  const layout = DashboardLayoutsState.getTab(tab);
-  if (!layout) return;
+  const layout = dashboardLayouts[tab];
   const tiles = {};
   grid.querySelectorAll(':scope > .dashboard-tile').forEach(el => { tiles[el.dataset.widgetId] = el; });
 
@@ -3708,7 +379,7 @@ function applyDashboardLayout(tab) {
   });
 
   renderDashboardAddTileRow(tab);
-  if (DashboardLayoutsState.editTab === tab) renderDashboardTileControls(tab);
+  if (dashboardEditTab === tab) renderDashboardTileControls(tab);
   if (window.lucide) lucide.createIcons();
 }
 
@@ -3746,8 +417,7 @@ function renderDashboardAddTileRow(tab) {
   const grid = getDashboardGrid(tab);
   if (!grid) return;
   let btn = grid.querySelector(':scope > .dashboard-add-tile-btn');
-  const isEditing = DashboardLayoutsState.editTab === tab;
-  if (isEditing) {
+  if (dashboardEditTab === tab) {
     if (!btn) {
       btn = document.createElement('button');
       btn.type = 'button';
@@ -3755,7 +425,7 @@ function renderDashboardAddTileRow(tab) {
       btn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i><span>Dodaj kafelek</span>';
       btn.addEventListener('click', () => openAddWidgetModal(tab));
     }
-    grid.appendChild(btn);
+    grid.appendChild(btn); // zawsze na samym końcu
   } else if (btn) {
     btn.remove();
   }
@@ -3780,7 +450,7 @@ function dashboardEditClickGuard(e) {
 function updateDashboardEditButton(tab) {
   const btn = document.getElementById('dashboard-edit-btn-' + tab);
   if (!btn) return;
-  const active = DashboardLayoutsState.editTab === tab;
+  const active = dashboardEditTab === tab;
   btn.classList.toggle('is-editing', active);
   btn.innerHTML = active
     ? '<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Zapisz układ</span>'
@@ -3789,11 +459,10 @@ function updateDashboardEditButton(tab) {
 }
 
 function toggleDashboardEditMode(tab) {
-  const currentEditTab = DashboardLayoutsState.editTab;
-  if (currentEditTab === tab) {
-    exitDashboardEditMode(tab, true);
+  if (dashboardEditTab === tab) {
+    exitDashboardEditMode(tab, true); // doSave=true -> persistDashboardOrder pokaże toast "Zapisano układ!" po zapisie
   } else {
-    if (currentEditTab) exitDashboardEditMode(currentEditTab, true);
+    if (dashboardEditTab) exitDashboardEditMode(dashboardEditTab, true); // tylko jedna zakładka naraz
     enterDashboardEditMode(tab);
   }
 }
@@ -3802,9 +471,7 @@ function enterDashboardEditMode(tab) {
   ensureDashboardLayouts();
   const grid = getDashboardGrid(tab);
   if (!grid) return;
-
-  DashboardLayoutsState.setEditTab(tab);
-
+  dashboardEditTab = tab;
   grid.classList.add('edit-mode');
   grid.addEventListener('click', dashboardEditClickGuard, true);
 
@@ -3812,7 +479,9 @@ function enterDashboardEditMode(tab) {
   renderDashboardAddTileRow(tab);
   updateDashboardEditButton(tab);
 
-  const sortableInstance = Sortable.create(grid, {
+  // animation:150 wg wymagań; delay+delayOnTouchOnly, żeby na dotyku krótkie
+  // "musnięcie" wciąż przewijało stronę, a dopiero przytrzymanie uruchamiało drag.
+  dashboardSortable = Sortable.create(grid, {
     animation: 150,
     draggable: '.dashboard-tile',
     filter: '.dashboard-tile-remove-btn',
@@ -3827,26 +496,22 @@ function enterDashboardEditMode(tab) {
     onEnd: () => persistDashboardOrder(tab),
   });
 
-  DashboardLayoutsState.setSortableInstance(sortableInstance);
-
   if (window.lucide) lucide.createIcons();
 }
 
 function exitDashboardEditMode(tab, doSave) {
   const grid = getDashboardGrid(tab);
-  const sortableInstance = DashboardLayoutsState.sortableInstance;
-  if (sortableInstance) {
+  if (dashboardSortable) {
     if (doSave) persistDashboardOrder(tab, true);
-    try { sortableInstance.destroy(); } catch (_) {}
-    DashboardLayoutsState.setSortableInstance(null);
+    try { dashboardSortable.destroy(); } catch (_) {}
+    dashboardSortable = null;
   }
   if (grid) {
     grid.classList.remove('edit-mode');
     grid.removeEventListener('click', dashboardEditClickGuard, true);
   }
   removeDashboardTileControls(tab);
-  DashboardLayoutsState.setEditTab(null);
-
+  if (dashboardEditTab === tab) dashboardEditTab = null;
   renderDashboardAddTileRow(tab);
   updateDashboardEditButton(tab);
 }
@@ -3860,22 +525,16 @@ function persistDashboardOrder(tab, showToast) {
   const order = Array.from(grid.querySelectorAll(':scope > .dashboard-tile:not(.hidden)'))
     .map(el => el.dataset.widgetId)
     .filter(Boolean);
-
-  DashboardLayoutsState.updateTab(tab, prev => ({ ...prev, order }));
-
+  dashboardLayouts[tab].order = order;
   saveDashboardLayoutTab(tab, showToast);
 }
 
 function hideDashboardWidget(tab, widgetId) {
   if (!widgetId) return;
   ensureDashboardLayouts();
-
-  DashboardLayoutsState.updateTab(tab, prev => ({
-    ...prev,
-    order: prev.order.filter(id => id !== widgetId),
-    hidden: prev.hidden.includes(widgetId) ? prev.hidden : [...prev.hidden, widgetId],
-  }));
-
+  const layout = dashboardLayouts[tab];
+  layout.order = layout.order.filter(id => id !== widgetId);
+  if (!layout.hidden.includes(widgetId)) layout.hidden.push(widgetId);
   saveDashboardLayoutTab(tab, false);
   applyDashboardLayout(tab);
   const title = (WIDGET_REGISTRY[widgetId] && WIDGET_REGISTRY[widgetId].title) || widgetId;
@@ -3885,13 +544,9 @@ function hideDashboardWidget(tab, widgetId) {
 function showDashboardWidget(tab, widgetId) {
   if (!widgetId) return;
   ensureDashboardLayouts();
-
-  DashboardLayoutsState.updateTab(tab, prev => ({
-    ...prev,
-    hidden: prev.hidden.filter(id => id !== widgetId),
-    order: prev.order.includes(widgetId) ? prev.order : [...prev.order, widgetId],
-  }));
-
+  const layout = dashboardLayouts[tab];
+  layout.hidden = layout.hidden.filter(id => id !== widgetId);
+  if (!layout.order.includes(widgetId)) layout.order.push(widgetId);
   saveDashboardLayoutTab(tab, false);
   applyDashboardLayout(tab);
   closeAddWidgetModal();
@@ -3901,11 +556,9 @@ function showDashboardWidget(tab, widgetId) {
 
 function openAddWidgetModal(tab) {
   ensureDashboardLayouts();
-
-  DashboardLayoutsState.setAddModalTab(tab);
-
+  dashboardAddModalTab = tab;
   const listEl = document.getElementById('dashboard-add-widget-list');
-  const hidden = DashboardLayoutsState.getTab(tab).hidden;
+  const hidden = dashboardLayouts[tab].hidden;
   if (!listEl) return;
   if (hidden.length === 0) {
     listEl.innerHTML = '<p class="text-sm text-slate-400 text-center py-8">Wszystkie dostępne kafelki są już widoczne na tej zakładce.</p>';
@@ -3930,13 +583,106 @@ function openAddWidgetModal(tab) {
 function closeAddWidgetModal() {
   const modal = document.getElementById('dashboard-add-widget-modal');
   if (modal) modal.classList.add('hidden');
-
-  DashboardLayoutsState.setAddModalTab(null);
+  dashboardAddModalTab = null;
 }
 
 /* ══════════════════════════════════
-   GLOBAL STATE
+   DATA LAYER
 ══════════════════════════════════ */
+const SK = {
+  transactions: 'finapp_transactions',
+  debtors:      'finapp_debtors',
+  budgets:      'finapp_budgets',
+  goals:        'finapp_goals',
+  reminders:    'finapp_reminders',
+  transfers:    'finapp_transfers',
+  incomeSources:'finapp_income_sources',
+  templates:    'finapp_templates',
+  recurring:    'finapp_recurring',
+  creditors:    'finapp_creditors',
+  autoSaveRules:'finapp_autosave_rules',
+  ruleTargets:  'finapp_rule_targets',
+  stronyProducts:'finapp_strony_products',
+  resaleProducts:'finapp_resale_products',
+  resaleSales:  'finapp_resale_sales',
+  resaleTasks:  'finapp_resale_tasks',
+  resaleShipments: 'finapp_resale_shipments',
+  resaleEvents: 'finapp_resale_events', // Silnik zdarzeń Resale (Faza 0.2 planu rozbudowy) — pełna historia zdarzeń, nie tylko finalne statusy
+  resaleSettings: 'finapp_resale_settings', // Faza 2, pkt.11 — progi/stawki modułu Resale (panel "Ustawienia Resale")
+  gieldaOps:    'finapp_gielda_ops',
+  stronyClients: 'finapp_strony_clients',
+  dashboardLayouts: 'finapp_dashboard_layouts', // legacy — użyty tylko do jednorazowej migracji, patrz ensureDashboardLayouts()
+};
+
+const db = firebase.database();
+
+let dbData = {};
+let initialLoadDone = false;
+let _resaleShippingToastShown = false; // Faza 1, pkt.1 planu — toast o przeterminowanej wysyłce tylko raz na sesję
+
+/* ── Wielu użytkowników: ścieżka w bazie zależy od zalogowanego właściciela ──
+   currentUserRef  = db.ref('users/<uid>') aktywnej sesji (właściciel LUB gość
+                      patrzący na dane konkretnego właściciela) — wszystkie
+                      odczyty/zapisy (load/save) przechodzą przez tę ścieżkę.
+   currentUid      = uid zalogowanego WŁAŚCICIELA (null w trybie gościa). */
+let currentUserRef = null;
+let currentUid      = null;
+
+/* Wykrywanie trybu gościa — musi być zadeklarowane przed nasłuchiwaniem Firebase poniżej */
+const _guestUrlParams = new URLSearchParams(window.location.search);
+const isGuestMode      = _guestUrlParams.get('view') === 'debt';
+const guestOwnerUid    = _guestUrlParams.get('owner');   // uid właściciela, którego dane ma zobaczyć gość
+const guestDebtorId    = _guestUrlParams.get('id');
+const guestAccessCode  = _guestUrlParams.get('code');
+let guestDebtorRef     = null; // aktualnie znaleziony rekord dłużnika (lub null)
+
+function load(key, fb) {
+  return dbData[key] !== undefined ? dbData[key] : fb;
+}
+// Firebase's Realtime Database throws IMMEDIATELY (synchronously) if you try to
+// .set() any object/array containing an `undefined` property anywhere inside it
+// (e.g. { note: undefined }). Several places in this app build objects like
+// `note: note || undefined` — perfectly fine for local JS, but fatal for Firebase.
+// When that throw happens mid-handler, every line after save() (resetting the
+// form, re-rendering, showing the "dodano" toast) never runs — which is exactly
+// why clicking "Dodaj" can look like it does completely nothing.
+// Fix: strip undefined values before they ever reach Firebase, and make sure any
+// error (sync or from a rejected promise) is caught and shown to the user instead
+// of failing silently.
+function _stripUndefinedDeep(value) {
+  if (Array.isArray(value)) return value.map(_stripUndefinedDeep);
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const k in value) {
+      if (value[k] === undefined) continue; // omit — Firebase rejects undefined outright
+      out[k] = _stripUndefinedDeep(value[k]);
+    }
+    return out;
+  }
+  return value;
+}
+function save(key, data) {
+  if (!currentUserRef) {
+    // Brak aktywnej ścieżki użytkownika (np. jeszcze przed zalogowaniem, albo
+    // gość bez poprawnego parametru ?owner=) — nie ma gdzie zapisać.
+    console.warn('save() pominięty — brak zalogowanego użytkownika, klucz:', key);
+    return;
+  }
+  try {
+    const clean = _stripUndefinedDeep(data);
+    const result = currentUserRef.child(key).set(clean);
+    if (result && typeof result.catch === 'function') {
+      result.catch(err => {
+        console.error('Firebase save error for key "' + key + '":', err);
+        toast('Nie udało się zapisać w bazie (' + key + '): ' + (err && err.message ? err.message : err), 'error');
+      });
+    }
+  } catch (err) {
+    console.error('Firebase save threw synchronously for key "' + key + '":', err);
+    toast('Błąd zapisu (' + key + '): ' + (err && err.message ? err.message : err), 'error');
+  }
+}
+
 let transactions = [];
 let debtors      = [];
 // Tryb Dyskretny (Privacy Mode) — maskowanie kwot w całej aplikacji. Wybór
@@ -3987,12 +733,14 @@ function resetLocalAppState() {
   stronyProducts = []; resaleProducts = []; resaleSales = []; resaleTasks = [];
   resaleShipments = []; gieldaOps = []; stronyClients = [];
   _vintedPrices = null;
-  _vintedMeta = null;
-  if (dashboardSortable) {
-    try { exitDashboardEditMode(DashboardLayoutsState.editTab, false); } catch (_) {}
+  // Dashboard: wyjdź z trybu edycji (niszczy instancję Sortable) i wyczyść
+  // zapamiętany układ — zostanie wczytany na nowo (lub zbudowany z
+  // DEFAULT_LAYOUTS) przy starcie nasłuchu kolejnego użytkownika.
+  if (typeof dashboardEditTab !== 'undefined' && dashboardEditTab) {
+    try { exitDashboardEditMode(dashboardEditTab, false); } catch (_) {}
   }
-  DashboardLayoutsState.reset();
-  try { renderAll(); } catch (_) {}
+  dashboardLayouts = null;
+  try { renderAll(); } catch (_) {} // renderAll może jeszcze nie istnieć przy pierwszym wywołaniu
 }
 
 /* ══════════════════════════════════
@@ -4058,28 +806,33 @@ function ensureIncomeProfilesExist(userId) {
     console.warn('ensureIncomeProfilesExist() pominięty — brak userId');
     return Promise.resolve(null);
   }
+  const ref = db.ref('users/' + userId + '/incomeProfiles');
 
-  return DataLayer.readOnce('incomeProfiles')
+  return ref.once('value')
     .then(snapshot => {
       const existing = snapshot.val() || null;
 
       if (!existing) {
-        return DataLayer.save('incomeProfiles', DEFAULT_INCOME_PROFILES).then(() => {
+        // Węzeł incomeProfiles nie istnieje w ogóle -> pełny auto-seeding.
+        return ref.set(DEFAULT_INCOME_PROFILES).then(() => {
           console.log('[incomeProfiles] Auto-seeding: utworzono domyślne profile Strony/Resale/Giełda dla', userId);
           return DEFAULT_INCOME_PROFILES;
         });
       }
 
+      // Węzeł istnieje — dogrywamy TYLKO brakujące domyślne profile,
+      // nie ruszając niczego, co już tam jest (ani innych, ewentualnie
+      // dodanych przez użytkownika profili spoza domyślnej trójki).
       const missingUpdates = {};
       Object.keys(DEFAULT_INCOME_PROFILES).forEach(key => {
         if (!existing[key]) missingUpdates['incomeProfiles/' + key] = DEFAULT_INCOME_PROFILES[key];
       });
 
       if (Object.keys(missingUpdates).length === 0) {
-        return existing;
+        return existing; // wszystko już jest — nic do zrobienia
       }
 
-      return DataLayer.updateUserPaths(missingUpdates).then(() => {
+      return db.ref('users/' + userId).update(missingUpdates).then(() => {
         console.log('[incomeProfiles] Dograno brakujące domyślne profile:', Object.keys(missingUpdates));
         return Object.assign({}, existing, DEFAULT_INCOME_PROFILES && missingUpdates ?
           Object.fromEntries(Object.keys(missingUpdates).map(k => [k.split('/')[1], missingUpdates[k]])) : {});
@@ -4134,8 +887,8 @@ let activeIncomeProfileId = null;
    getGieldaBalance() (liczy saldo z operacji giełdowych, nie transakcji). */
 function computeIncomeProfileBalance(profile) {
   if (!profile) return 0;
-  if (profile.id === 'gielda' && typeof GieldaBalanceService.computeCurrent === 'function') {
-    return GieldaBalanceService.computeCurrent();
+  if (profile.id === 'gielda' && typeof getGieldaBalance === 'function') {
+    return getGieldaBalance();
   }
   const base = Number(profile.balance) || 0;
   const txNet = (typeof transactions !== 'undefined' ? transactions : [])
@@ -4175,7 +928,7 @@ function renderIncomeProfileButtons(profiles, activeProfileId) {
 
   const chips = list.map(p => {
     const isActive = p.id === activeProfileId;
-    const balance = window.IncomeProfileBalanceService.computeForProfile(p);
+    const balance = computeIncomeProfileBalance(p);
     const balanceLabel = balance === 0
       ? 'brak operacji'
       : fmt(Math.abs(balance)) + (balance < 0 ? ' na minusie' : ' saldo');
@@ -4371,15 +1124,15 @@ function saveNewIncomeProfile() {
   const saveBtn = document.getElementById('income-profile-save-btn');
   if (saveBtn) saveBtn.disabled = true;
 
-  const promise = DataLayer.save('incomeProfiles/' + newId, newProfile, { silent: true });
-  promise
+  currentUserRef.child('incomeProfiles/' + newId).set(newProfile)
     .then(() => {
       closeAddProfileModal();
       toast(`Dodano profil: ${name} ✓`);
-      return DataLayer.readOnce('incomeProfiles');
+      // Doczytaj świeży snapshot profili i przełącz widok na nowo utworzony.
+      return currentUserRef.child('incomeProfiles').once('value');
     })
     .then(snapshot => {
-      if (!snapshot) return;
+      if (!snapshot) return; // nie doszliśmy tu, jeśli .set() rzucił błąd wyżej
       incomeProfiles = snapshot.val() || {};
       selectIncomeProfile(newId);
     })
@@ -4396,25 +1149,62 @@ function saveNewIncomeProfile() {
 /* Uruchamia nasłuchiwanie danych WŁAŚCICIELA pod users/<uid> — wywoływane
    z onAuthStateChanged po zalogowaniu. */
 function startOwnerListener(uidToWatch) {
-  SessionManager.startOwner(uidToWatch);
-  currentUserRef = DataLayer.currentUserRef;
   currentUid = uidToWatch;
+  currentUserRef = db.ref('users/' + uidToWatch);
 
+  // Migracja/auto-seeding profili zarobkowych — jednorazowe sprawdzenie przy
+  // starcie sesji. Nie blokuje głównego nasłuchu (.on('value') niżej) —
+  // działa asynchronicznie równolegle, bo dotyczy innego węzła w bazie.
   ensureIncomeProfilesExist(uidToWatch);
 
-  UserDataLoader.start(uidToWatch, function(rootData) {
-    ensureDashboardLayouts(rootData);
-    ensureResaleDataDefaults();
+  currentUserRef.on('value', snapshot => {
+    dbData = snapshot.val() || {};
+
+    transactions = load(SK.transactions, []);
+    debtors      = load(SK.debtors, []);
+    budgets      = load(SK.budgets, []);
+    goals        = load(SK.goals, []);
+    reminders    = load(SK.reminders, []);
+    transfers    = load(SK.transfers, []);
+    incomeSources= load(SK.incomeSources, []);
+    txTemplates  = load(SK.templates, []);
+    recurringTx  = load(SK.recurring, []);
+    creditors    = load(SK.creditors, []);
+    autoSaveRules= load(SK.autoSaveRules, []);
+    ruleTargets  = load(SK.ruleTargets, { needs:50, wants:30, savings:20 });
+    stronyProducts = load(SK.stronyProducts, []);
+    resaleProducts = load(SK.resaleProducts, []);
+    resaleSales    = load(SK.resaleSales, []);
+    resaleTasks      = load(SK.resaleTasks, []);
+    resaleShipments  = load(SK.resaleShipments, []);
+    resaleEvents     = load(SK.resaleEvents, []);
+    resaleSettings   = { ...RESALE_SETTINGS_DEFAULTS, ...load(SK.resaleSettings, {}) }; // Faza 2, pkt.11 — merge, żeby nowe pola dodane później miały sensowny default
+    gieldaOps        = load(SK.gieldaOps, []);
+    stronyClients    = load(SK.stronyClients, []);
+    dashboardLayouts = null; // wymuś ponowne złożenie z aktualnych danych Firebase (patrz ensureDashboardLayouts)
+    ensureDashboardLayouts();
+    ensureResaleDataDefaults(); // Faza 0.1: dopisuje domyślne wartości nowych pól (listedAt, statusHistory, priceHistory, minStockAlert) do starych rekordów, bez zmiany istniejących danych
+
+    if (dbData[SK_VINTED]) {
+      _vintedPrices = dbData[SK_VINTED];
+    }
+
+    // Faza 1, pkt.1 — jednorazowy (na sesję) toast, jeśli w tle jest coś
+    // krytycznie przeterminowane (>48h na wysyłkę). Sprawdzane raz, przy
+    // pierwszym załadowaniu danych z Firebase — nie przy każdej zmianie
+    // danych, żeby nie spamować powiadomieniami.
+    if (!_resaleShippingToastShown) {
+      _resaleShippingToastShown = true;
+      const _overdueShipping = getResaleShippingDeadlineNotifs().filter(x => x.overdue);
+      if (_overdueShipping.length > 0) {
+        toast(`⚠️ Masz ${_overdueShipping.length} szt. przesyłek po terminie 48h na wysyłkę!`, 'error');
+      }
+    }
 
     if (!initialLoadDone) {
       initialLoadDone = true;
 
-      // Giełda moved to Zarobek tab — reset if previously saved as active place
-      if (activeMoneyPlace === 'gielda') {
-        activeMoneyPlace = 'konto';
-        save('finapp_active_money_place', 'konto');
-      }
-
+      // Auto-create Strony, Resale and Giełda profiles if they don't exist
       let changed = false;
       if (!incomeSources.find(s => s._profileType === 'strony')) {
         incomeSources.unshift({ id: uid(), name: 'Strony', icon: 'monitor', _profileType: 'strony' });
@@ -4434,6 +1224,7 @@ function startOwnerListener(uidToWatch) {
         save(SK.incomeSources, incomeSources);
       }
 
+      /* Initialize Money tab's active place sub-tab (Konto/Skarbonka/Giełda) */
       document.querySelectorAll('.money-place-tab-btn').forEach(btn =>
         btn.classList.toggle('active', btn.dataset.placeTab === activeMoneyPlace)
       );
@@ -4444,19 +1235,11 @@ function startOwnerListener(uidToWatch) {
       switchTab('home');
     }
 
-    if (!_resaleShippingToastShown) {
-      _resaleShippingToastShown = true;
-      const _overdueShipping = getResaleShippingDeadlineNotifs().filter(x => x.overdue);
-      if (_overdueShipping.length > 0) {
-        toast(`⚠️ Masz ${_overdueShipping.length} szt. przesyłek po terminie 48h na wysyłkę!`, 'error');
-      }
-    }
-
     renderAll();
     applyThemeIcons();
     scheduleNotifications();
     autoCheckRecurring();
-  }, function(err) {
+  }, err => {
     console.error('Firebase listener error:', err);
     toast('Błąd połączenia z bazą danych: ' + (err && err.message ? err.message : err), 'error');
   });
@@ -4464,28 +1247,21 @@ function startOwnerListener(uidToWatch) {
 
 /* Odłącza nasłuchiwanie i czyści stan — wywoływane przy wylogowaniu. */
 function stopOwnerListener() {
-  UserDataLoader.stop();
-  SessionManager.stopOwner();
+  if (currentUserRef) {
+    try { currentUserRef.off(); } catch (_) {}
+  }
   currentUserRef = null;
   currentUid = null;
   resetLocalAppState();
 }
-
-/* Wykrywanie trybu gościa — musi być zadeklarowane przed nasłuchiwaniem Firebase poniżej */
-const _guestUrlParams = new URLSearchParams(window.location.search);
-const isGuestMode      = _guestUrlParams.get('view') === 'debt';
-const guestOwnerUid    = _guestUrlParams.get('owner');
-const guestDebtorId    = _guestUrlParams.get('id');
-const guestAccessCode  = _guestUrlParams.get('code');
-let guestDebtorRef     = null;
 
 if (isGuestMode) {
   // Widok gościa: nasłuchujemy WYŁĄCZNIE na węźle dłużników właściciela
   // wskazanego w linku (?owner=<uid>), nigdy na całej jego bazie — gość nie
   // pobiera transakcji, budżetów, celów itd.
   if (guestOwnerUid) {
-    DataLayer.currentUserRef = db.ref('users/' + guestOwnerUid);
-    DataLayer.onValue(SK.debtors, snapshot => {
+    currentUserRef = db.ref('users/' + guestOwnerUid); // pozwala też na zapis przez save() (guestAddDebt itp.)
+    currentUserRef.child(SK.debtors).on('value', snapshot => {
       debtors = snapshot.val() || [];
       guestDebtorRef = debtors.find(x => x.id === guestDebtorId) || null;
       renderGuestView();
@@ -4503,7 +1279,7 @@ if (isGuestMode) {
   // Tryb właściciela: dane startują/zatrzymują się razem z sesją logowania
   // (zob. onAuthStateChanged w skrypcie ekranu logowania, wyżej w <body>).
   window._onUserSignedIn = function(user) {
-    if (SessionManager.getCurrentUid() === user.uid) return;
+    if (currentUid === user.uid) return; // już nasłuchujemy tego użytkownika
     stopOwnerListener();
     startOwnerListener(user.uid);
   };
@@ -4592,8 +1368,7 @@ function switchTab(id) {
   // Dashboard: zmiana zakładki zamyka aktywny tryb edycji (z zapisem)
   // i stosuje zapisaną kolejność/widoczność kafelków na nowo wybranej zakładce.
   const dashTab = DASH_TAB_MAP[id];
-  const currentEditTab = DashboardLayoutsState.editTab;
-  if (currentEditTab && currentEditTab !== dashTab) exitDashboardEditMode(currentEditTab, true);
+  if (dashboardEditTab && dashboardEditTab !== dashTab) exitDashboardEditMode(dashboardEditTab, true);
   if (dashTab) applyDashboardLayout(dashTab);
 
   lucide.createIcons();
@@ -4650,36 +1425,44 @@ function getBalances() {
 }
 // Suma ogólnych wpłat (spłata kwotowa niepowiązana z konkretną transakcją)
 function getDebtorGeneralRepaid(d) {
-  return window.DebtorRemainingCalculator.computeGeneralRepaid({ debtor: d });
+  return (d.repayments || []).reduce((s, r) => s + r.amount, 0);
 }
 // Realna kwota "do spłaty" dla dłużnika: suma aktywnych (niespłaconych) transakcji
 // pomniejszona o ogólne wpłaty kwotowe, które nie są powiązane z konkretną pozycją
 function getDebtorRemaining(d) {
-  return window.DebtorRemainingCalculator.compute({ debtor: d });
+  const activeSum = d.debts.filter(x=>!x.paid).reduce((s,x)=>s+x.amount,0);
+  return Math.max(0, activeSum - getDebtorGeneralRepaid(d));
 }
 function getTotalDebts() {
-  return window.DebtsTotalCalculator.compute({ debtors });
+  return debtors.reduce((s,d) => s + getDebtorRemaining(d), 0);
 }
 function getLoanRemaining(l) {
-  return window.LoanRemainingCalculator.compute({ loan: l });
+  const repaid = (l.repayments||[]).reduce((s,r)=>s+r.amount,0);
+  return Math.max(0, l.amount - repaid);
 }
 function getLoanRepaid(l) {
-  return window.LoanRemainingCalculator.computeRepaid({ loan: l });
+  return (l.repayments||[]).reduce((s,r)=>s+r.amount,0);
 }
 function getTotalLoans() {
-  return window.LoansTotalCalculator.compute({ creditors });
+  return creditors.reduce((s,c) => s + c.loans.filter(l=>!l.paid).reduce((ss,l) => ss+getLoanRemaining(l), 0), 0);
 }
 function getMonthTransactions(offset=0) {
   const key = monthKey(offset);
   return transactions.filter(t => t.date.startsWith(key) && !t._excluded);
 }
 function getMonthExpenseByCategory(offset=0) {
-  const mKey = monthKey(offset);
-  return window.MonthCategoryBreakdownCalculator.compute({ mKey, transactions, type: 'expense' });
+  const result = {};
+  getMonthTransactions(offset).filter(t => t.type==='expense').forEach(t => {
+    result[t.category] = (result[t.category] || 0) + t.amount;
+  });
+  return result;
 }
 function getMonthIncomeByCategory(offset=0) {
-  const mKey = monthKey(offset);
-  return window.MonthCategoryBreakdownCalculator.compute({ mKey, transactions, type: 'income' });
+  const result = {};
+  getMonthTransactions(offset).filter(t => t.type==='income').forEach(t => {
+    result[t.category] = (result[t.category] || 0) + t.amount;
+  });
+  return result;
 }
 
 /* ══════════════════════════════════
@@ -4750,7 +1533,7 @@ function renderSafeToSpend() {
   const amtEl = document.getElementById('sts-amount');
   if (!amtEl) return; // widget nieobecny (np. widok gościa)
 
-  const { daysLeft, freeFunds, bills, goalsReq, perDay } = window.SafeToSpendService.computeForCurrentState();
+  const { daysLeft, freeFunds, bills, goalsReq, perDay } = computeSafeToSpend();
 
   document.getElementById('sts-days-left').textContent   = daysLeft;
   document.getElementById('sts-free-funds').textContent  = fmt(freeFunds);
@@ -4794,7 +1577,7 @@ function renderSafeToSpend() {
 function renderHome() {
   renderSafeToSpend();
   const b = getBalances();
-  const gieldaBal = GieldaBalanceService.computeCurrent();
+  const gieldaBal = getGieldaBalance();
   const debts = getTotalDebts();
   const total = b.konto + b.skarbonka + gieldaBal + debts;
   document.getElementById('total-wealth').textContent = fmt(total);
@@ -4927,7 +1710,9 @@ function renderHome() {
 const PLACE_LABELS = { konto:'Konto bankowe', skarbonka:'Skarbonka', gielda:'Giełda' };
 
 /* Active place sub-tab within the "Pieniądze" tab */
-let activeMoneyPlace;
+let activeMoneyPlace = load('finapp_active_money_place', 'konto');
+// Giełda moved to Zarobek tab — reset if previously saved as active place
+if (activeMoneyPlace === 'gielda') { activeMoneyPlace = 'konto'; save('finapp_active_money_place', 'konto'); }
 
 function switchMoneyPlace(place) {
   if (!PLACE_META[place]) return;
@@ -5122,7 +1907,22 @@ function updateEditCategoryOptions() {
 
 // --- helpers ---
 function recNextDate(r) {
-  return window.RecurringNextDateCalculator.compute({ rule: r });
+  // Given a recurring rule, compute the next date that is >= today and hasn't been booked yet
+  const today = todayStr();
+  if (!r.lastBooked) return r.startDate;
+  const last = new Date(r.lastBooked);
+  let next = new Date(last);
+  if (r.freq === 'weekly') {
+    next.setDate(next.getDate() + 7);
+  } else if (r.freq === 'yearly') {
+    next.setFullYear(next.getFullYear() + 1);
+  } else { // monthly
+    next.setMonth(next.getMonth() + 1);
+    // Clamp day to end of month
+    const maxDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+    next.setDate(Math.min(r.dayOfMonth || 1, maxDay));
+  }
+  return next.toISOString().split('T')[0];
 }
 
 function recIsDue(r) {
@@ -5487,7 +2287,9 @@ function detectSubService(name) {
 }
 
 function toMonthly(r) {
-  return window.RecurringToMonthlyCalculator.compute({ rule: r });
+  if (r.freq === 'weekly')  return r.amount * 4.33;
+  if (r.freq === 'yearly')  return r.amount / 12;
+  return r.amount;
 }
 
 function setRecurringView(view) {
@@ -6270,7 +3072,7 @@ function renderGoals() {
 
     let etaLine = '';
     if (!done) {
-      const eta = window.GoalEtaService.computeForGoal(g.id);
+      const eta = goalEtaInfo(g);
       if (eta && !eta.unknown) {
         const monthsTxt = eta.monthsNeeded === 1 ? '~1 miesiąc' : eta.monthsNeeded < 5 ? `~${eta.monthsNeeded} miesiące` : `~${eta.monthsNeeded} miesięcy`;
         etaLine = `<p class="text-[11px] text-indigo-500 dark:text-indigo-400 mt-1.5 flex items-center gap-1">
@@ -8454,9 +5256,9 @@ function renderEarnOverviewHero() {
   const curKey  = monthKey(0);
   const prevKey = monthKey(-1);
 
-  const bySource = incomeSources.map(s => ({ s, cur: window.SourceNetService.computeForSourceMonth(s.id, curKey) }));
+  const bySource = incomeSources.map(s => ({ s, cur: getSourceNetForMonth(s, curKey) }));
   const curTotal  = bySource.reduce((sum,x)=>sum+x.cur, 0);
-  const prevTotal = incomeSources.reduce((sum,s)=>sum+window.SourceNetService.computeForSourceMonth(s.id, prevKey), 0);
+  const prevTotal = incomeSources.reduce((sum,s)=>sum+getSourceNetForMonth(s, prevKey), 0);
 
   document.getElementById('earn-overview-total').textContent = (curTotal>=0?'':'-') + fmt(Math.abs(curTotal));
   document.getElementById('earn-overview-prev').textContent  = (prevTotal>=0?'':'-') + fmt(Math.abs(prevTotal));
@@ -8551,7 +5353,7 @@ function renderEarnStatsList() {
   if (_earnMonthChart) { _earnMonthChart.destroy(); _earnMonthChart = null; }
 
   const monthKeys = getAllEarnMonthKeys();
-  const allStats = monthKeys.map(k => ({ key: k, ...MonthEarnStatsService.computeForMonth(k) }));
+  const allStats = monthKeys.map(k => ({ key: k, ...getMonthEarnStats(k) }));
 
   const totalIncome = allStats.reduce((s, m) => s + m.income, 0);
   const totalExpense = allStats.reduce((s, m) => s + m.expense, 0);
@@ -8597,7 +5399,7 @@ function openEarnMonthDetail(mKey) {
   document.getElementById('earn-stats-title').textContent = 'Zarobek · ' + monthKeyLabel(mKey);
   document.getElementById('earn-stats-back-btn').classList.remove('hidden');
 
-  const m = MonthEarnStatsService.computeForMonth(mKey);
+  const m = getMonthEarnStats(mKey);
   const sourceRows = m.bySource.length ? m.bySource.map(({source, income, expense, net}) => {
     const [bg, tx] = avatarPal(source.name);
     return `
@@ -8713,15 +5515,15 @@ function getDebtsAsOf(dateStr) {
 
 /* Pełny majątek netto na koniec danego miesiąca (klucz YYYY-MM) */
 function getWealthMonthStats(mKey) {
-  const endDate = window.MonthEndDateCalculator.compute(mKey);
-  const b = window.BalancesAsOfService.computeAsOf(endDate);
-  const gielda = GieldaBalanceService.computeAsOf(endDate);
-  const debts = window.DebtsAsOfService.computeAsOf(endDate);
+  const endDate = monthEndDateStr(mKey);
+  const b = getBalancesAsOf(endDate);
+  const gielda = getGieldaBalanceAsOf(endDate);
+  const debts = getDebtsAsOf(endDate);
   const total = b.konto + b.skarbonka + gielda + debts;
 
-  const stats = window.WealthMonthTransactionStatsCalculator.compute({ mKey, transactions });
-  const income = stats.income;
-  const expense = stats.expense;
+  const monthTx = transactions.filter(t => t.date && t.date.startsWith(mKey) && !t._excluded);
+  const income = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
   return { key: mKey, total, konto: b.konto, skarbonka: b.skarbonka, gielda, debts, income, expense, net: income - expense };
 }
@@ -8981,7 +5783,7 @@ function renderSourceSelectorBar() {
   const chips = incomeSources.map(s => {
     const isGieldaProfile = s._profileType === 'gielda';
     const total = isGieldaProfile
-      ? GieldaBalanceService.computeCurrent()
+      ? getGieldaBalance()
       : getSourceTransactions(s.id).reduce((sum,t)=>sum+t.amount,0);
     const isActive = s.id===selectedSourceId;
     const [bg,tx] = avatarPal(s.name);
@@ -11359,7 +8161,7 @@ function renderResaleHistory(s) {
   }).join('') : `<div class="py-10 text-center"><p class="text-sm text-slate-400">Brak operacji${filter!=='all'?' dla wybranego filtru':''}.</p></div>`;
 
   // Resale internal balance
-  const resaleBal = window.ResaleBalanceService.computeForSource(s.id);
+  const resaleBal = getResaleBalance(s.id);
 
   return `
   <div class="p-4 space-y-4">
@@ -11511,7 +8313,7 @@ function openResaleWithdrawModal() {
              || document.getElementById('resale-sold-modal-wrap');
   if (!wrap) return;
 
-  const resaleBal = window.ResaleBalanceService.computeForSource(selectedSourceId);
+  const resaleBal = getResaleBalance(selectedSourceId);
   const placeOpts = [
     { v:'konto',     e:'🏦', label:'Konto bankowe' },
     { v:'skarbonka', e:'🐷', label:'Skarbonka' },
@@ -11643,7 +8445,7 @@ function confirmWithdraw() {
   if (!amount || amount <= 0) { toast('Wpisz kwotę wypłaty'); return; }
 
   // Check we have enough in the Resale balance
-  const resaleBal = window.ResaleBalanceService.computeForSource(selectedSourceId);
+  const resaleBal = getResaleBalance(selectedSourceId);
   if (amount > resaleBal + 0.001) {
     toast(`Saldo Resale (${fmt(resaleBal)}) jest za niskie`);
     return;
@@ -11874,7 +8676,7 @@ function submitResaleHistory(e, sourceId) {
 
     // Paying from the internal Resale balance: make sure there's enough in it
     if (placeVal === 'resale_balance') {
-      const resaleBal = window.ResaleBalanceService.computeForSource(sourceId);
+      const resaleBal = getResaleBalance(sourceId);
       if (amount > resaleBal + 0.001) {
         toast(`Saldo Resale (${fmt(resaleBal)}) jest za niskie`, 'error');
         return;
@@ -18007,15 +14809,15 @@ const CASHFLOW_FORECAST_MONTHS = 3;
 
 // Cienki wrapper na już istniejący monthEndDateStr(mKey) — tu wygodniej odwoływać się offsetem miesięcy.
 function cashflowMonthEndDate(offset = 0) {
-  return window.MonthEndDateCalculator.compute(monthKey(offset));
+  return monthEndDateStr(monthKey(offset));
 }
 
 // Dokładne saldo wszystkich kont "na dany dzień" — Konto + Skarbonka (transakcje z `place`)
 // oraz Giełda liczona osobno z gieldaOps (tak samo jak w getWealthMonthStats / Alokacji),
 // żeby nie liczyć środków na Giełdzie podwójnie ani inną metodą niż reszta aplikacji.
 function getTotalBalanceAsOfDate(cutoffDateStr) {
-  const b = window.BalancesAsOfService.computeAsOf(cutoffDateStr);
-  return b.konto + b.skarbonka + GieldaBalanceService.computeAsOf(cutoffDateStr);
+  const b = getBalancesAsOf(cutoffDateStr);
+  return b.konto + b.skarbonka + getGieldaBalanceAsOf(cutoffDateStr);
 }
 
 function computeCashflowForecastData() {
@@ -18024,7 +14826,7 @@ function computeCashflowForecastData() {
   const boundaryIdx   = histOffsets.length - 1; // indeks "obecnego miesiąca" na wspólnej osi X
 
   // --- Historia: bilans netto (Przychody - Wydatki) per miesiąc + rekonstrukcja salda kont ---
-  const currentTotalBalance = (() => { const b = getBalances(); return b.konto + b.skarbonka + GieldaBalanceService.computeCurrent(); })();
+  const currentTotalBalance = (() => { const b = getBalances(); return b.konto + b.skarbonka + getGieldaBalance(); })();
 
   const histPoints = histOffsets.map(o => {
     const tx  = getMonthTransactions(o);
@@ -18468,7 +15270,7 @@ function renderCharts() {
 
   // Allocation bars
   const b = getBalances();
-  const gBal = GieldaBalanceService.computeCurrent();
+  const gBal = getGieldaBalance();
   const debtsBal = getTotalDebts();
   const tot = b.konto + b.skarbonka + gBal + debtsBal;
   const safe = tot > 0 ? tot : 1;
@@ -21405,11 +18207,21 @@ document.getElementById('t-date').value = todayStr();
 
 // Trzymamy załadowane dane cenowe w pamięci
 let _vintedPrices = null; // null = nie załadowano, {} = załadowano (może być puste)
-let _vintedMeta = null;   // { loadedAt, file } | null
 
 // Klucze localStorage
 const SK_VINTED = 'finapp_vinted_prices';
 const SK_VINTED_META = 'finapp_vinted_meta';
+
+/* Wczytuje dane cenowe — najpierw z Firebase,
+   potem użytkownik może załadować świeży plik JSON */
+function loadVintedPricesFromStorage() {
+  try {
+    if (dbData[SK_VINTED]) {
+      _vintedPrices = dbData[SK_VINTED];
+      console.log('[Vinted] Ceny wczytane z Firebase');
+    }
+  } catch(e) { _vintedPrices = null; }
+}
 
 /* Eksportuje produkty do JSON — użytkownik pobiera plik
    i umieszcza obok skryptu Python */
@@ -21484,7 +18296,7 @@ function renderVintedPriceBlock(productId, productName) {
   // Sprawdź kiedy ostatnio załadowano
   let metaHtml = '';
   try {
-    const meta = _vintedMeta || {};
+    const meta = dbData[SK_VINTED_META] || {};
     if (meta.loadedAt) {
       const d = new Date(meta.loadedAt);
       const label = d.toLocaleDateString('pl-PL') + ' ' + d.toLocaleTimeString('pl-PL', { hour:'2-digit', minute:'2-digit' });
@@ -21550,6 +18362,6 @@ function renderVintedPriceBlock(productId, productName) {
     </div>
   </div>`;
 }
-</script>
-</body>
-</html>
+
+// Załaduj ceny z cache przy starcie
+loadVintedPricesFromStorage();
