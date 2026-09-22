@@ -1,0 +1,30 @@
+{
+  "name": "finanse",
+  "version": "1.0.0",
+  "description": "",
+  "main": "productDisplay.js",
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {
+    "uuid": "^14.0.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adamzamorski10-alt/FINDORA.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/adamzamorski10-alt/FINDORA/issues"
+  },
+  "homepage": "https://github.com/adamzamorski10-alt/FINDORA#readme"
+}

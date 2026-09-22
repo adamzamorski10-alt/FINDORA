@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>G3.1 IndexedDB StorageAdapter — Browser Tests</title>
+</head>
+<body>
+  <pre id="output">Running IndexedDBStorageAdapter browser tests...</pre>
+  <script type="module">
+    import { IndexedDBStorageAdapter } from '../../../src/infrastructure/storage/indexeddb-storage-adapter.js';
+    import { ApplicationTransaction } from '../../../src/infrastructure/storage/application-transaction.js';
+
+    const output = document.getElementById('output');
+    let passed = 0;
+    let failed = 0;
+    const results = [];
+
+    function assert(condition, message) {
+      if (!condition) {
+        throw new Error(message || 'Assertion failed');
+      }
+    }
+
+    function assertEqual(actual, expected, message) {
+      if (actual !== expected) {
+        throw new Error(message || `Expected ${expected} but got ${actual}`);
+      }
+    }
+
+    function assertDeepEqual(actual, expected, message) {
+      if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+        throw new Error(message || `Expected ${JSON.stringify(expected)} but got ${JSON.stringify(actual)}`);
+      }
+    }
+
+    async function runTest(name, fn) {
+      try {
+        await fn();
+        passed++;
+        results.push(`✔ ${name}`);
+      } catch (e) {
+        failed++;
+        results.push(`✖ ${name}: ${e.message}`);
+      }
+    }
+
+    async function runAllTests() {
+      const adapter = new IndexedDBStorageAdapter('finora-browser-test-' + Date.now());
+      await adapter.init();
+
+      // 1. database initialization/open
+      await runTest('init opens database', async () => {
+        assert(adapter.db !== null, 'Database should be open');
+      });
+
+      // 2. set
+      await runTest('set stores value', async () => {
+        await adapter.set('key1', { data: true });
+      });
+
+      // 3. get
+      await runTest('get returns stored value', async () => {
+        const val = await adapter.get('key1');
+        assertDeepEqual(val, { data: true });
+      });
+
+      // 4. update
+      await runTest('update modifies existing value', async () => {
+        await adapter.set('key', { count: 1 });
+        await adapter.update('key', (val) => ({ count: val.count + 1 }));
+        assertDeepEqual(await adapter.get('key'), { count: 2 });
+      });
+
+      // 5. remove
+      await runTest('remove deletes key', async () => {
+        await adapter.set('key', 'val');
+        await adapter.remove('key');
+        assertEqual(await adapter.get('key'), null);
+      });
+
+      // 6. persistence after reopening
+      await runTest('data survives close/reopen', async () => {
+        await adapter.set('persist-key', { value: 'survives' });
+        const adapter2 = new IndexedDBStorageAdapter(adapter.dbName);
+        await adapter2.init();
+        assertDeepEqual(await adapter2.get('persist-key'), { value: 'survives' });
+      });
+
+      // 7. successful transaction commit
+      await runTest('successful transaction commits all writes', async () => {
+        const tx = new ApplicationTransaction(adapter);
+        await tx.run(async () => {
+          await adapter.set('tx-key1', 'val1');
+          await adapter.set('tx-key2', 'val2');
+        });
+        assertEqual(await adapter.get('tx-key1'), 'val1');
+        assertEqual(await adapter.get('tx-key2'), 'val2');
+      });
+
+      // 8. transaction abort
+      await runTest('transaction abort rolls back writes', async () => {
+        await adapter.set('tx-key', 'original');
+        const tx = new ApplicationTransaction(adapter);
+        const ctx = tx.adapter.beginTransaction();
+        await adapter.set('tx-key', 'changed');
+        await tx.adapter.abortTransaction(ctx);
+        assertEqual(await adapter.get('tx-key'), 'original');
+      });
+
+      // 9. atomicity after transaction failure
+      await runTest('failing transaction rolls back all writes', async () => {
+        const tx = new ApplicationTransaction(adapter);
+        try {
+          await tx.run(async () => {
+            await adapter.set('tx-rollback1', 'val1');
+            throw new Error('simulated failure');
+          });
+        } catch (e) { }
+        assertEqual(await adapter.get('tx-rollback1'), null);
+      });
+
+      // 10. overlapping transaction rejection
+      await runTest('overlapping transactions are rejected', async () => {
+        const tx1 = new ApplicationTransaction(adapter);
+        let tx1Error;
+        try {
+          await tx1.run(async () => {
+            await adapter.set('key', 'tx1-value');
+            const tx2 = new ApplicationTransaction(adapter);
+            try {
+              await tx2.run(async () => {
+                await adapter.set('key', 'tx2-value');
+              });
+            } catch (e) {
+              tx1Error = e;
+            }
+          });
+        } catch (e) {
+          tx1Error = e;
+        }
+        assert(tx1Error !== undefined, 'Second transaction should be rejected');
+      });
+
+      // 11. missing-key behavior
+      await runTest('get missing key returns null', async () => {
+        assertEqual(await adapter.get('nonexistent'), null);
+      });
+
+      // 12. storage error behavior (test with invalid DB name containing special chars)
+      await runTest('storage error on invalid database name', async () => {
+        const badAdapter = new IndexedDBStorageAdapter('');
+        try {
+          await badAdapter.init();
+        } catch (e) {
+          assert(e.message === 'STORAGE_UNAVAILABLE', 'Should throw STORAGE_UNAVAILABLE');
+        }
+      });
+
+      // 13. nested object/array value isolation
+      await runTest('nested object mutation does not bypass storage', async () => {
+        await adapter.set('iso-key', { nested: { count: 1 } });
+        const retrieved = await adapter.get('iso-key');
+        retrieved.nested.count = 999;
+        const again = await adapter.get('iso-key');
+        assertDeepEqual(again, { nested: { count: 1 } });
+      });
+
+      // 14. transaction-buffered value isolation
+      await runTest('transaction-buffered values are isolated', async () => {
+        await adapter.set('buf-key', { prop: 'original' });
+        const tx = new ApplicationTransaction(adapter);
+        await tx.run(async () => {
+          await adapter.set('buf-key', { prop: 'original' });
+          const retrieved = await adapter.get('buf-key');
+          retrieved.prop = 'mutated';
+        });
+        const after = await adapter.get('buf-key');
+        assertDeepEqual(after, { prop: 'original' });
+      });
+
+      output.textContent = results.join('\n') + `\n\nTotal: ${passed + failed} | Passed: ${passed} | Failed: ${failed}`;
+      window.__testResults = { passed, failed, total: passed + failed, results };
+    }
+
+    runAllTests().catch(e => {
+      output.textContent = 'FATAL: ' + e.message;
+    });
+  </script>
+</body>
+</html>

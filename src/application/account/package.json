@@ -1,0 +1,5 @@
+{
+  "name": "@finanse/account-module",
+  "type": "module",
+  "private": true
+}

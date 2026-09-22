@@ -1,0 +1,1030 @@
+FINORA — AKTUALNY PLAN I STAN PROGRAMU
+Wersja: 3.0
+Data aktualizacji: 2026-09-14
+Status: GREENFIELD DEVELOPMENT / MVP BUILD
+
+============================================================
+1. CEL DOKUMENTU
+============================================================
+
+Ten dokument jest aktualnym planem strategicznym i stanem rozwoju
+nowej Finory.
+
+Najważniejsza zasada:
+
+    STARA FINORA = LEGACY REFERENCE
+    NOWA FINORA = WŁAŚCIWY PRODUKT
+
+Stara aplikacja służy do poznania:
+- funkcji,
+- danych,
+- reguł biznesowych,
+- edge cases,
+- istniejącego zachowania,
+- historycznych ograniczeń.
+
+Nie jest wzorcem implementacyjnym.
+
+Nowa Finora jest budowana greenfield na docelowej architekturze.
+
+Migracja starych danych jest osobnym etapem i nie może blokować
+powstania pierwszego używalnego MVP.
+
+============================================================
+2. GŁÓWNY CEL PRODUKTU
+============================================================
+
+Finora ma docelowo być prywatną, lokalną, szybką aplikacją do
+zarządzania finansami osobistymi.
+
+Podstawowe założenia:
+
+- local-first,
+- IndexedDB jako podstawowe źródło danych,
+- działanie offline,
+- brak uzależnienia podstawowych funkcji od chmury,
+- modularna architektura,
+- kontrolowany application state,
+- oddzielenie UI od storage,
+- logika biznesowa niezależna od UI,
+- silna izolacja danych użytkownika,
+- backup i recovery,
+- bezpieczeństwo jako wymaganie ciągłe,
+- lokalna inteligencja przed zewnętrznym AI,
+- AI jako opcjonalna warstwa,
+- cloud jako opcjonalna warstwa,
+- brak automatycznych przelewów/płatności przez AI na obecnym etapie.
+
+Docelowo system może zostać rozszerzony o AI, automatyzację,
+synchronizację oraz zarządzanie innymi usługami, ale nie jest to
+warunek pierwszego MVP.
+
+============================================================
+3. ZASADA TEMPA ROZWOJU
+============================================================
+
+Od 2026-09-14 obowiązuje zasada:
+
+    PRZYSPIESZAMY ROZWÓJ, ALE NIE OBNIŻAMY JAKOŚCI.
+
+Przyspieszenie ma pochodzić z:
+- mniejszych i logicznie zamkniętych etapów,
+- ograniczenia zbędnej pracy,
+- unikania przedwczesnej komplikacji,
+- równoległego planowania kolejnych etapów,
+- stosowania LOW reasoning dla prostych zadań,
+- szybkich testów celowanych,
+- pełnej regresji przede wszystkim na bramkach końcowych,
+- aktywnego odrzucania prac, które nie dają odpowiedniej wartości.
+
+Nie wolno przyspieszać poprzez:
+- pomijanie testów,
+- pomijanie hostile audit,
+- akceptowanie niesprawdzonych deklaracji AI,
+- łamanie zamrożonych kontraktów,
+- łączenie zbyt wielu niepowiązanych problemów w jeden etap,
+- obniżanie standardów bezpieczeństwa.
+
+Standard procesu:
+
+    IMPLEMENTACJA
+        ↓
+    TESTY CELOWANE
+        ↓
+    HOSTILE AUDIT
+        ↓
+    REMEDIATION, JEŚLI POTRZEBNA
+        ↓
+    PONOWNY AUDIT
+        ↓
+    FINALNA WERYFIKACJA
+        ↓
+    AKCEPTACJA ETAPU
+
+Nie przechodzimy dalej tylko dlatego, że AI napisało "PASS".
+
+============================================================
+4. AKTUALNY CHECKPOINT
+============================================================
+
+ZAMKNIĘTE I ZAAKCEPTOWANE:
+
+[✓] Legacy Reference / Product Discovery
+[✓] G0.1 — funkcje
+[✓] G0.2 — model danych
+[✓] G0.3 — reguły biznesowe i edge cases
+[✓] G0.4 — scope produktu
+[✓] G1.1 — Domain Model
+[✓] G1.2 — Application Contracts
+[✓] G1.3 — Module/API Architecture
+[✓] Architecture-to-Implementation Gate
+[✓] G3.1 — Local Storage Core
+[✓] G3.2 — Repository Layer
+[✓] G3.3 — Persistence Composition
+[✓] browser verification dla kluczowych elementów storage/repository
+[✓] izolacja ownership na poziomie repozytoriów
+[✓] podstawowe kalkulatory/logika biznesowa
+[✓] wcześniejszy fundament backup/restore
+
+AKTUALNIE:
+
+[→] G4.1 — UserModule remediation
+
+Hostile audit G4.1 wykrył:
+- HIGH: brak NOT_FOUND dla nieistniejącego profilu,
+- MEDIUM: użycie VALIDATION_ERROR zamiast zamrożonego
+  VALIDATION_FAILED.
+
+Remediacja została zlecona.
+
+Po remediacji wymagany jest ponowny niezależny hostile audit G4.1.
+
+NAJBLIŻSZE:
+
+[ ] G4.1 final acceptance
+[ ] G4.2 AccountModule
+[ ] G4.3 CategoryModule
+[ ] G4.4 TransactionModule
+[ ] G4.5 BudgetModule
+[ ] G4.6 GoalModule
+[ ] G4.7 SafeToSpendModule
+[ ] G4.8 ReportingModule
+[ ] G4 close
+[ ] Application State
+[ ] New UI Shell
+[ ] Core Finance integration
+[ ] MVP verification
+
+============================================================
+5. CO JUŻ FAKTYCZNIE DZIAŁA W NOWEJ ARCHITEKTURZE
+============================================================
+
+Nie oznacza to jeszcze, że użytkownik może korzystać z nowej Finory
+jak z gotowej aplikacji.
+
+Obecnie istnieją przede wszystkim fundamenty techniczne.
+
+5.1 Storage
+
+Zbudowano lokalny storage oparty o IndexedDB.
+
+Główne założenia:
+- baza "finora",
+- storage key-value,
+- bez uzależnienia od Firebase,
+- transakcje aplikacyjne,
+- bezpieczne commit/abort,
+- ochrona przed problemami z równoległymi transakcjami,
+- kopiowanie danych w pamięci,
+- rzeczywista weryfikacja w Chromium.
+
+5.2 Repositories
+
+Zbudowano sześć repozytoriów:
+- UserRepository,
+- AccountRepository,
+- CategoryRepository,
+- TransactionRepository,
+- BudgetRepository,
+- GoalRepository.
+
+Repozytoria zapewniają m.in.:
+- zapis,
+- odczyt,
+- wyszukiwanie,
+- filtrowanie,
+- archiwizację,
+- ownership isolation.
+
+5.3 Persistence Composition
+
+Istnieje composition root tworzący:
+- storage,
+- user repository,
+- account repository,
+- category repository,
+- transaction repository,
+- budget repository,
+- goal repository.
+
+Brak singletona i globalnego stanu.
+
+5.4 Logika biznesowa
+
+Istnieją przygotowane elementy logiki, m.in.:
+- Safe-to-Spend,
+- Budget Progress,
+- Goal Required Deposit,
+- Goal ETA,
+- część wcześniejszych kalkulatorów i usług.
+
+Sama obecność kalkulatora nie oznacza jeszcze gotowej funkcji UI.
+
+5.5 Backup / Restore
+
+Istnieje wcześniejszy fundament backup/restore:
+- walidacja,
+- integralność,
+- preview,
+- backup przed restore,
+- rollback,
+- ochrona ownership,
+- obsługa wersji/schema.
+
+Nie jest to jeszcze pełna, zintegrowana funkcja nowej aplikacji MVP.
+
+============================================================
+6. ZAMROŻONY MODEL DOMENY — G1.1
+============================================================
+
+MVP-1:
+
+- UserProfile
+- Account
+- Transaction
+- Category
+- Budget
+- Goal
+
+MVP-2:
+
+- RecurringRule
+- SavingsRule
+- Tag
+
+V1+:
+
+- Transfer
+- Debtor / Debt / DebtRepayment
+- Creditor / Loan / LoanRepayment
+- Investment / InvestmentTransaction
+
+Późniejsze pluginy:
+- Resale
+- Strony
+
+Odrzucone jako element nowej architektury:
+- dual incomeSources/incomeProfiles,
+- underscore flags,
+- paired transfer hacks,
+- base64 labels,
+- isSubscription,
+- activeMoneyPlace jako global,
+- uid generator.
+
+============================================================
+7. NAJWAŻNIEJSZE REGUŁY DOMENY
+============================================================
+
+Account:
+- cash / bank / savings w MVP,
+- możliwość archiwizacji,
+- ownership przez userId.
+
+Transaction:
+- amount dodatni,
+- type = income | expense,
+- categoryId może być null,
+- data,
+- opis,
+- notes,
+- controlled metadata,
+- archiwizacja.
+
+Opening balance:
+- dodatni opening balance reprezentowany jako income,
+- ujemny jako expense z wartością bezwzględną,
+- opening balance wyłączony z normalnych metryk.
+
+Category:
+- income lub expense,
+- MVP bez hierarchii,
+- parentId = null,
+- system roles dla wymaganych kategorii,
+- archiwizacja.
+
+Budget:
+- monthly,
+- powiązany z kategorią,
+- archiwizacja,
+- brak hard delete.
+
+Goal:
+- current jest rebuildable cache,
+- źródłem prawdy są kwalifikujące transakcje goal contribution,
+- brak automatycznego clampowania current,
+- wpłata ponad target jest odrzucana,
+- zmiany transakcji wymagają atomowej korekty current.
+
+Safe-to-Spend MVP:
+    safeTotal = spendable balances - goal requirements
+
+daysLeft:
+- deterministyczne,
+- minimum 1.
+
+Wszystkie te zasady są częścią zamrożonych kontraktów i architektury.
+
+============================================================
+8. G1.2 — APPLICATION CONTRACTS
+============================================================
+
+Zamrożono dokładnie 31 operacji:
+- 16 commands,
+- 15 queries.
+
+Najważniejsze zasady:
+- getProfile rzuca NOT_FOUND, jeśli profil nie istnieje,
+- błędne wejście używa VALIDATION_FAILED,
+- storage failure może używać STORAGE_UNAVAILABLE,
+- archiveBudget zamiast hard delete,
+- transaction update nie archiwizuje,
+- osobne archiveTransaction,
+- Goal creation nie przyjmuje current,
+- Goal.current zaczyna od 0,
+- początkowe finansowanie przez depositToGoal,
+- brak MVP-1 tags dla transakcji,
+- Safe-to-Spend jest niezależny od legacy/global state.
+
+Frozen API nie może być zmieniane bez konkretnego blokera.
+
+============================================================
+9. G1.3 — MODULE/API ARCHITECTURE
+============================================================
+
+Osiem modułów:
+
+1. UserModule
+2. AccountModule
+3. CategoryModule
+4. TransactionModule
+5. BudgetModule
+6. GoalModule
+7. SafeToSpendModule
+8. ReportingModule
+
+Sześć repozytoriów:
+
+1. UserRepository
+2. AccountRepository
+3. CategoryRepository
+4. TransactionRepository
+5. BudgetRepository
+6. GoalRepository
+
+Cztery główne kalkulatory:
+
+1. SafeToSpendCalculator
+2. BudgetProgressCalculator
+3. GoalRequiredDepositCalculator
+4. GoalEtaCalculator
+
+Zasada zależności:
+
+    UI
+      ↓
+    Application Modules
+      ↓
+    Repository Interfaces / Pure Calculators
+      ↓
+    StorageAdapter
+      ↓
+    Local Storage
+
+Application modules nie mogą bezpośrednio importować
+IndexedDB ani Firebase.
+
+============================================================
+10. ATOMIC OPERATIONS
+============================================================
+
+Wymagające atomowości są:
+
+1. createAccount
+2. createTransaction — gdy jest goal contribution
+3. updateTransaction — gdy jest goal contribution correction
+4. archiveTransaction — gdy jest goal contribution
+5. depositToGoal
+
+Goal.current:
+- właścicielem jest GoalModule,
+- TransactionModule korzysta z jednokierunkowego
+  IGoalCurrentAdjuster,
+- źródłem prawdy jest zestaw kwalifikujących transakcji,
+- current jest odbudowywalnym cache.
+
+============================================================
+11. G3 — LOCAL STORAGE
+============================================================
+
+G3.1 — CLOSED
+
+Zrealizowano:
+- StorageAdapter,
+- MemoryStorageAdapter,
+- IndexedDBStorageAdapter,
+- ApplicationTransaction,
+- browser verification,
+- testy transakcji,
+- ochronę przed concurrency contamination.
+
+Canonical StorageAdapter:
+- get
+- set
+- update
+- remove
+
+Nie dodajemy przypadkowych metod do zamrożonego kontraktu.
+
+G3.2 — CLOSED
+
+Zrealizowano:
+- sześć repozytoriów,
+- ownership isolation,
+- archive semantics,
+- user-scoped keys,
+- browser tests na prawdziwym Chromium/IndexedDB.
+
+G3.3 — CLOSED
+
+Zrealizowano:
+- createPersistence,
+- dependency injection,
+- composition wszystkich repozytoriów,
+- initialization delegowane do storage.
+
+============================================================
+12. G4 — APPLICATION MODULES
+============================================================
+
+Cel:
+zbudować warstwę aplikacyjną nad gotowym storage/repository.
+
+Kolejność:
+
+G4.1 UserModule
+    ↓
+G4.2 AccountModule
+    ↓
+G4.3 CategoryModule
+    ↓
+G4.4 TransactionModule
+    ↓
+G4.5 BudgetModule
+    ↓
+G4.6 GoalModule
+    ↓
+G4.7 SafeToSpendModule
+    ↓
+G4.8 ReportingModule
+
+Każdy moduł:
+- ma minimalny zakres,
+- korzysta wyłącznie z wymaganych zależności,
+- nie zna UI,
+- nie zna IndexedDB,
+- nie zna Firebase,
+- ma testy celowane,
+- przechodzi hostile audit.
+
+Nie przechodzimy do następnego modułu przy nierozwiązanym
+Critical/High/Medium blockerze.
+
+============================================================
+13. APPLICATION STATE
+============================================================
+
+Po zamknięciu G4 powstanie kontrolowany application state.
+
+Cel:
+- przechowywać stan potrzebny UI,
+- nie przejmować odpowiedzialności domeny,
+- nie stać się kolejnym globalnym dbData,
+- zapewniać przewidywalny przepływ danych.
+
+Docelowo:
+
+    UI
+     ↓
+    Application State
+     ↓
+    Application Modules
+     ↓
+    Repositories
+     ↓
+    IndexedDB
+
+Application State nie jest źródłem prawdy dla danych finansowych.
+
+============================================================
+14. G5 — NEW UI SHELL
+============================================================
+
+Po gotowych modułach aplikacyjnych powstanie nowy interfejs.
+
+Pierwsze elementy:
+- layout,
+- navigation,
+- dashboard shell,
+- accounts screen,
+- transactions screen,
+- categories screen,
+- budgets screen,
+- goals screen,
+- settings,
+- podstawowe formularze,
+- stany loading/empty/error,
+- responsywność desktop/mobile.
+
+Nowy UI nie będzie kopiował starego index.html.
+Stare UI jest tylko źródłem wiedzy o zachowaniu.
+
+============================================================
+15. G6 — CORE FINANCE
+============================================================
+
+Tutaj fundamenty zostaną połączone w prawdziwą aplikację użytkową.
+
+MVP-1 musi umożliwiać:
+
+[ ] uruchomienie nowej Finory
+[ ] utworzenie/profil użytkownika
+[ ] dodanie konta
+[ ] ustawienie opening balance
+[ ] dodanie przychodu
+[ ] dodanie wydatku
+[ ] wybór kategorii
+[ ] przegląd historii
+[ ] filtrowanie historii
+[ ] edycję transakcji
+[ ] archiwizację transakcji
+[ ] archiwizację kont
+[ ] tworzenie budżetów
+[ ] podgląd wykonania budżetów
+[ ] tworzenie celów
+[ ] wpłaty na cele
+[ ] podgląd postępu celów
+[ ] Safe-to-Spend
+[ ] podstawowe raporty/statystyki
+[ ] dashboard
+[ ] działanie offline
+[ ] lokalny zapis w IndexedDB
+
+MVP-1 nie wymaga jeszcze:
+- migracji starych danych,
+- AI,
+- cloud sync,
+- zaawansowanych inwestycji,
+- wszystkich funkcji legacy.
+
+============================================================
+16. PIERWSZY UŻYWALNY MVP
+============================================================
+
+Definicja:
+
+Użytkownik powinien móc zainstalować/uruchomić nową Finorę
+i prowadzić w niej podstawowe finanse od zera.
+
+MVP ma być:
+- używalne,
+- lokalne,
+- offline,
+- bezpieczne,
+- wystarczająco szybkie,
+- testowane,
+- bez konieczności importowania starej bazy.
+
+Najpierw chcemy działającą nową Finorę.
+Dopiero potem zajmujemy się migracją historycznych danych.
+
+============================================================
+17. G7 — DATA MIGRATION
+============================================================
+
+Migracja jest osobnym projektem.
+
+Docelowy przepływ:
+
+OLD FINORA
+    ↓
+Legacy Export / Reader
+    ↓
+Migration / Import Layer
+    ↓
+Validation
+    ↓
+New Domain Model
+    ↓
+IndexedDB
+
+Migrator musi:
+- rozpoznać stare dane,
+- przekształcić je,
+- zweryfikować,
+- raportować błędy,
+- zachować dane możliwie bezstratnie,
+- nie dopuścić do cichego uszkodzenia danych.
+
+Przed migracją:
+- backup.
+
+Nie zakładamy, że stare dane są idealne.
+
+============================================================
+18. G8 — PRIVACY / SECURITY GATE
+============================================================
+
+Po MVP wykonujemy osobną końcową bramkę bezpieczeństwa.
+
+Sprawdzamy m.in.:
+- ownership,
+- izolację użytkowników,
+- IndexedDB,
+- XSS,
+- injection,
+- sekrety,
+- klucze API,
+- import/export,
+- backup encryption,
+- recovery,
+- cloud boundaries,
+- AI boundary,
+- dane wrażliwe,
+- ewentualny guest mode.
+
+Bezpieczeństwo nie jest jednorazowym etapem.
+Obowiązuje przez cały rozwój.
+
+============================================================
+19. G9 — INTELLIGENCE
+============================================================
+
+Dopiero po stabilnym Core Finance i Security Gate.
+
+Najpierw lokalna inteligencja:
+
+- analityka,
+- prognozy,
+- cash flow,
+- wykrywanie wzorców,
+- proste anomaly detection,
+- scenariusze "co jeśli?",
+- rekomendacje,
+- automatyczne reguły,
+- zaawansowane Safe-to-Spend.
+
+Dopiero później zewnętrzne AI.
+
+============================================================
+20. AI — PÓŹNIEJ, JAKO OPCJONALNA WARSTWA
+============================================================
+
+Docelowy przepływ:
+
+Finora
+   ↓
+AI Boundary
+   ↓
+Data Minimization
+   ↓
+AI Provider
+
+AI nie powinno automatycznie otrzymywać całej historii finansowej.
+
+Zamiast tego:
+- lokalnie wyliczamy potrzebne dane,
+- przygotowujemy minimalny kontekst,
+- wysyłamy tylko to, co jest konieczne.
+
+AI może później pomagać w:
+- analizie finansów,
+- planowaniu,
+- wyjaśnianiu danych,
+- rekomendacjach,
+- automatyzacji.
+
+AI nie będzie początkowo wykonywało realnych przelewów ani płatności.
+
+============================================================
+21. CLOUD / SYNC
+============================================================
+
+Cloud jest opcjonalny.
+
+Docelowo może obsługiwać:
+- zaszyfrowany backup,
+- synchronizację urządzeń,
+- recovery,
+- ewentualnie dodatkowe usługi.
+
+IndexedDB pozostaje podstawowym lokalnym źródłem danych.
+
+Cloud nie powinien być wymagany do podstawowego działania Finory.
+
+============================================================
+22. MVP-2 I PÓŹNIEJSZE FUNKCJE
+============================================================
+
+MVP-2:
+- Recurring transactions,
+- Auto-Save / Savings Rules,
+- Tags / Notes,
+- Privacy Mode,
+- Import,
+- Backup/Restore zintegrowany z UI,
+- Theme.
+
+V1+:
+- Debtors,
+- Creditors,
+- Loans,
+- Investments,
+- Net Worth,
+- zaawansowane raporty,
+- Transfer redesign,
+- bardziej zaawansowane automatyzacje.
+
+Późniejsze pluginy:
+- Resale,
+- Strony,
+- dodatkowe moduły biznesowe.
+
+Funkcje legacy takie jak Vinted tracker nie są automatycznie
+przenoszone.
+
+============================================================
+23. CO NIE JEST TERAZ PRIORYTETEM
+============================================================
+
+Nie budujemy teraz:
+
+- Google AI API,
+- cloud sync,
+- pełnej migracji legacy,
+- ogromnej abstrakcyjnej warstwy repository,
+- przepisywania całego starego index.html,
+- usuwania każdego śladu dbData,
+- pełnego redesignu starego UI,
+- automatycznych przelewów,
+- autonomicznych płatności,
+- rozbudowanego AI przed Core Finance,
+- wielkich promptów obejmujących cały projekt.
+
+============================================================
+24. BACKUP / RECOVERY
+============================================================
+
+Backup i recovery są wymaganiem bezpieczeństwa.
+
+Docelowo:
+    local data
+        ↓
+    backup
+        ↓
+    integrity validation
+        ↓
+    optional encrypted cloud backup
+
+System powinien:
+- wykrywać uszkodzone dane,
+- walidować backup,
+- umożliwiać bezpieczny restore,
+- tworzyć backup przed ryzykowną operacją,
+- chronić przed częściowym restore,
+- umożliwiać recovery po błędzie.
+
+============================================================
+25. TESTING STRATEGY
+============================================================
+
+Wymagane są:
+
+- unit tests,
+- application/service tests,
+- repository tests,
+- integration tests,
+- IndexedDB tests,
+- real browser tests,
+- offline tests,
+- migration tests,
+- import/export tests,
+- security tests,
+- mobile/responsive tests,
+- desktop tests,
+- performance checks,
+- recovery tests.
+
+Najważniejsza zasada:
+
+TEST JEDNOSTKOWY != DOWÓD DZIAŁANIA W PRAWDZIWEJ PRZEGLĄDARCE
+
+Dlatego tam, gdzie ma to znaczenie, używamy rzeczywistego Chromium
+i rzeczywistego IndexedDB.
+
+============================================================
+26. BRAMKI JAKOŚCI
+============================================================
+
+Etap nie jest zamknięty, dopóki nie ma:
+
+[ ] jasno określonego zakresu
+[ ] implementacji
+[ ] testów
+[ ] hostile audit
+[ ] rozwiązania istotnych problemów
+[ ] finalnej weryfikacji
+[ ] jasnego raportu
+
+Critical / High:
+    zawsze blokują.
+
+Medium:
+    domyślnie blokują, chyba że istnieje konkretna, uzasadniona decyzja
+    o świadomym odłożeniu problemu.
+
+Low:
+    może zostać zaakceptowany, jeśli:
+    - nie zagraża architekturze,
+    - nie zagraża danym,
+    - nie tworzy istotnego długu,
+    - jest zapisany do backlogu.
+
+============================================================
+27. GŁÓWNE RYZYKA
+============================================================
+
+R-01 — zbyt długie utrzymywanie legacy
+Rozwiązanie: greenfield.
+
+R-02 — przeniesienie złej architektury
+Rozwiązanie: Legacy Reference, nie Legacy Template.
+
+R-03 — zbyt duże prompty
+Rozwiązanie: FAST/EFFICIENT + małe logiczne etapy.
+
+R-04 — zaufanie do raportu AI
+Rozwiązanie: niezależne hostile audits.
+
+R-05 — utrata/uszkodzenie danych
+Rozwiązanie: backup + validation + migration tests + recovery.
+
+R-06 — naruszenie prywatności przez cloud/AI
+Rozwiązanie: local-first + data minimization.
+
+R-07 — nadmierna abstrakcja
+Rozwiązanie: każda warstwa musi mieć realną odpowiedzialność.
+
+R-08 — budowanie funkcji przed fundamentami
+Rozwiązanie: Architecture Freeze + bramki.
+
+============================================================
+28. DOCZELOWA KOLEJNOŚĆ PROJEKTU
+============================================================
+
+LEGACY REFERENCE
+      ↓
+G0 — PRODUCT DISCOVERY                  [DONE]
+      ↓
+G1.1 — DOMAIN MODEL                    [DONE / FROZEN]
+      ↓
+G1.2 — APPLICATION CONTRACTS           [DONE / FROZEN]
+      ↓
+G1.3 — MODULE/API ARCHITECTURE         [DONE / FROZEN]
+      ↓
+ARCHITECTURE-TO-IMPLEMENTATION GATE    [PASSED]
+      ↓
+G3.1 — LOCAL STORAGE CORE              [DONE]
+      ↓
+G3.2 — REPOSITORIES                    [DONE]
+      ↓
+G3.3 — PERSISTENCE COMPOSITION         [DONE]
+      ↓
+G4 — APPLICATION MODULES               [IN PROGRESS]
+      ↓
+APPLICATION STATE
+      ↓
+G5 — NEW UI SHELL
+      ↓
+G6 — CORE FINANCE
+      ↓
+MVP-1 — FIRST USABLE FINORA
+      ↓
+G7 — DATA MIGRATION
+      ↓
+G8 — PRIVACY / SECURITY GATE
+      ↓
+G9 — LOCAL INTELLIGENCE
+      ↓
+EXTERNAL AI
+      ↓
+EVALUATION / MODEL FALLBACK
+      ↓
+AUTOMATION / CLOUD / SYNC
+
+Kolejność może zostać zmieniona tylko wtedy, gdy realne wyniki
+implementacji pokażą lepszą drogę.
+
+============================================================
+29. AKTUALNY NAJBLIŻSZY PLAN
+============================================================
+
+KROK 1
+Dokończyć remediation G4.1.
+
+KROK 2
+Niezależny hostile audit G4.1.
+
+KROK 3
+Po PASS:
+    G4.2 AccountModule.
+
+KROK 4
+Kolejne moduły G4, jeden logiczny etap naraz.
+
+KROK 5
+Po zamknięciu G4:
+    Application State.
+
+KROK 6
+New UI Shell.
+
+KROK 7
+Core Finance integration.
+
+KROK 8
+MVP verification.
+
+KROK 9
+Pierwsze realne używanie nowej Finory.
+
+KROK 10
+Dopiero wtedy migration + Security Gate + kolejne funkcje.
+
+============================================================
+30. DEFINICJA SUKCESU MVP
+============================================================
+
+MVP jest gotowe, gdy użytkownik może:
+
+1. wejść do nowej Finory,
+2. utworzyć swój profil,
+3. dodać konta,
+4. ustawić salda początkowe,
+5. dodawać przychody,
+6. dodawać wydatki,
+7. kategoryzować transakcje,
+8. przeglądać historię,
+9. poprawiać/archiwizować transakcje,
+10. tworzyć budżety,
+11. sprawdzać wykonanie budżetów,
+12. tworzyć cele,
+13. finansować cele,
+14. sprawdzać postęp celów,
+15. korzystać z Safe-to-Spend,
+16. oglądać podstawowe statystyki,
+17. korzystać z dashboardu,
+18. pracować offline,
+19. mieć dane zapisane lokalnie,
+20. wykonać podstawowe bezpieczne backup/restore.
+
+MVP nie musi jeszcze posiadać:
+- migracji starej Finory,
+- AI,
+- chmury,
+- inwestycji,
+- zaawansowanych automatyzacji,
+- wszystkich funkcji legacy.
+
+============================================================
+31. ZASADA KOŃCOWA
+============================================================
+
+Najważniejsza zasada całego projektu:
+
+    STARA FINORA JEST ŹRÓDŁEM WIEDZY.
+    NOWA FINORA JEST WŁAŚCIWYM PRODUKTEM.
+
+Nie musimy ratować starej architektury.
+Nie musimy przepisywać starego kodu linia po linii.
+Nie musimy usuwać każdej starej zmiennej.
+
+Musimy wykorzystać wiedzę zdobytą podczas discovery i zbudować
+lepszy, prostszy, bezpieczniejszy i bardziej skalowalny system.
+
+Drugą zasadą jest:
+
+    SZYBCIEJ, ALE NIE BYLE JAK.
+
+Każdy etap ma być możliwie mały i szybki, ale końcowy kod ma być
+przetestowany, zweryfikowany i odporny na hostile audit.
+
+============================================================
+32. AKTUALNY STAN W JEDNYM ZDANIU
+============================================================
+
+Finora ma już solidne, zweryfikowane fundamenty domeny, kontraktów,
+storage, repozytoriów i persistence; obecnie kończymy pierwszy moduł
+aplikacyjny, a następnie przechodzimy przez Application Modules,
+State i UI, aby możliwie szybko doprowadzić do pierwszego naprawdę
+używalnego MVP — bez poświęcania jakości, bezpieczeństwa i testów.

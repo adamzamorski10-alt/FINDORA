@@ -1,0 +1,5 @@
+{
+  "name": "@finanse/safe-to-spend-module",
+  "type": "module",
+  "private": true
+}

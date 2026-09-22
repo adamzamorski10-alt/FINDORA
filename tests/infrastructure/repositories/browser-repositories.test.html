@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>G3.2 Repository Layer — Browser Tests</title>
+</head>
+<body>
+  <pre id="output">Running repository browser tests...</pre>
+  <script type="module">
+    import { UserRepository } from '../../../src/infrastructure/repositories/user-repository.js';
+    import { AccountRepository } from '../../../src/infrastructure/repositories/account-repository.js';
+    import { CategoryRepository } from '../../../src/infrastructure/repositories/category-repository.js';
+    import { TransactionRepository } from '../../../src/infrastructure/repositories/transaction-repository.js';
+    import { BudgetRepository } from '../../../src/infrastructure/repositories/budget-repository.js';
+    import { GoalRepository } from '../../../src/infrastructure/repositories/goal-repository.js';
+    import { IndexedDBStorageAdapter } from '../../../src/infrastructure/storage/indexeddb-storage-adapter.js';
+
+    const output = document.getElementById('output');
+    let passed = 0;
+    let failed = 0;
+    const results = [];
+
+    function assert(condition, message) {
+      if (!condition) throw new Error(message || 'Assertion failed');
+    }
+
+    function assertDeepEqual(actual, expected, message) {
+      if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+        throw new Error(message || 'Deep equal failed');
+      }
+    }
+
+    async function runTest(name, fn) {
+      try {
+        await fn();
+        passed++;
+        results.push('✔ ' + name);
+      } catch (e) {
+        failed++;
+        results.push('✖ ' + name + ': ' + e.message);
+      }
+    }
+
+    async function runAllTests() {
+      const storage = new IndexedDBStorageAdapter('repo-browser-test-' + Date.now());
+      await storage.init();
+
+      const userId = 'test-user';
+
+      const userRepo = new UserRepository(storage);
+      await runTest('User: save and findById', async () => {
+        const user = {
+          id: userId,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          settings: { currency: 'PLN', theme: 'system', privacyMode: false, excludeInvestmentsFromNetWorth: false },
+        };
+        await userRepo.save(user);
+        const found = await userRepo.findById(userId);
+        assertDeepEqual(found, user);
+      });
+
+      const accountRepo = new AccountRepository(storage, userId, () => storage.keys());
+      await runTest('Account: save and loadAll', async () => {
+        const account = {
+          id: 'acc-1', userId, name: 'Konto', type: 'bank', icon: 'landmark',
+          color: '#0000FF', archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        };
+        await accountRepo.save(account);
+        const all = await accountRepo.loadAll();
+        assert(all.length === 1, 'Expected 1 account');
+        assertDeepEqual(all[0], account);
+      });
+
+      await runTest('Account: archive', async () => {
+        const account = {
+          id: 'acc-arch', userId, name: 'Archive', type: 'bank', icon: 'landmark',
+          color: '#0000FF', archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        };
+        await accountRepo.save(account);
+        await accountRepo.archive('acc-arch');
+        const found = await accountRepo.findById('acc-arch');
+        assert(found.archived === true, 'Expected archived=true');
+      });
+
+      await runTest('Account: user isolation', async () => {
+        await storage.set('account:other-user:acc-1', {
+          id: 'acc-1', userId: 'other-user', name: 'Other', type: 'bank',
+          icon: 'landmark', color: '#FF0000', archived: false,
+          createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        });
+        const all = await accountRepo.loadAll();
+        const otherAccounts = all.filter(a => a.userId === 'other-user');
+        assert(otherAccounts.length === 0, 'Expected no other-user accounts');
+      });
+
+      const categoryRepo = new CategoryRepository(storage, userId, () => storage.keys());
+      await runTest('Category: save and loadAll', async () => {
+        const category = {
+          id: 'cat-1', userId, name: 'Food', type: 'expense', icon: 'utensils',
+          color: '#FF0000', parentId: null, isSystem: false, systemRole: null,
+          archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        };
+        await categoryRepo.save(category);
+        const all = await categoryRepo.loadAll();
+        assert(all.length === 1, 'Expected 1 category');
+        assertDeepEqual(all[0], category);
+      });
+
+      await runTest('Category: findSystem', async () => {
+        await categoryRepo.save({
+          id: 'cat-sys', userId, name: 'Savings', type: 'expense', icon: 'piggy-bank',
+          color: '#00FF00', parentId: null, isSystem: true, systemRole: 'savings',
+          archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        });
+        const system = await categoryRepo.findSystem();
+        assert(system.length === 1, 'Expected 1 system category');
+        assert(system[0].systemRole === 'savings', 'Expected systemRole=savings');
+      });
+
+      const transactionRepo = new TransactionRepository(storage, userId, () => storage.keys());
+      await runTest('Transaction: save and loadAll', async () => {
+        const tx = {
+          id: 'tx-1', userId, accountId: 'acc-1', amount: 100, type: 'expense',
+          categoryId: 'cat-1', description: 'Test', date: '2024-01-15', notes: '', metadata: {},
+          archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        };
+        await transactionRepo.save(tx);
+        const all = await transactionRepo.loadAll();
+        assert(all.length === 1, 'Expected 1 transaction');
+        assertDeepEqual(all[0], tx);
+      });
+
+      await runTest('Transaction: findByMonth', async () => {
+        await transactionRepo.save({
+          id: 'tx-2', userId, accountId: 'acc-1', amount: 100, type: 'expense',
+          categoryId: 'cat-1', description: 'Test', date: '2024-02-15', notes: '', metadata: {},
+          archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        });
+        const feb = await transactionRepo.findByMonth('2024-02');
+        assert(feb.length === 1, 'Expected 1 February transaction');
+        assert(feb[0].date === '2024-02-15', 'Expected date 2024-02-15');
+      });
+
+      await runTest('Transaction: findByAccount', async () => {
+        await transactionRepo.save({
+          id: 'tx-3', userId, accountId: 'acc-2', amount: 200, type: 'income',
+          categoryId: 'cat-1', description: 'Income', date: '2024-01-20', notes: '', metadata: {},
+          archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        });
+        const acc2 = await transactionRepo.findByAccount('acc-2');
+        assert(acc2.length === 1, 'Expected 1 transaction for acc-2');
+        assert(acc2[0].id === 'tx-3', 'Expected tx-3');
+      });
+
+      await runTest('Transaction: archive', async () => {
+        await transactionRepo.archive('tx-1');
+        const found = await transactionRepo.findById('tx-1');
+        assert(found.archived === true, 'Expected archived=true');
+      });
+
+      const budgetRepo = new BudgetRepository(storage, userId, () => storage.keys());
+      await runTest('Budget: save and findAll', async () => {
+        const budget = {
+          id: 'budget-1', userId, categoryId: 'cat-1', amount: 500,
+          period: 'monthly', archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        };
+        await budgetRepo.save(budget);
+        const all = await budgetRepo.findAll();
+        assert(all.length === 1, 'Expected 1 budget');
+        assertDeepEqual(all[0], budget);
+      });
+
+      await runTest('Budget: findByCategory', async () => {
+        const budget = {
+          id: 'budget-2', userId, categoryId: 'cat-2', amount: 300,
+          period: 'monthly', archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        };
+        await budgetRepo.save(budget);
+        const cat2 = await budgetRepo.findByCategory('cat-2');
+        assert(cat2.length === 1, 'Expected 1 budget for cat-2');
+        assert(cat2[0].id === 'budget-2', 'Expected budget-2');
+      });
+
+      await runTest('Budget: archive', async () => {
+        await budgetRepo.archive('budget-1');
+        const found = await budgetRepo.findById('budget-1');
+        assert(found.archived === true, 'Expected archived=true');
+      });
+
+      const goalRepo = new GoalRepository(storage, userId, () => storage.keys());
+      await runTest('Goal: save and loadAll', async () => {
+        const goal = {
+          id: 'goal-1', userId, name: 'Laptop', target: 5000, current: 0,
+          currentLastRebuiltAt: null, deadline: '2024-12-31', icon: 'laptop',
+          color: '#0000FF', priority: 'medium', archived: false,
+          createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z',
+        };
+        await goalRepo.save(goal);
+        const all = await goalRepo.loadAll();
+        assert(all.length === 1, 'Expected 1 goal');
+        assertDeepEqual(all[0], goal);
+      });
+
+      await runTest('Goal: archive', async () => {
+        await goalRepo.archive('goal-1');
+        const found = await goalRepo.findById('goal-1');
+        assert(found.archived === true, 'Expected archived=true');
+      });
+
+      output.textContent = results.join('\n') + '\n\nTotal: ' + (passed + failed) + ' | Passed: ' + passed + ' | Failed: ' + failed;
+      window.__testResults = { passed, failed, total: passed + failed, results };
+    }
+
+    runAllTests().catch(e => {
+      output.textContent = 'FATAL: ' + e.message;
+    });
+  </script>
+</body>
+</html>

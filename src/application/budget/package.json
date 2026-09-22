@@ -1,0 +1,5 @@
+{
+  "name": "@finanse/budget-module",
+  "type": "module",
+  "private": true
+}

@@ -1,0 +1,5 @@
+{
+  "name": "@finanse/infrastructure",
+  "type": "module",
+  "private": true
+}

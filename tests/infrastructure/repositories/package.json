@@ -1,0 +1,5 @@
+{
+  "name": "@finanse/repositories-tests",
+  "type": "module",
+  "private": true
+}
