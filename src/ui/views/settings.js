@@ -15,9 +15,16 @@ export function render(context = {}) {
   const root = document.createElement('div');
   root.className = 'settings-view';
 
-  const heading = document.createElement('h2');
-  heading.textContent = 'Settings';
-  root.appendChild(heading);
+  const header = document.createElement('div');
+  header.className = 'settings-header';
+  const title = document.createElement('h2');
+  title.textContent = 'Settings';
+  const subtitle = document.createElement('p');
+  subtitle.className = 'settings-subtitle';
+  subtitle.textContent = 'Manage your account preferences and data';
+  header.appendChild(title);
+  header.appendChild(subtitle);
+  root.appendChild(header);
 
   if (!profile) {
     const emptyEl = document.createElement('div');
@@ -31,7 +38,8 @@ export function render(context = {}) {
   settingsSection.className = 'settings-section';
 
   const settingsTitle = document.createElement('h3');
-  settingsTitle.textContent = 'Profile Settings';
+  settingsTitle.className = 'settings-section-title';
+  settingsTitle.textContent = 'Preferences';
   settingsSection.appendChild(settingsTitle);
 
   const formEl = document.createElement('form');
@@ -118,6 +126,7 @@ export function render(context = {}) {
   categorySection.className = 'settings-section';
 
   const categoryTitle = document.createElement('h3');
+  categoryTitle.className = 'settings-section-title';
   categoryTitle.textContent = 'Categories';
   categorySection.appendChild(categoryTitle);
 
@@ -207,6 +216,7 @@ export function render(context = {}) {
   backupSection.className = 'settings-section';
 
   const backupTitle = document.createElement('h3');
+  backupTitle.className = 'settings-section-title';
   backupTitle.textContent = 'Backup & Restore';
   backupSection.appendChild(backupTitle);
 

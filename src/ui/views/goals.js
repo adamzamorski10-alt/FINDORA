@@ -19,9 +19,16 @@ export function render(context = {}) {
   const root = document.createElement('div');
   root.className = 'goals-view';
 
-  const heading = document.createElement('h2');
-  heading.textContent = 'Goals';
-  root.appendChild(heading);
+  const header = document.createElement('div');
+  header.className = 'goals-header';
+  const title = document.createElement('h2');
+  title.textContent = 'Goals';
+  const subtitle = document.createElement('p');
+  subtitle.className = 'goals-subtitle';
+  subtitle.textContent = 'Track progress toward your financial goals';
+  header.appendChild(title);
+  header.appendChild(subtitle);
+  root.appendChild(header);
 
   if (error) {
     const errorEl = document.createElement('div');
@@ -39,10 +46,21 @@ export function render(context = {}) {
   }
 
   if (goals.length === 0) {
-    const emptyEl = document.createElement('div');
-    emptyEl.className = 'empty-message';
-    emptyEl.textContent = 'No goals yet. Create your first goal.';
-    root.appendChild(emptyEl);
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    const emptyIcon = document.createElement('div');
+    emptyIcon.className = 'empty-state-icon';
+    emptyIcon.textContent = '🎯';
+    const emptyTitle = document.createElement('p');
+    emptyTitle.className = 'empty-state-title';
+    emptyTitle.textContent = 'No goals yet';
+    const emptyDesc = document.createElement('p');
+    emptyDesc.className = 'empty-state-desc';
+    emptyDesc.textContent = 'Create your first goal to start tracking your savings progress.';
+    empty.appendChild(emptyIcon);
+    empty.appendChild(emptyTitle);
+    empty.appendChild(emptyDesc);
+    root.appendChild(empty);
   } else {
     const list = document.createElement('ul');
     list.className = 'goal-list';
@@ -51,31 +69,61 @@ export function render(context = {}) {
       li.className = 'goal-item';
       li.dataset.goalId = goal.id;
 
-      const nameEl = document.createElement('span');
-      nameEl.className = 'goal-name';
+      const header = document.createElement('div');
+      header.className = 'goal-item-header';
+
+      const iconEl = document.createElement('div');
+      iconEl.className = 'goal-item-icon';
+      if (goal.icon) {
+        iconEl.textContent = goal.icon;
+      }
+      header.appendChild(iconEl);
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'goal-item-name goal-name';
       nameEl.textContent = goal.name;
-      li.appendChild(nameEl);
+      header.appendChild(nameEl);
 
       const targetEl = document.createElement('span');
       targetEl.className = 'goal-target';
-      targetEl.textContent = goal.target.toFixed(2);
+      targetEl.textContent = formatCurrency(goal.target);
+      targetEl.style.display = 'none';
       li.appendChild(targetEl);
 
       const currentEl = document.createElement('span');
       currentEl.className = 'goal-current';
-      currentEl.textContent = (goal.current || 0).toFixed(2);
+      currentEl.textContent = formatCurrency(goal.current || 0);
+      currentEl.style.display = 'none';
       li.appendChild(currentEl);
+
+      const meta = document.createElement('div');
+      meta.className = 'goal-item-meta';
+      const remaining = Math.max(0, (goal.target || 0) - (goal.current || 0));
+      meta.textContent = `${formatCurrency(goal.current)} of ${formatCurrency(goal.target)} • ${formatCurrency(remaining)} remaining`;
+      header.appendChild(meta);
+
+      li.appendChild(header);
+
+      const current = Number(goal.current) || 0;
+      const target = Number(goal.target) || 0;
+      const pct = target > 0 ? Math.min(100, Math.max(0, (current / target) * 100)) : 0;
+      const progressTrack = document.createElement('div');
+      progressTrack.className = 'goal-progress-track';
+      const progressFill = document.createElement('div');
+      progressFill.className = `goal-progress-fill${pct >= 100 ? ' complete' : ''}`;
+      progressFill.style.width = `${pct}%`;
+      progressTrack.appendChild(progressFill);
+      li.appendChild(progressTrack);
 
       const actions = document.createElement('div');
       actions.className = 'goal-actions';
 
       const depositAccountOptions = accounts.map(a => ({ value: a.id, label: a.name }));
-      const depositAccountField = createSelectField('Account', depositAccountOptions, '', () => {
-        // Account selection is read from DOM on submit to avoid re-render resets.
-      });
+      const depositAccountField = createSelectField('Account', depositAccountOptions, '', () => {});
       actions.appendChild(depositAccountField);
 
       const depositBtn = document.createElement('button');
+      depositBtn.type = 'button';
       depositBtn.textContent = 'Deposit';
       depositBtn.className = 'btn btn-secondary';
       depositBtn.addEventListener('click', () => {
@@ -91,14 +139,10 @@ export function render(context = {}) {
       depositForm.className = 'deposit-form';
       depositForm.style.display = 'none';
 
-      const depositAmountField = createField('Amount', 'number', '', () => {
-        // Deposit form values are read from DOM on submit to avoid re-render resets.
-      });
+      const depositAmountField = createField('Amount', 'number', '', () => {});
       depositForm.appendChild(depositAmountField);
 
-      const depositDateField = createField('Date (YYYY-MM-DD)', 'text', new Date().toISOString().slice(0, 10), () => {
-        // Deposit form values are read from DOM on submit to avoid re-render resets.
-      });
+      const depositDateField = createField('Date (YYYY-MM-DD)', 'text', new Date().toISOString().slice(0, 10), () => {});
       depositForm.appendChild(depositDateField);
 
       const depositSubmitBtn = document.createElement('button');
@@ -174,6 +218,7 @@ export function render(context = {}) {
       actions.appendChild(depositErrorEl);
 
       const archiveBtn = document.createElement('button');
+      archiveBtn.type = 'button';
       archiveBtn.textContent = 'Archive';
       archiveBtn.className = 'btn btn-danger';
       archiveBtn.addEventListener('click', async () => {
@@ -192,6 +237,7 @@ export function render(context = {}) {
       actions.appendChild(archiveBtn);
 
       const editBtn = document.createElement('button');
+      editBtn.type = 'button';
       editBtn.textContent = 'Edit';
       editBtn.className = 'btn btn-secondary';
       editBtn.addEventListener('click', () => {
@@ -327,6 +373,11 @@ export function render(context = {}) {
   root.appendChild(createSection);
 
   return root;
+}
+
+function formatCurrency(value) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  return Number(value).toFixed(2);
 }
 
 function createField(label, type, value, onChange) {

@@ -295,7 +295,7 @@ export function render(context = {}) {
           const progress = await modules.budget.getBudgetProgress({ budgetId: budget.id, monthKey });
           const entry = budgetProgressMap.get(budget.id);
           if (!entry) return;
-          const pct = budget.amount > 0 ? Math.min((progress.spent / budget.amount) * 100, 100) : 0;
+          const pct = budget.amount > 0 ? (progress.spent / budget.amount) * 100 : 0;
           entry.progressFill.style.width = `${pct}%`;
           entry.progressFill.className = `progress-bar-fill${progress.overBudget ? ' over-budget' : ''}`;
           entry.spentEl.textContent = formatCurrency(progress.spent);

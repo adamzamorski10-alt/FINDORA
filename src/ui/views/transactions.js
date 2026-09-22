@@ -163,7 +163,11 @@ export function render(context = {}) {
             if (tx) {
               const metaEl = item.querySelector('.transaction-item-meta');
               if (metaEl) {
-                metaEl.textContent = `${accountMap.get(tx.accountId) || tx.accountId} • ${categoryMap.get(tx.categoryId) || tx.categoryId || 'Uncategorized'} • ${tx.date}`;
+                const accountName = accountMap.get(tx.accountId) || tx.accountId;
+                const categoryName = tx.categoryId
+                  ? (categoryMap.get(tx.categoryId) || 'Uncategorized')
+                  : 'Uncategorized';
+                metaEl.textContent = `${accountName} • ${categoryName} • ${tx.date}`;
               }
             }
           });
@@ -191,7 +195,11 @@ export function render(context = {}) {
       desc.textContent = tx.description || '(no description)';
       const meta = document.createElement('div');
       meta.className = 'transaction-item-meta';
-      meta.textContent = `${accountMap.get(tx.accountId) || tx.accountId} • ${categoryMap.get(tx.categoryId) || tx.categoryId || 'Uncategorized'} • ${tx.date}`;
+      const accountName = accountMap.get(tx.accountId) || tx.accountId;
+      const categoryName = tx.categoryId
+        ? (categoryMap.get(tx.categoryId) || 'Uncategorized')
+        : 'Uncategorized';
+      meta.textContent = `${accountName} • ${categoryName} • ${tx.date}`;
       info.appendChild(desc);
       info.appendChild(meta);
       left.appendChild(info);

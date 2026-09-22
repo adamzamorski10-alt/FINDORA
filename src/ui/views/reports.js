@@ -11,9 +11,18 @@ export function render(context = {}) {
   const root = document.createElement('div');
   root.className = 'reports-view';
 
-  const heading = document.createElement('h2');
-  heading.textContent = 'Reports';
-  root.appendChild(heading);
+  const header = document.createElement('div');
+  header.className = 'reports-header';
+  const title = document.createElement('h2');
+  title.textContent = 'Reports';
+  const subtitle = document.createElement('p');
+  subtitle.className = 'reports-subtitle';
+  subtitle.textContent = 'Monthly financial performance overview';
+  header.appendChild(title);
+  header.appendChild(subtitle);
+  root.appendChild(header);
+
+  const monthKey = state.getState().ui.monthKey || new Date().toISOString().slice(0, 7);
 
   const summarySection = document.createElement('div');
   summarySection.className = 'report-section';
@@ -22,13 +31,58 @@ export function render(context = {}) {
   summaryTitle.textContent = 'Monthly Summary';
   summarySection.appendChild(summaryTitle);
 
-  const monthKey = state.getState().ui.monthKey || new Date().toISOString().slice(0, 7);
+  const summaryGrid = document.createElement('div');
+  summaryGrid.className = 'report-summary-grid';
 
-  const summaryEl = document.createElement('div');
-  summaryEl.className = 'report-summary';
-  summaryEl.textContent = 'Loading...';
-  summarySection.appendChild(summaryEl);
+  const incomeCard = document.createElement('div');
+  incomeCard.className = 'summary-card';
+  const incomeLabel = document.createElement('span');
+  incomeLabel.className = 'summary-card-label';
+  incomeLabel.textContent = 'Income';
+  const incomeValue = document.createElement('span');
+  incomeValue.className = 'summary-card-value amount amount-positive';
+  incomeValue.textContent = '—';
+  incomeCard.appendChild(incomeLabel);
+  incomeCard.appendChild(incomeValue);
+  summaryGrid.appendChild(incomeCard);
 
+  const expenseCard = document.createElement('div');
+  expenseCard.className = 'summary-card';
+  const expenseLabel = document.createElement('span');
+  expenseLabel.className = 'summary-card-label';
+  expenseLabel.textContent = 'Expenses';
+  const expenseValue = document.createElement('span');
+  expenseValue.className = 'summary-card-value amount amount-negative';
+  expenseValue.textContent = '—';
+  expenseCard.appendChild(expenseLabel);
+  expenseCard.appendChild(expenseValue);
+  summaryGrid.appendChild(expenseCard);
+
+  const netCard = document.createElement('div');
+  netCard.className = 'summary-card';
+  const netLabel = document.createElement('span');
+  netLabel.className = 'summary-card-label';
+  netLabel.textContent = 'Net';
+  const netValue = document.createElement('span');
+  netValue.className = 'summary-card-value amount amount-neutral';
+  netValue.textContent = '—';
+  netCard.appendChild(netLabel);
+  netCard.appendChild(netValue);
+  summaryGrid.appendChild(netCard);
+
+  const txCard = document.createElement('div');
+  txCard.className = 'summary-card';
+  const txLabel = document.createElement('span');
+  txLabel.className = 'summary-card-label';
+  txLabel.textContent = 'Transactions';
+  const txValue = document.createElement('span');
+  txValue.className = 'summary-card-value amount amount-neutral';
+  txValue.textContent = '—';
+  txCard.appendChild(txLabel);
+  txCard.appendChild(txValue);
+  summaryGrid.appendChild(txCard);
+
+  summarySection.appendChild(summaryGrid);
   root.appendChild(summarySection);
 
   const breakdownSection = document.createElement('div');
@@ -47,16 +101,22 @@ export function render(context = {}) {
 
   modules.reporting.getMonthlySummary({ userId: state.getState().session.userId, monthKey })
     .then(summary => {
-      summaryEl.innerHTML = `
-        <p><strong>Month:</strong> ${summary.monthKey}</p>
-        <p><strong>Income:</strong> ${summary.income.toFixed(2)}</p>
-        <p><strong>Expense:</strong> ${summary.expense.toFixed(2)}</p>
-        <p><strong>Net:</strong> ${summary.net.toFixed(2)}</p>
-        <p><strong>Transactions:</strong> ${summary.transactionCount}</p>
-      `;
+      incomeValue.textContent = formatCurrency(summary.income);
+      expenseValue.textContent = formatCurrency(summary.expense);
+      netValue.textContent = formatCurrency(summary.net);
+      txValue.textContent = String(summary.transactionCount);
+
+      if (summary.net >= 0) {
+        netValue.className = 'summary-card-value amount amount-positive';
+      } else {
+        netValue.className = 'summary-card-value amount amount-negative';
+      }
     })
     .catch(e => {
-      summaryEl.textContent = 'Error loading summary: ' + e.message;
+      incomeValue.textContent = 'Error';
+      expenseValue.textContent = 'Error';
+      netValue.textContent = 'Error';
+      txValue.textContent = 'Error';
     });
 
   modules.reporting.getMonthCategoryBreakdown({ userId: state.getState().session.userId, monthKey })
@@ -79,19 +139,31 @@ export function render(context = {}) {
 
           const list = document.createElement('ul');
           list.className = 'breakdown-list';
+          const maxTotal = Math.max(...entries.map(([, data]) => data.total || 0));
           for (const [categoryId, data] of entries) {
             const li = document.createElement('li');
             li.className = 'breakdown-item';
             const name = document.createElement('span');
+            name.className = 'breakdown-item-name';
             if (categoryId === 'uncategorized') {
               name.textContent = 'Uncategorized';
             } else {
               name.textContent = categoryMap.get(categoryId) || categoryId;
             }
-            const total = document.createElement('span');
-            total.textContent = data.total.toFixed(2);
+            const barTrack = document.createElement('div');
+            barTrack.className = 'breakdown-item-bar-track';
+            const barFill = document.createElement('div');
+            barFill.className = 'breakdown-item-bar-fill';
+            const total = data.total || 0;
+            const widthPct = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+            barFill.style.width = `${widthPct}%`;
+            barTrack.appendChild(barFill);
+            const totalEl = document.createElement('span');
+            totalEl.className = 'breakdown-item-total';
+            totalEl.textContent = formatCurrency(total);
             li.appendChild(name);
-            li.appendChild(total);
+            li.appendChild(barTrack);
+            li.appendChild(totalEl);
             list.appendChild(li);
           }
           breakdownEl.innerHTML = '';
@@ -100,15 +172,27 @@ export function render(context = {}) {
         .catch(() => {
           const list = document.createElement('ul');
           list.className = 'breakdown-list';
+          const maxTotal = Math.max(...entries.map(([, data]) => data.total || 0));
           for (const [categoryId, data] of entries) {
             const li = document.createElement('li');
             li.className = 'breakdown-item';
             const name = document.createElement('span');
+            name.className = 'breakdown-item-name';
             name.textContent = categoryId === 'uncategorized' ? 'Uncategorized' : categoryId;
-            const total = document.createElement('span');
-            total.textContent = data.total.toFixed(2);
+            const barTrack = document.createElement('div');
+            barTrack.className = 'breakdown-item-bar-track';
+            const barFill = document.createElement('div');
+            barFill.className = 'breakdown-item-bar-fill';
+            const total = data.total || 0;
+            const widthPct = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+            barFill.style.width = `${widthPct}%`;
+            barTrack.appendChild(barFill);
+            const totalEl = document.createElement('span');
+            totalEl.className = 'breakdown-item-total';
+            totalEl.textContent = formatCurrency(total);
             li.appendChild(name);
-            li.appendChild(total);
+            li.appendChild(barTrack);
+            li.appendChild(totalEl);
             list.appendChild(li);
           }
           breakdownEl.innerHTML = '';
@@ -120,4 +204,9 @@ export function render(context = {}) {
     });
 
   return root;
+}
+
+function formatCurrency(value) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  return Number(value).toFixed(2);
 }
