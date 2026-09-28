@@ -9,9 +9,10 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SERVER_PORT = 3002;
+const PREFERRED_PORT = 3002;
+let serverPort = null;
 
-function createServer(rootDir, port) {
+function createServer(rootDir, preferredPort) {
   const uiDir = path.join(rootDir, 'src/ui');
   const srcDir = path.join(rootDir, 'src');
   return new Promise((resolve, reject) => {
@@ -58,7 +59,10 @@ function createServer(rootDir, port) {
       });
     });
     server.on('error', reject);
-    server.listen(port, () => resolve(server));
+    server.listen(0, '127.0.0.1', () => {
+      serverPort = server.address().port;
+      resolve(server);
+    });
   });
 }
 
@@ -66,7 +70,7 @@ test.describe('Stage UI-1 Shell Verification', () => {
   let server = null;
 
   test.beforeAll(async () => {
-    server = await createServer(PROJECT_ROOT, SERVER_PORT);
+    server = await createServer(PROJECT_ROOT, PREFERRED_PORT);
   });
 
   test.afterAll(async () => {
@@ -87,7 +91,7 @@ test.describe('Stage UI-1 Shell Verification', () => {
     page.on('requestfailed', (req) => failedRequests.push(req.url()));
 
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVER_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     expect(consoleErrors, 'no console errors').toHaveLength(0);
@@ -105,7 +109,7 @@ test.describe('Stage UI-1 Shell Verification', () => {
 
   test('mobile shell: sidebar hidden behind hamburger', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto(`http://localhost:${SERVER_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     const sidebar = page.locator('.sidebar');
@@ -130,7 +134,7 @@ test.describe('Stage UI-1 Shell Verification', () => {
 
   test('navigation: all tabs work and update active state', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVER_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     const tabs = ['dashboard', 'accounts', 'transactions', 'budgets', 'goals', 'reports', 'settings'];
@@ -144,11 +148,15 @@ test.describe('Stage UI-1 Shell Verification', () => {
 
   test('forms remain usable after shell redesign', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVER_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     await page.click('[data-tab="accounts"]');
     await page.waitForTimeout(600);
+
+    const addBtn = page.locator('.accounts-add-btn').first();
+    await addBtn.click();
+    await page.waitForTimeout(300);
 
     const form = page.locator('.account-form').first();
     await expect(form).toBeVisible();

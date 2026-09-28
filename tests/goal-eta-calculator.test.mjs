@@ -5,9 +5,9 @@
  * No Firebase, no DOM, no globals required.
  */
 
-const { describe, it } = require('node:test');
-const assert = require('node:assert/strict');
-const { compute } = require('../src/domain/goals/goal-eta-calculator.js');
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { compute } from '../src/domain/goals/goal-eta-calculator.js';
 
 describe('GoalEtaCalculator', () => {
   describe('compute()', () => {

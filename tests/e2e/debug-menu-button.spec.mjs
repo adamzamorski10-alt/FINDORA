@@ -9,9 +9,10 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SERVE_PORT = 3004;
+const PREFERRED_PORT = 3004;
+let serverPort = null;
 
-function createServer(rootDir, port) {
+function createServer(rootDir, preferredPort) {
   const uiDir = path.join(rootDir, 'src/ui');
   const srcDir = path.join(rootDir, 'src');
   return new Promise((resolve, reject) => {
@@ -58,14 +59,17 @@ function createServer(rootDir, port) {
       });
     });
     server.on('error', reject);
-    server.listen(port, () => resolve(server));
+    server.listen(0, '127.0.0.1', () => {
+      serverPort = server.address().port;
+      resolve(server);
+    });
   });
 }
 
 test('debug menu button visibility', async ({ page }) => {
-  const server = await createServer(PROJECT_ROOT, SERVE_PORT);
+  const server = await createServer(PROJECT_ROOT, PREFERRED_PORT);
   await page.setViewportSize({ width: 375, height: 667 });
-  await page.goto(`http://localhost:${SERVE_PORT}/`);
+  await page.goto(`http://localhost:${serverPort}/`);
   await page.waitForTimeout(3000);
 
   const btn = page.locator('.top-bar-menu-btn');

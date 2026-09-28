@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Finora — Seeding Demo Data</title>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; background: #090D16; color: #F8FAFC; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .card { background: #121827; border: 1px solid rgba(255,255,255,0.08); border-radius: 1.5rem; padding: 2rem; max-width: 420px; text-align: center; }
+    .spinner { width: 32px; height: 32px; border: 3px solid rgba(139,92,246,0.2); border-top-color: #8B5CF6; border-radius: 50%; animation: spin 1s linear infinite; margin: 1rem auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .log { font-size: 0.75rem; color: #94A3B8; margin-top: 1rem; text-align: left; max-height: 200px; overflow-y: auto; }
+    .log div { margin: 0.2rem 0; }
+    .error { color: #F43F5E; }
+    .success { color: #10B981; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h2>Seeding Demo Data</h2>
+    <p style="color:#94A3B8; font-size:0.875rem;">Preparing Finora for UI review...</p>
+    <div id="log" class="log"></div>
+  </div>
+
+  <script type="module">
+    const logEl = document.getElementById('log');
+    function log(msg, type = '') {
+      const div = document.createElement('div');
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      if (type) div.className = type;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    async function seed() {
+      try {
+        log('Importing modules...');
+        const { IndexedDBStorageAdapter } = await import('/src/infrastructure/storage/indexeddb-storage-adapter.js');
+        const { createPersistence } = await import('/src/infrastructure/persistence.js');
+        const { createAppKernel } = await import('/src/application/app-kernel.js');
+
+        log('Initializing storage...');
+        const storageAdapter = new IndexedDBStorageAdapter('finora');
+        await storageAdapter.init();
+
+        log('Creating app kernel...');
+        const kernel = createAppKernel({
+          storageAdapter,
+          userId: 'dev-user',
+          openingBalanceCategoryId: 'system-opening-balance',
+        });
+
+        log('Ensuring profile...');
+        try {
+          await kernel.modules.user.getProfile({ userId: 'dev-user' });
+          log('Profile already exists.', 'success');
+        } catch (e) {
+          if (e.message === 'NOT_FOUND') {
+            await kernel.modules.user.createProfile({
+              userId: 'dev-user',
+              settings: {
+                currency: 'PLN',
+                theme: 'system',
+                accent: 'purple',
+                privacyMode: false,
+                excludeInvestmentsFromNetWorth: false,
+              },
+            });
+            log('Profile created.', 'success');
+          } else {
+            throw e;
+          }
+        }
+
+        log('Seeding system categories...');
+        await kernel.modules.category.seedSystemCategories({ userId: 'dev-user' });
+        log('System categories seeded.', 'success');
+
+        log('Creating user categories...');
+        const categoryDefs = [
+          { name: 'Jedzenie', type: 'expense', icon: '🍔', color: '#FF6B6B' },
+          { name: 'Transport', type: 'expense', icon: '🚗', color: '#4ECDC4' },
+          { name: 'Mieszkanie', type: 'expense', icon: '🏠', color: '#45B7D1' },
+          { name: 'Rozrywka', type: 'expense', icon: '🎬', color: '#96CEB4' },
+          { name: 'Zdrowie', type: 'expense', icon: '💊', color: '#FFEAA7' },
+          { name: 'Inne', type: 'expense', icon: '📦', color: '#DDA0DD' },
+          { name: 'Wynagrodzenie', type: 'income', icon: '💰', color: '#00B894' },
+          { name: 'Freelance', type: 'income', icon: '💻', color: '#6C5CE7' },
+        ];
+        const categoryIds = {};
+        for (const def of categoryDefs) {
+          const cat = await kernel.modules.category.createCategory({ userId: 'dev-user', ...def });
+          categoryIds[def.name] = cat.id;
+          log(`Category created: ${def.name} (${cat.id})`);
+        }
+
+        log('Creating accounts...');
+        const accountDefs = [
+          { name: 'Konto Główne', type: 'bank', icon: 'landmark', color: '#4A90D9', openingBalance: 5200 },
+          { name: 'Skarbonka', type: 'savings', icon: 'piggy-bank', color: '#50C878', openingBalance: 2100 },
+          { name: 'Portfel', type: 'cash', icon: 'wallet', color: '#888888', openingBalance: 350 },
+        ];
+        const accountIds = {};
+        for (const def of accountDefs) {
+          const acc = await kernel.modules.account.createAccount({ userId: 'dev-user', ...def });
+          accountIds[def.name] = acc.id;
+          log(`Account created: ${def.name} (${acc.id}) balance=${def.openingBalance}`);
+        }
+
+        log('Creating transactions...');
+        const txDefs = [
+          { date: '2026-09-01', description: 'Wypłata', type: 'income', amount: 15000, accountId: accountIds['Konto Główne'], categoryId: categoryIds['Wynagrodzenie'] },
+          { date: '2026-09-01', description: 'Freelance projekt', type: 'income', amount: 3000, accountId: accountIds['Konto Główne'], categoryId: categoryIds['Freelance'] },
+          { date: '2026-09-02', description: 'Czynsz', type: 'expense', amount: 4000, accountId: accountIds['Konto Główne'], categoryId: categoryIds['Mieszkanie'] },
+          { date: '2026-09-03', description: 'Zakupy spożywcze', type: 'expense', amount: 456.78, accountId: accountIds['Konto Główne'], categoryId: categoryIds['Jedzenie'] },
+          { date: '2026-09-05', description: 'Netflix', type: 'expense', amount: 99, accountId: accountIds['Konto Główne'], categoryId: categoryIds['Rozrywka'] },
+          { date: '2026-09-05', description: 'Autobus', type: 'expense', amount: 150, accountId: accountIds['Portfel'], categoryId: categoryIds['Transport'] },
+          { date: '2026-09-06', description: 'Rachunki', type: 'expense', amount: 320, accountId: accountIds['Konto Główne'], categoryId: categoryIds['Mieszkanie'] },
+          { date: '2026-09-07', description: 'Obiad', type: 'expense', amount: 180, accountId: accountIds['Portfel'], categoryId: categoryIds['Jedzenie'] },
+          { date: '2026-09-08', description: 'Apteka', type: 'expense', amount: 85, accountId: accountIds['Portfel'], categoryId: categoryIds['Zdrowie'] },
+          { date: '2026-09-10', description: 'Internet', type: 'expense', amount: 89, accountId: accountIds['Konto Główne'], categoryId: categoryIds['Inne'] },
+          { date: '2026-09-12', description: 'Kino', type: 'expense', amount: 60, accountId: accountIds['Portfel'], categoryId: categoryIds['Rozrywka'] },
+          { date: '2026-09-15', description: 'Ubrania', type: 'expense', amount: 299, accountId: accountIds['Konto Główne'], categoryId: categoryIds['Inne'] },
+          { date: '2026-09-18', description: 'Paliwo', type: 'expense', amount: 200, accountId: accountIds['Portfel'], categoryId: categoryIds['Transport'] },
+          { date: '2026-09-20', description: 'Siłownia', type: 'expense', amount: 120, accountId: accountIds['Portfel'], categoryId: categoryIds['Zdrowie'] },
+          { date: '2026-09-22', description: 'Restauracja', type: 'expense', amount: 250, accountId: accountIds['Konto Główne'], categoryId: categoryIds['Jedzenie'] },
+        ];
+        for (const def of txDefs) {
+          await kernel.modules.transaction.createTransaction({ userId: 'dev-user', ...def });
+          log(`Transaction: ${def.description} ${def.amount} PLN`);
+        }
+
+        log('Creating budgets...');
+        const budgetDefs = [
+          { categoryId: categoryIds['Jedzenie'], amount: 1500 },
+          { categoryId: categoryIds['Transport'], amount: 500 },
+          { categoryId: categoryIds['Rozrywka'], amount: 400 },
+        ];
+        for (const def of budgetDefs) {
+          const budget = await kernel.modules.budget.createBudget({ userId: 'dev-user', ...def });
+          log(`Budget created: ${def.categoryId} limit=${def.amount}`);
+        }
+
+        log('Creating goals...');
+        const goalDefs = [
+          { name: 'Nowy laptop', target: 10000, current: 3500, deadline: '2026-12-31', icon: 'laptop', color: '#6366f1', priority: 'high' },
+          { name: 'Wakacje', target: 5000, current: 1200, deadline: '2027-06-01', icon: 'plane', color: '#10b981', priority: 'medium' },
+        ];
+        for (const def of goalDefs) {
+          const goal = await kernel.modules.goal.createGoal({ userId: 'dev-user', ...def });
+          log(`Goal created: ${def.name} target=${def.target}`);
+        }
+
+        log('All data seeded successfully!', 'success');
+        window._finoraSeedComplete = true;
+        setTimeout(() => {
+          window.location.href = '/src/ui/app.html';
+        }, 800);
+      } catch (err) {
+        log(`ERROR: ${err.message}`, 'error');
+        console.error(err);
+      }
+    }
+
+    seed();
+  </script>
+</body>
+</html>

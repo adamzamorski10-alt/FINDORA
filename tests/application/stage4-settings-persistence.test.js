@@ -19,7 +19,7 @@ describe('Stage 4.6 — Settings Persistence', () => {
         id: 'user-1',
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
-        settings: { currency: 'PLN', theme: 'system', privacyMode: false, excludeInvestmentsFromNetWorth: false },
+        settings: { currency: 'PLN', theme: 'system', accent: 'purple', privacyMode: false, excludeInvestmentsFromNetWorth: false },
       });
 
       state.dispatch({ type: 'SET_USER_ID', userId: 'user-1' });
@@ -48,7 +48,7 @@ describe('Stage 4.6 — Settings Persistence', () => {
         id: 'user-1',
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
-        settings: { currency: 'PLN', theme: 'system', privacyMode: false, excludeInvestmentsFromNetWorth: false },
+        settings: { currency: 'PLN', theme: 'system', accent: 'purple', privacyMode: false, excludeInvestmentsFromNetWorth: false },
       };
       await userRepo.save(persistedProfile);
 

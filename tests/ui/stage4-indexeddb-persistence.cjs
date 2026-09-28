@@ -92,8 +92,8 @@ const server = http.createServer((req, res) => {
       // Change settings
       await page.click('.nav-link[data-tab="settings"]');
       await page.waitForTimeout(500);
-      await page.locator('.settings-form .form-field').nth(0).locator('input').fill('EUR');
-      await page.click('.btn-primary');
+      await page.locator('.settings-section:has(.settings-section-title:has-text("Preferences")) input[type="text"]').first().fill('EUR');
+      await page.locator('.settings-save-btn').first().click();
       await page.waitForTimeout(500);
 
       // Reload the page
@@ -120,7 +120,7 @@ const server = http.createServer((req, res) => {
       await page.click('.nav-link[data-tab="settings"]');
       await page.waitForTimeout(500);
       results.persistence.settingsPersisted = await page.evaluate(() => {
-        const input = document.querySelector('.settings-form .form-field input');
+        const input = document.querySelector('.settings-section:has(.settings-section-title:has-text("Preferences")) input[type="text"]');
         return input ? input.value === 'EUR' : false;
       });
 

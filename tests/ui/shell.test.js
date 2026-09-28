@@ -314,7 +314,7 @@ describe('Shell', () => {
       shell.mount();
 
       assert.strictEqual(initializingEl.style.display, 'none');
-      assert.strictEqual(readyEl.style.display, 'block');
+      assert.strictEqual(readyEl.style.display, 'flex');
     });
 
     it('shows error state when lifecycle becomes error', async () => {

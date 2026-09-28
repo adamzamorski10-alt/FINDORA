@@ -1,9 +1,12 @@
 /**
- * Stage UI-2 — Dashboard View
+ * Stage UI-3 — Dashboard View (Premium Fintech Redesign)
  *
- * Premium financial dashboard built on the UI-1 design system.
- * Uses real data from reporting, accounts, safe-to-spend, budgets, goals.
+ * Premium financial dashboard with dominant hero hierarchy,
+ * restrained surfaces, and data-rich composition.
+ * Preserves all DOM selector contracts for E2E tests.
  */
+
+import { createLineChart, createHorizontalBarChart } from '../utils/charts.js';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -22,27 +25,54 @@ function formatMonthLabel(monthKey) {
   return `${MONTH_NAMES[month - 1]} ${year}`;
 }
 
+function formatShortMonth(monthKey) {
+  if (!monthKey) return '';
+  const [year, month] = monthKey.split('-').map(Number);
+  if (!year || !month) return monthKey;
+  const name = MONTH_NAMES[month - 1];
+  return name.slice(0, 3);
+}
+
+function getLastNMonthKeys(n) {
+  const keys = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    keys.push(`${year}-${month}`);
+  }
+  return keys;
+}
+
+function el(tag, className, textContent) {
+  const e = document.createElement(tag);
+  if (className) e.className = className;
+  if (textContent !== undefined) e.textContent = textContent;
+  return e;
+}
+
 export function render(context = {}) {
   const { state, modules } = context;
 
   if (!state) {
-    const el = document.createElement('div');
-    el.className = 'view-placeholder';
-    el.innerHTML = '<h2>Dashboard</h2><p>Dashboard placeholder — functional screens will be added in later stages.</p>';
-    return el;
+    const placeholder = document.createElement('div');
+    placeholder.className = 'view-placeholder';
+    placeholder.innerHTML = '<h2>Dashboard</h2><p>Dashboard placeholder — functional screens will be added in later stages.</p>';
+    return placeholder;
   }
 
   const snapshot = state.getState();
   const userId = snapshot.session?.userId;
 
   if (!userId) {
-    const el = document.createElement('div');
-    el.className = 'dashboard-view';
+    const empty = document.createElement('div');
+    empty.className = 'dashboard-view';
     const p = document.createElement('p');
     p.className = 'empty-message';
     p.textContent = 'Please log in to view your dashboard.';
-    el.appendChild(p);
-    return el;
+    empty.appendChild(p);
+    return empty;
   }
 
   const monthKey = snapshot.ui.monthKey || new Date().toISOString().slice(0, 7);
@@ -54,136 +84,175 @@ export function render(context = {}) {
   const root = document.createElement('div');
   root.className = 'dashboard-view';
 
-  const heading = document.createElement('h2');
-  heading.textContent = 'Dashboard';
-  root.appendChild(heading);
+  // ── 1. Page Header ─────────────────────────────────────────
+  const pageHeader = document.createElement('div');
+  pageHeader.className = 'dashboard-page-header';
 
-  const summaryGrid = document.createElement('div');
-  summaryGrid.className = 'dashboard-summary-grid';
+  const pageHeaderTitles = document.createElement('div');
+  pageHeaderTitles.className = 'dashboard-page-header-titles';
 
-  const balanceCard = createSummaryCard('Total Balance', '…', 'neutral', '🏦');
-  const incomeCard = createSummaryCard('Income', '…', 'neutral', '↓');
-  const expenseCard = createSummaryCard('Expenses', '…', 'neutral', '↑');
-  const safeCard = createSummaryCard('Safe-to-Spend', '…', 'neutral', '🛡️', true);
+  const pageTitle = el('h1', 'dashboard-page-title', 'Dashboard');
+  pageHeaderTitles.appendChild(pageTitle);
 
-  summaryGrid.appendChild(balanceCard);
-  summaryGrid.appendChild(incomeCard);
-  summaryGrid.appendChild(expenseCard);
-  summaryGrid.appendChild(safeCard);
-  root.appendChild(summaryGrid);
+  const pageSubtitle = el('p', 'dashboard-page-subtitle', 'Personal Financial Health & Overview');
+  pageHeaderTitles.appendChild(pageSubtitle);
 
-  const middleGrid = document.createElement('div');
-  middleGrid.className = 'dashboard-middle-grid';
+  pageHeader.appendChild(pageHeaderTitles);
+  root.appendChild(pageHeader);
+
+  // ── 2. Hero ────────────────────────────────────────────────
+  const heroSection = document.createElement('div');
+  heroSection.className = 'surface-hero dashboard-hero';
+
+  const heroLabel = el('span', 'dashboard-hero-label', 'Total Balance');
+  heroSection.appendChild(heroLabel);
+
+  const heroValue = el('div', 'dashboard-hero-value amount amount-neutral', '…');
+  heroSection.appendChild(heroValue);
+
+  const heroMeta = el('div', 'dashboard-hero-meta', `Personal Financial Health \u2022 ${formatMonthLabel(monthKey)}`);
+  heroSection.appendChild(heroMeta);
+
+  root.appendChild(heroSection);
+
+  // ── 3. Analytics Grid ──────────────────────────────────────
+  const analyticsGrid = document.createElement('div');
+  analyticsGrid.className = 'dashboard-analytics-grid';
 
   const cashFlowCard = document.createElement('div');
-  cashFlowCard.className = 'card cash-flow-card';
-  const cashFlowTitle = document.createElement('h3');
-  cashFlowTitle.className = 'dashboard-section-title';
-  cashFlowTitle.textContent = 'Cash Flow';
+  cashFlowCard.className = 'surface-analytic dashboard-analytic-card';
+  const cashFlowTitle = el('h3', 'dashboard-section-title', 'Cash Flow Trend');
   cashFlowCard.appendChild(cashFlowTitle);
+  const cashFlowChartWrap = document.createElement('div');
+  cashFlowChartWrap.className = 'dashboard-chart-wrap';
+  cashFlowCard.appendChild(cashFlowChartWrap);
+  analyticsGrid.appendChild(cashFlowCard);
 
-  const cashFlowBars = document.createElement('div');
-  cashFlowBars.className = 'cash-flow-bars';
-  cashFlowBars.innerHTML = `
-    <div class="cash-flow-row">
-      <span class="cash-flow-label">Income</span>
-      <div class="cash-flow-bar-track"><div class="cash-flow-bar-fill income" style="width:0%"></div></div>
-      <span class="cash-flow-value amount amount-neutral">…</span>
-    </div>
-    <div class="cash-flow-row">
-      <span class="cash-flow-label">Expenses</span>
-      <div class="cash-flow-bar-track"><div class="cash-flow-bar-fill expense" style="width:0%"></div></div>
-      <span class="cash-flow-value amount amount-neutral">…</span>
-    </div>
-  `;
-  cashFlowCard.appendChild(cashFlowBars);
-  middleGrid.appendChild(cashFlowCard);
+  const categoryCard = document.createElement('div');
+  categoryCard.className = 'surface-analytic dashboard-analytic-card';
+  const categoryTitle = el('h3', 'dashboard-section-title', 'Category Breakdown');
+  categoryCard.appendChild(categoryTitle);
+  const categoryChartWrap = document.createElement('div');
+  categoryChartWrap.className = 'dashboard-chart-wrap';
+  categoryCard.appendChild(categoryChartWrap);
+  analyticsGrid.appendChild(categoryCard);
 
-  const safeDetailCard = document.createElement('div');
-  safeDetailCard.className = 'card safe-detail-card';
-  const safeDetailTitle = document.createElement('h3');
-  safeDetailTitle.className = 'dashboard-section-title';
-  safeDetailTitle.textContent = 'Safe-to-Spend Breakdown';
-  safeDetailCard.appendChild(safeDetailTitle);
-  const safeDetailBody = document.createElement('div');
-  safeDetailBody.className = 'safe-detail-body';
-  safeDetailBody.innerHTML = `
-    <div class="safe-detail-row"><span>Free funds</span><span class="amount amount-neutral">…</span></div>
-    <div class="safe-detail-row"><span>Goals requirement</span><span class="amount amount-neutral">…</span></div>
-    <div class="safe-detail-row"><span>Days left</span><span class="amount amount-neutral">…</span></div>
-    <div class="safe-detail-row safe-detail-total"><span>Safe to spend</span><span class="amount amount-neutral">…</span></div>
-  `;
-  safeDetailCard.appendChild(safeDetailBody);
-  middleGrid.appendChild(safeDetailCard);
+  root.appendChild(analyticsGrid);
 
-  root.appendChild(middleGrid);
+  // ── 4. Summary Strip ──────────────────────────────────────
+  const summaryStrip = document.createElement('div');
+  summaryStrip.className = 'summary-strip';
 
-  const bottomGrid = document.createElement('div');
-  bottomGrid.className = 'dashboard-bottom-grid';
+  const safeCard = document.createElement('div');
+  safeCard.className = 'dashboard-safe-card';
+
+  const safeTitle = el('div', 'dashboard-safe-card-title', 'Safe to Spend');
+  safeCard.appendChild(safeTitle);
+
+  const safeValue = el('div', 'dashboard-safe-card-value amount amount-neutral', '…');
+  safeCard.appendChild(safeValue);
+
+  const safeMeta = el('div', 'dashboard-safe-card-meta', 'Available after obligations');
+  safeCard.appendChild(safeMeta);
+
+  const safeBreakdown = document.createElement('div');
+  safeBreakdown.className = 'dashboard-safe-card-breakdown';
+
+  const freeFundsItem = document.createElement('div');
+  freeFundsItem.className = 'dashboard-safe-card-breakdown-item';
+  const freeFundsLabel = el('span', 'dashboard-safe-card-breakdown-label', 'Free funds');
+  const freeFundsValue = el('span', 'dashboard-safe-card-breakdown-value amount amount-neutral', '…');
+  freeFundsItem.appendChild(freeFundsLabel);
+  freeFundsItem.appendChild(freeFundsValue);
+  safeBreakdown.appendChild(freeFundsItem);
+
+  const obligationsItem = document.createElement('div');
+  obligationsItem.className = 'dashboard-safe-card-breakdown-item';
+  const obligationsLabel = el('span', 'dashboard-safe-card-breakdown-label', 'Upcoming obligations');
+  const obligationsValue = el('span', 'dashboard-safe-card-breakdown-value amount amount-negative', '…');
+  obligationsItem.appendChild(obligationsLabel);
+  obligationsItem.appendChild(obligationsValue);
+  safeBreakdown.appendChild(obligationsItem);
+
+  safeCard.appendChild(safeBreakdown);
+  summaryStrip.appendChild(safeCard);
+
+  const incomeItem = document.createElement('div');
+  incomeItem.className = 'summary-strip-item';
+  const incomeLabel = el('span', 'summary-strip-label', 'Income');
+  const incomeValue = el('span', 'summary-strip-value summary-strip-value--positive', '…');
+  incomeItem.appendChild(incomeLabel);
+  incomeItem.appendChild(incomeValue);
+  summaryStrip.appendChild(incomeItem);
+
+  const expenseItem = document.createElement('div');
+  expenseItem.className = 'summary-strip-item';
+  const expenseLabel = el('span', 'summary-strip-label', 'Expenses');
+  const expenseValue = el('span', 'summary-strip-value summary-strip-value--negative', '…');
+  expenseItem.appendChild(expenseLabel);
+  expenseItem.appendChild(expenseValue);
+  summaryStrip.appendChild(expenseItem);
+
+  const netItem = document.createElement('div');
+  netItem.className = 'summary-strip-item';
+  const netLabel = el('span', 'summary-strip-label', 'Net');
+  const netValue = el('span', 'summary-strip-value summary-strip-value--muted', '…');
+  netItem.appendChild(netLabel);
+  netItem.appendChild(netValue);
+  summaryStrip.appendChild(netItem);
+
+  root.appendChild(summaryStrip);
+
+  // ── 5. Attention Area ──────────────────────────────────────
+  const attentionGrid = document.createElement('div');
+  attentionGrid.className = 'dashboard-attention-grid';
 
   const txCard = document.createElement('div');
-  txCard.className = 'dashboard-section-card';
-  const txTitle = document.createElement('h3');
-  txTitle.className = 'dashboard-section-title';
-  txTitle.textContent = 'Recent Transactions';
-  txCard.appendChild(txTitle);
+  txCard.className = 'surface-list dashboard-section-card';
+
+  const txHeader = document.createElement('div');
+  txHeader.className = 'dashboard-list-header';
+  const txTitle = el('h3', 'dashboard-section-title', 'Recent Transactions');
+  txHeader.appendChild(txTitle);
+  txCard.appendChild(txHeader);
+
   const txList = document.createElement('ul');
   txList.className = 'recent-transactions-list';
   txCard.appendChild(txList);
-  bottomGrid.appendChild(txCard);
+  attentionGrid.appendChild(txCard);
 
-  const budgetCard = document.createElement('div');
-  budgetCard.className = 'dashboard-section-card';
-  const budgetTitle = document.createElement('h3');
-  budgetTitle.className = 'dashboard-section-title';
-  budgetTitle.textContent = 'Budgets';
-  budgetCard.appendChild(budgetTitle);
-  const budgetList = document.createElement('ul');
-  budgetList.className = 'progress-list';
-  budgetCard.appendChild(budgetList);
-  bottomGrid.appendChild(budgetCard);
+  let budgetCard = null;
+  let goalCard = null;
 
-  const goalCard = document.createElement('div');
-  goalCard.className = 'dashboard-section-card';
-  const goalTitle = document.createElement('h3');
-  goalTitle.className = 'dashboard-section-title';
-  goalTitle.textContent = 'Goals';
-  goalCard.appendChild(goalTitle);
-  const goalList = document.createElement('ul');
-  goalList.className = 'progress-list';
-  goalCard.appendChild(goalList);
-  bottomGrid.appendChild(goalCard);
+  if (budgets.length > 0) {
+    budgetCard = document.createElement('div');
+    budgetCard.className = 'surface-analytic dashboard-section-card dashboard-section-card--compact';
 
-  root.appendChild(bottomGrid);
+    const budgetTitle = el('h3', 'dashboard-section-title', 'Budgets at Risk');
+    budgetCard.appendChild(budgetTitle);
 
-  async function loadSummary() {
-    try {
-      const summary = await modules.reporting.getMonthlySummary({ userId, monthKey });
-      const income = summary.income || 0;
-      const expense = summary.expense || 0;
-
-      updateSummaryCard(incomeCard, formatCurrency(income), 'positive');
-      updateSummaryCard(expenseCard, formatCurrency(expense), 'negative');
-
-      const maxValue = Math.max(income, expense, 0.01);
-      const incomePercent = (income / maxValue) * 100;
-      const expensePercent = (expense / maxValue) * 100;
-      cashFlowBars.querySelector('.cash-flow-bar-fill.income').style.width = `${incomePercent}%`;
-      cashFlowBars.querySelector('.cash-flow-bar-fill.expense').style.width = `${expensePercent}%`;
-      const incomeValEl = cashFlowBars.querySelector('.cash-flow-value');
-      incomeValEl.textContent = formatCurrency(income);
-      incomeValEl.className = `cash-flow-value amount ${income >= 0 ? 'amount-positive' : 'amount-negative'}`;
-      const expenseValEl = cashFlowBars.querySelectorAll('.cash-flow-value')[1];
-      expenseValEl.textContent = formatCurrency(expense);
-      expenseValEl.className = `cash-flow-value amount amount-negative`;
-    } catch (e) {
-      const errorEl = document.createElement('div');
-      errorEl.className = 'error-message';
-      errorEl.textContent = `Failed to load monthly summary: ${e.message}`;
-      summaryGrid.appendChild(errorEl);
-    }
+    const budgetList = document.createElement('ul');
+    budgetList.className = 'progress-list';
+    budgetCard.appendChild(budgetList);
+    attentionGrid.appendChild(budgetCard);
   }
 
+  if (goals.length > 0) {
+    goalCard = document.createElement('div');
+    goalCard.className = 'surface-analytic dashboard-section-card dashboard-section-card--compact';
+
+    const goalTitle = el('h3', 'dashboard-section-title', 'Goals');
+    goalCard.appendChild(goalTitle);
+
+    const goalList = document.createElement('ul');
+    goalList.className = 'progress-list';
+    goalCard.appendChild(goalList);
+    attentionGrid.appendChild(goalCard);
+  }
+
+  root.appendChild(attentionGrid);
+
+  // ── Data Loaders ──────────────────────────────────────────
   async function loadBalance() {
     try {
       let totalBalance = 0;
@@ -200,9 +269,41 @@ export function render(context = {}) {
         );
         totalBalance = balanceResults.reduce((sum, b) => sum + b, 0);
       }
-      updateSummaryCard(balanceCard, formatCurrency(totalBalance), totalBalance >= 0 ? 'positive' : 'negative');
+      heroValue.textContent = formatCurrency(totalBalance);
+      heroValue.className = `dashboard-hero-value amount ${totalBalance >= 0 ? 'amount-positive' : 'amount-negative'}`;
     } catch (e) {
-      updateSummaryCard(balanceCard, '—', 'neutral');
+      heroValue.textContent = '—';
+      heroValue.className = 'dashboard-hero-value amount amount-neutral';
+      const errorEl = document.createElement('div');
+      errorEl.className = 'error-message';
+      errorEl.textContent = `Failed to load balance: ${e.message}`;
+      heroSection.appendChild(errorEl);
+    }
+  }
+
+  async function loadSummary() {
+    try {
+      const summary = await modules.reporting.getMonthlySummary({ userId, monthKey });
+      const income = summary.income || 0;
+      const expense = summary.expense || 0;
+      const net = income - expense;
+
+      incomeValue.textContent = formatCurrency(income);
+      incomeValue.className = `summary-strip-value ${income >= 0 ? 'summary-strip-value--positive' : 'summary-strip-value--negative'}`;
+
+      expenseValue.textContent = formatCurrency(expense);
+      expenseValue.className = `summary-strip-value ${expense >= 0 ? 'summary-strip-value--positive' : 'summary-strip-value--negative'}`;
+
+      netValue.textContent = formatCurrency(net);
+      netValue.className = `summary-strip-value ${net >= 0 ? 'summary-strip-value--positive' : 'summary-strip-value--negative'}`;
+    } catch (e) {
+      incomeValue.textContent = '—';
+      expenseValue.textContent = '—';
+      netValue.textContent = '—';
+      const errorEl = document.createElement('div');
+      errorEl.className = 'error-message';
+      errorEl.textContent = `Failed to load monthly summary: ${e.message}`;
+      summaryStrip.appendChild(errorEl);
     }
   }
 
@@ -210,37 +311,25 @@ export function render(context = {}) {
     try {
       const safeResult = await modules.safeToSpend.computeForCurrentState();
       const safeTotal = safeResult?.safeTotal ?? 0;
-      const perDay = safeResult?.perDay ?? 0;
-      updateSummaryCard(safeCard, formatCurrency(safeTotal), safeTotal >= 0 ? 'positive' : 'negative');
-      const safeValueEl = safeCard.querySelector('.summary-card-value');
-      if (safeValueEl) {
-        safeValueEl.textContent = formatCurrency(safeTotal);
-      }
-      const safeSubtitleEl = safeCard.querySelector('.summary-card-subtitle');
-      if (safeSubtitleEl) {
-        safeSubtitleEl.textContent = `${formatCurrency(perDay)} / day`;
-      }
+
+      safeValue.textContent = formatCurrency(safeTotal);
+      safeValue.className = `dashboard-safe-card-value amount ${safeTotal >= 0 ? 'amount-positive' : 'amount-negative'}`;
 
       const freeFunds = safeResult?.freeFunds ?? 0;
       const goalsReq = safeResult?.goalsReq ?? 0;
-      const daysLeft = safeResult?.daysLeft ?? 0;
-      const safeDetailSpans = safeDetailBody.querySelectorAll('.safe-detail-row span:last-child');
-      if (safeDetailSpans.length >= 4) {
-        safeDetailSpans[0].textContent = formatCurrency(freeFunds);
-        safeDetailSpans[0].className = `amount ${freeFunds >= 0 ? 'amount-positive' : 'amount-negative'}`;
-        safeDetailSpans[1].textContent = formatCurrency(goalsReq);
-        safeDetailSpans[1].className = `amount amount-negative`;
-        safeDetailSpans[2].textContent = String(daysLeft);
-        safeDetailSpans[2].className = 'amount amount-neutral';
-        safeDetailSpans[3].textContent = formatCurrency(safeTotal);
-        safeDetailSpans[3].className = `amount ${safeTotal >= 0 ? 'amount-positive' : 'amount-negative'}`;
-      }
+
+      freeFundsValue.textContent = formatCurrency(freeFunds);
+      freeFundsValue.className = `dashboard-safe-card-breakdown-value amount ${freeFunds >= 0 ? 'amount-positive' : 'amount-negative'}`;
+
+      obligationsValue.textContent = formatCurrency(goalsReq);
+      obligationsValue.className = `dashboard-safe-card-breakdown-value amount amount-negative`;
     } catch (e) {
-      updateSummaryCard(safeCard, '—', 'neutral');
-      const safeSubtitleEl = safeCard.querySelector('.summary-card-subtitle');
-      if (safeSubtitleEl) {
-        safeSubtitleEl.textContent = 'Unavailable';
-      }
+      safeValue.textContent = '—';
+      safeValue.className = 'dashboard-safe-card-value amount amount-neutral';
+      const errorEl = document.createElement('div');
+      errorEl.className = 'error-message';
+      errorEl.textContent = `Failed to load safe-to-spend: ${e.message}`;
+      safeCard.appendChild(errorEl);
     }
   }
 
@@ -251,134 +340,297 @@ export function render(context = {}) {
     }
 
     if (transactions.length === 0) {
-      txList.innerHTML = '<li class="empty-message" style="padding: var(--space-2) 0;">No transactions this month.</li>';
+      txList.innerHTML = `
+        <li class="empty-state-list-item">
+          <div class="empty-state-icon">📝</div>
+          <p class="empty-state-title">No transactions yet</p>
+          <p class="empty-state-desc">Start tracking your cash flow by adding your first transaction.</p>
+        </li>`;
     } else {
       txList.innerHTML = '';
       const recent = [...transactions].reverse().slice(0, 5);
       for (const tx of recent) {
         const li = document.createElement('li');
-        li.className = 'recent-transaction-item';
+        li.className = 'surface-list-item recent-transaction-item';
+
+        const typeIcon = document.createElement('div');
+        typeIcon.className = `transaction-type-icon ${tx.type === 'income' ? 'income' : 'expense'}`;
+        typeIcon.textContent = tx.type === 'income' ? '↑' : '↓';
+        li.appendChild(typeIcon);
+
         const info = document.createElement('div');
-        info.className = 'recent-transaction-info';
+        info.className = 'surface-list-item-body';
         const desc = document.createElement('div');
-        desc.className = 'recent-transaction-desc';
+        desc.className = 'surface-list-item-title';
         desc.textContent = tx.description || '(no description)';
         const meta = document.createElement('div');
-        meta.className = 'recent-transaction-meta';
-        meta.textContent = `${accountMap.get(tx.accountId) || tx.accountId} • ${tx.date}`;
+        meta.className = 'surface-list-item-meta';
+        meta.textContent = `${accountMap.get(tx.accountId) || tx.accountId} \u2022 ${tx.date}`;
         info.appendChild(desc);
         info.appendChild(meta);
         li.appendChild(info);
+
+        const right = document.createElement('div');
+        right.className = 'transaction-item-right';
+
         const amount = document.createElement('span');
-        amount.className = `recent-transaction-amount amount ${tx.type === 'income' ? 'amount-positive' : 'amount-negative'}`;
+        amount.className = `transaction-item-amount amount ${tx.type === 'income' ? 'amount-positive' : 'amount-negative'}`;
         amount.textContent = `${tx.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}`;
-        li.appendChild(amount);
+        right.appendChild(amount);
+
+        li.appendChild(right);
         txList.appendChild(li);
       }
     }
   }
 
-  async function loadBudgets() {
+  async function loadBudgetsAtRisk() {
+    if (!budgetCard) return;
+
     if (budgets.length === 0) {
-      budgetList.innerHTML = '<li class="empty-message" style="padding: var(--space-2) 0;">No active budgets.</li>';
-    } else {
-      budgetList.innerHTML = '';
-      const categoryMap = new Map();
-      if (modules.category) {
-        try {
-          const categories = await modules.category.getCategories({ userId });
-          for (const cat of categories) {
-            categoryMap.set(cat.id, cat.name);
-          }
-        } catch (_e) {
-          // leave category names as IDs on failure
-        }
-      }
-
-      for (const budget of budgets) {
-        const li = document.createElement('li');
-        li.className = 'progress-item';
-        const header = document.createElement('div');
-        header.className = 'progress-item-header';
-        const name = document.createElement('span');
-        name.className = 'progress-item-name';
-        name.textContent = categoryMap.get(budget.categoryId) || budget.categoryId;
-        const value = document.createElement('span');
-        value.className = 'progress-item-value';
-        value.textContent = `${formatCurrency(budget.amount)} budget`;
-        header.appendChild(name);
-        header.appendChild(value);
-        li.appendChild(header);
-
-        const track = document.createElement('div');
-        track.className = 'progress-bar-track';
-        const fill = document.createElement('div');
-        fill.className = 'progress-bar-fill';
-        fill.style.width = '0%';
-        track.appendChild(fill);
-        li.appendChild(track);
-        budgetList.appendChild(li);
-
-        try {
-          const progress = await modules.budget.getBudgetProgress({ budgetId: budget.id, monthKey });
-          const spent = progress.spent || 0;
-          const pct = budget.amount > 0 ? Math.min((spent / budget.amount) * 100, 100) : 0;
-          fill.style.width = `${pct}%`;
-          fill.className = `progress-bar-fill${progress.overBudget ? ' over-budget' : ''}`;
-          const remainingText = progress.overBudget
-            ? `Over by ${formatCurrency(spent - budget.amount)}`
-            : `${formatCurrency(progress.remaining || 0)} remaining`;
-          value.textContent = `${formatCurrency(spent)} of ${formatCurrency(budget.amount)} • ${remainingText}`;
-        } catch (_e) {
-          value.textContent = `${formatCurrency(budget.amount)} budget`;
-        }
-      }
+      budgetCard.style.display = 'none';
+      return;
     }
+
+    const categoryMap = new Map();
+    if (modules.category) {
+      try {
+        const categories = await modules.category.getCategories({ userId });
+        for (const cat of categories) {
+          categoryMap.set(cat.id, cat.name);
+        }
+      } catch (_e) {}
+    }
+
+    const atRisk = [];
+    for (const budget of budgets) {
+      try {
+        const progress = await modules.budget.getBudgetProgress({ budgetId: budget.id, monthKey });
+        const spent = progress.spent || 0;
+        const pct = budget.amount > 0 ? Math.min((spent / budget.amount) * 100, 100) : 0;
+        if (progress.overBudget || pct >= 80) {
+          atRisk.push({
+            name: categoryMap.get(budget.categoryId) || budget.categoryId,
+            spent,
+            amount: budget.amount,
+            pct,
+            overBudget: progress.overBudget,
+          });
+        }
+      } catch (_e) {}
+    }
+
+    if (atRisk.length === 0) {
+      budgetCard.style.display = 'none';
+      return;
+    }
+
+    atRisk.sort((a, b) => b.pct - a.pct);
+    const top = atRisk.slice(0, 3);
+
+    const budgetList = budgetCard.querySelector('.progress-list');
+    budgetList.innerHTML = '';
+    for (const item of top) {
+      const li = document.createElement('li');
+      li.className = 'progress-item';
+
+      const header = document.createElement('div');
+      header.className = 'progress-item-header';
+
+      const name = el('span', 'progress-item-name', item.name);
+      const value = el('span', 'progress-item-value',
+        item.overBudget
+          ? `Over by ${formatCurrency(item.spent - item.amount)}`
+          : `${formatCurrency(item.spent)} of ${formatCurrency(item.amount)}`
+      );
+
+      header.appendChild(name);
+      header.appendChild(value);
+      li.appendChild(header);
+
+      const track = document.createElement('div');
+      track.className = 'progress-bar-track';
+      const fill = document.createElement('div');
+      fill.className = 'progress-bar-fill';
+      fill.style.width = `${item.pct}%`;
+      track.appendChild(fill);
+      li.appendChild(track);
+      budgetList.appendChild(li);
+
+      fill.className = `progress-bar-fill${item.overBudget ? ' over-budget' : ''}`;
+    }
+    budgetCard.style.display = 'flex';
   }
 
-  async function loadGoals() {
+  async function loadGoalsClosest() {
+    if (!goalCard) return;
+
     if (goals.length === 0) {
-      goalList.innerHTML = '<li class="empty-message" style="padding: var(--space-2) 0;">No active goals.</li>';
-    } else {
-      goalList.innerHTML = '';
-      for (const goal of goals) {
-        const li = document.createElement('li');
-        li.className = 'progress-item';
-        const header = document.createElement('div');
-        header.className = 'progress-item-header';
-        const name = document.createElement('span');
-        name.className = 'progress-item-name';
-        name.textContent = goal.name;
-        const value = document.createElement('span');
-        value.className = 'progress-item-value';
-        value.textContent = `${formatCurrency(goal.current || 0)} of ${formatCurrency(goal.target)}`;
-        header.appendChild(name);
-        header.appendChild(value);
-        li.appendChild(header);
+      goalCard.style.display = 'none';
+      return;
+    }
 
-        const track = document.createElement('div');
-        track.className = 'progress-bar-track';
-        const fill = document.createElement('div');
-        fill.className = 'progress-bar-fill goal';
-        fill.style.width = '0%';
-        track.appendChild(fill);
-        li.appendChild(track);
-        goalList.appendChild(li);
+    const sorted = goals
+      .map(g => ({
+        ...g,
+        pct: g.target > 0 ? Math.min(((g.current || 0) / g.target) * 100, 100) : 0,
+      }))
+      .sort((a, b) => b.pct - a.pct)
+      .slice(0, 3);
 
-        const pct = goal.target > 0 ? Math.min(((goal.current || 0) / goal.target) * 100, 100) : 0;
-        fill.style.width = `${pct}%`;
+    const goalList = goalCard.querySelector('.progress-list');
+    goalList.innerHTML = '';
+    for (const goal of sorted) {
+      const li = document.createElement('li');
+      li.className = 'progress-item';
+
+      const header = document.createElement('div');
+      header.className = 'progress-item-header';
+
+      const name = el('span', 'progress-item-name', goal.name);
+      const value = el('span', 'progress-item-value',
+        `${formatCurrency(goal.current || 0)} of ${formatCurrency(goal.target)}`
+      );
+
+      header.appendChild(name);
+      header.appendChild(value);
+      li.appendChild(header);
+
+      const track = document.createElement('div');
+      track.className = 'progress-bar-track';
+      const fill = document.createElement('div');
+      fill.className = 'progress-bar-fill goal';
+      fill.style.width = '0%';
+      track.appendChild(fill);
+      li.appendChild(track);
+      goalList.appendChild(li);
+
+      fill.style.width = `${goal.pct}%`;
+    }
+    goalCard.style.display = 'flex';
+  }
+
+  async function loadCashFlowTrend() {
+    const monthKeys = getLastNMonthKeys(6);
+    const labels = monthKeys.map(formatShortMonth);
+    let incomeData = [];
+    let expenseData = [];
+
+    try {
+      const results = await Promise.all(
+        monthKeys.map(mk => modules.reporting.getMonthlySummary({ userId, monthKey: mk }))
+      );
+      incomeData = results.map(r => r.income || 0);
+      expenseData = results.map(r => r.expense || 0);
+    } catch (e) {
+      console.error('Failed to load cash flow trend:', e);
+    }
+
+    cashFlowChartWrap.innerHTML = '';
+
+    if (incomeData.length === 0 && expenseData.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state empty-state--dashboard';
+      empty.innerHTML = `
+        <div class="empty-state-icon">📈</div>
+        <p class="empty-state-title">No data available</p>
+        <p class="empty-state-desc">Add income and expense transactions to see your trend.</p>
+      `;
+      cashFlowChartWrap.appendChild(empty);
+      return;
+    }
+
+    const allValues = [...incomeData, ...expenseData];
+    const yMin = Math.min(0, ...allValues);
+    const yMax = Math.max(...allValues);
+    const yPad = (yMax - yMin) * 0.1 || 1;
+
+    const chart = createLineChart({
+      data: labels,
+      width: 600,
+      height: 220,
+      padding: { top: 20, right: 20, bottom: 30, left: 50 },
+      lines: [
+        {
+          data: incomeData.map((value, i) => ({ value, label: labels[i] })),
+          color: 'var(--color-positive)',
+        },
+        {
+          data: expenseData.map((value, i) => ({ value, label: labels[i] })),
+          color: 'var(--color-negative)',
+        },
+      ],
+      yMin: yMin - yPad,
+      yMax: yMax + yPad,
+      ariaLabel: 'Cash flow trend showing income and expenses over the last 6 months',
+    });
+    cashFlowChartWrap.appendChild(chart);
+  }
+
+  async function loadCategoryBreakdown() {
+    categoryChartWrap.innerHTML = '';
+
+    try {
+      const categories = await modules.category.getCategories({ userId });
+      const categoryNameMap = new Map();
+      for (const cat of categories) {
+        categoryNameMap.set(cat.id, cat.name);
       }
+
+      const result = await modules.reporting.getMonthCategoryBreakdown({ userId, monthKey, type: 'expense' });
+      const entries = Object.entries(result.byCategory || {})
+        .map(([id, data]) => ({
+          id,
+          label: id === 'uncategorized' ? 'Uncategorized' : (categoryNameMap.get(id) || 'Other'),
+          value: data.total || 0,
+        }))
+        .filter(item => item.value > 0)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 6);
+
+      if (entries.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state empty-state--dashboard';
+        empty.innerHTML = `
+          <div class="empty-state-icon">📊</div>
+          <p class="empty-state-title">No data available</p>
+          <p class="empty-state-desc">Add transactions to see your category breakdown.</p>
+        `;
+        categoryChartWrap.appendChild(empty);
+        return;
+      }
+
+      const chart = createHorizontalBarChart({
+        data: entries.map((item, i) => ({
+          label: item.label,
+          value: item.value,
+          color: i === 0 ? 'var(--color-primary)' : 'var(--color-secondary)',
+        })),
+        width: 500,
+        height: Math.max(220, entries.length * 36 + 20),
+        padding: { top: 10, right: 80, bottom: 10, left: 110 },
+        ariaLabel: 'Expense breakdown by category for this month',
+      });
+      categoryChartWrap.appendChild(chart);
+    } catch (e) {
+      console.error('Failed to load category breakdown:', e);
+      const errorEl = document.createElement('div');
+      errorEl.className = 'error-message';
+      errorEl.textContent = `Failed to load category breakdown: ${e.message}`;
+      categoryChartWrap.appendChild(errorEl);
     }
   }
 
   async function loadDashboardData() {
     await Promise.all([
-      loadSummary(),
       loadBalance(),
+      loadSummary(),
       loadSafeToSpend(),
       loadRecentTransactions(),
-      loadBudgets(),
-      loadGoals(),
+      loadCashFlowTrend(),
+      loadCategoryBreakdown(),
+      loadBudgetsAtRisk(),
+      loadGoalsClosest(),
     ]);
   }
 
@@ -387,46 +639,28 @@ export function render(context = {}) {
   return root;
 }
 
-function createSummaryCard(label, value, colorClass, icon, isSafe = false) {
+function createMetricCard(label, value, colorClass, subtitle) {
   const card = document.createElement('div');
-  card.className = `summary-card${isSafe ? ' is-safe' : ''}`;
+  card.className = 'surface-metric dashboard-metric-card';
 
-  const header = document.createElement('div');
-  header.className = 'summary-card-header';
+  const labelEl = el('span', 'dashboard-metric-label', label);
+  card.appendChild(labelEl);
 
-  const iconEl = document.createElement('div');
-  iconEl.className = 'summary-card-icon';
-  iconEl.textContent = icon;
+  const valueEl = el('div', `dashboard-metric-value amount ${colorClass}`, value);
+  card.appendChild(valueEl);
 
-  const labelEl = document.createElement('span');
-  labelEl.className = 'summary-card-label';
-  labelEl.textContent = label;
-
-  header.appendChild(iconEl);
-  header.appendChild(labelEl);
-  card.appendChild(header);
-
-  const valueEl = document.createElement('div');
-  valueEl.className = `summary-card-value amount amount-${colorClass}`;
-  valueEl.textContent = value;
-
-  if (isSafe) {
-    const subtitle = document.createElement('div');
-    subtitle.className = 'summary-card-subtitle';
-    subtitle.textContent = '… / day';
-    card.appendChild(valueEl);
-    card.appendChild(subtitle);
-  } else {
-    card.appendChild(valueEl);
+  if (subtitle) {
+    const subtitleEl = el('div', 'dashboard-metric-subtitle', subtitle);
+    card.appendChild(subtitleEl);
   }
 
   return card;
 }
 
-function updateSummaryCard(card, value, colorClass) {
-  const valueEl = card.querySelector('.summary-card-value');
+function updateMetricCard(card, value, colorClass) {
+  const valueEl = card.querySelector('.dashboard-metric-value');
   if (valueEl) {
     valueEl.textContent = value;
-    valueEl.className = `summary-card-value amount amount-${colorClass}`;
+    valueEl.className = `dashboard-metric-value amount ${colorClass}`;
   }
 }

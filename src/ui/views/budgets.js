@@ -1,8 +1,13 @@
 /**
- * Stage UI-5 — Budgets View
+ * Stage UI-6 — Budgets View (Premium Fintech Redesign)
  *
- * Premium budget planning screen built on the UI-1 design system.
+ * Premium budget management screen with modal/bottom-sheet form,
+ * improved progress visualization, and polished budget cards.
+ * Preserves all domain contracts and key DOM selector contracts.
  */
+
+import { createFormStateBuffer } from '../utils/form-state.js';
+import { showToast, showConfirm, showModal } from '../utils/feedback.js';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -21,6 +26,47 @@ function formatMonthLabel(monthKey) {
   return `${MONTH_NAMES[month - 1]} ${year}`;
 }
 
+function el(tag, className, textContent) {
+  const e = document.createElement(tag);
+  if (className) e.className = className;
+  if (textContent !== undefined) e.textContent = textContent;
+  return e;
+}
+
+function createSkeletonCards(count = 3) {
+  const cards = [];
+  for (let i = 0; i < count; i++) {
+    const card = document.createElement('div');
+    card.className = 'budget-card';
+    card.style.opacity = '0.7';
+    const header = document.createElement('div');
+    header.className = 'budget-card-header';
+    const nameLine = document.createElement('div');
+    nameLine.className = 'skeleton skeleton-text skeleton-text--md';
+    nameLine.style.width = '50%';
+    header.appendChild(nameLine);
+    card.appendChild(header);
+    const body = document.createElement('div');
+    body.className = 'budget-card-body';
+    const limitLine = document.createElement('div');
+    limitLine.className = 'skeleton skeleton-text skeleton-text--lg';
+    limitLine.style.width = '40%';
+    body.appendChild(limitLine);
+    const spentLine = document.createElement('div');
+    spentLine.className = 'skeleton skeleton-text skeleton-text--sm';
+    spentLine.style.width = '60%';
+    body.appendChild(spentLine);
+    const progressLine = document.createElement('div');
+    progressLine.className = 'skeleton';
+    progressLine.style.height = '8px';
+    progressLine.style.marginTop = 'var(--space-3)';
+    body.appendChild(progressLine);
+    card.appendChild(body);
+    cards.push(card);
+  }
+  return cards;
+}
+
 export function render(context = {}) {
   const { state, modules } = context;
 
@@ -37,19 +83,20 @@ export function render(context = {}) {
   const error = snapshot.budgets?.error || null;
   const form = snapshot.budgetForm || {};
   const monthKey = snapshot.ui?.monthKey || new Date().toISOString().slice(0, 7);
+  const userId = snapshot.session?.userId;
 
   const root = document.createElement('div');
   root.className = 'budgets-view';
 
   const header = document.createElement('div');
-  header.className = 'budgets-header';
-  const title = document.createElement('h2');
-  title.textContent = 'Budgets';
-  const subtitle = document.createElement('p');
-  subtitle.className = 'budgets-subtitle';
-  subtitle.textContent = 'Plan and track your spending limits';
-  header.appendChild(title);
-  header.appendChild(subtitle);
+  header.className = 'page-header';
+  const headerTitles = document.createElement('div');
+  headerTitles.className = 'page-header-titles';
+  const title = el('h1', 'page-header-title', 'Budgets');
+  headerTitles.appendChild(title);
+  const subtitle = el('p', 'page-header-subtitle', 'Plan and monitor your spending limits');
+  headerTitles.appendChild(subtitle);
+  header.appendChild(headerTitles);
 
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
@@ -57,43 +104,10 @@ export function render(context = {}) {
   addBtn.textContent = 'Add Budget';
   addBtn.addEventListener('click', () => {
     state.dispatch({ type: 'RESET_BUDGET_FORM' });
+    openBudgetForm();
   });
   header.appendChild(addBtn);
   root.appendChild(header);
-
-  const monthNav = document.createElement('div');
-  monthNav.className = 'month-nav';
-  const prevBtn = document.createElement('button');
-  prevBtn.type = 'button';
-  prevBtn.className = 'month-nav-btn';
-  prevBtn.textContent = '‹';
-  prevBtn.setAttribute('aria-label', 'Previous month');
-  prevBtn.addEventListener('click', () => {
-    const [year, month] = monthKey.split('-').map(Number);
-    let newMonth = month - 1;
-    let newYear = year;
-    if (newMonth < 1) { newMonth = 12; newYear -= 1; }
-    state.dispatch({ type: 'SET_MONTH_KEY', monthKey: `${newYear}-${String(newMonth).padStart(2, '0')}` });
-  });
-  const monthLabel = document.createElement('span');
-  monthLabel.className = 'month-nav-label';
-  monthLabel.textContent = formatMonthLabel(monthKey);
-  const nextBtn = document.createElement('button');
-  nextBtn.type = 'button';
-  nextBtn.className = 'month-nav-btn';
-  nextBtn.textContent = '›';
-  nextBtn.setAttribute('aria-label', 'Next month');
-  nextBtn.addEventListener('click', () => {
-    const [year, month] = monthKey.split('-').map(Number);
-    let newMonth = month + 1;
-    let newYear = year;
-    if (newMonth > 12) { newMonth = 1; newYear += 1; }
-    state.dispatch({ type: 'SET_MONTH_KEY', monthKey: `${newYear}-${String(newMonth).padStart(2, '0')}` });
-  });
-  monthNav.appendChild(prevBtn);
-  monthNav.appendChild(monthLabel);
-  monthNav.appendChild(nextBtn);
-  root.appendChild(monthNav);
 
   if (error) {
     const errorEl = document.createElement('div');
@@ -103,10 +117,18 @@ export function render(context = {}) {
   }
 
   if (loading) {
-    const loadingEl = document.createElement('div');
-    loadingEl.className = 'loading-message';
-    loadingEl.textContent = 'Loading budgets...';
-    root.appendChild(loadingEl);
+    const loadingSurface = document.createElement('div');
+    loadingSurface.className = 'surface-analytic';
+    const loadingTitle = el('div', 'section-title', 'Budgets');
+    loadingSurface.appendChild(loadingTitle);
+    const skeletonGrid = document.createElement('div');
+    skeletonGrid.style.display = 'grid';
+    skeletonGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+    skeletonGrid.style.gap = 'var(--space-5)';
+    skeletonGrid.style.marginTop = 'var(--space-4)';
+    createSkeletonCards(3).forEach(card => skeletonGrid.appendChild(card));
+    loadingSurface.appendChild(skeletonGrid);
+    root.appendChild(loadingSurface);
     return root;
   }
 
@@ -114,22 +136,19 @@ export function render(context = {}) {
 
   if (budgets.length === 0) {
     const empty = document.createElement('div');
-    empty.className = 'empty-state';
+    empty.className = 'empty-state--budgets';
     const emptyIcon = document.createElement('div');
     emptyIcon.className = 'empty-state-icon';
     emptyIcon.textContent = '📊';
-    const emptyTitle = document.createElement('p');
-    emptyTitle.className = 'empty-state-title';
-    emptyTitle.textContent = 'No active budgets';
-    const emptyDesc = document.createElement('p');
-    emptyDesc.className = 'empty-state-desc';
-    emptyDesc.textContent = 'Create a budget to start tracking your spending limits by category.';
+    const emptyTitle = el('p', 'empty-state-title', 'No budgets yet');
+    const emptyDesc = el('p', 'empty-state-desc', 'Create your first budget to start tracking spending against your plan.');
     const emptyAction = document.createElement('button');
     emptyAction.type = 'button';
     emptyAction.className = 'btn btn-primary';
-    emptyAction.textContent = 'Add Budget';
+    emptyAction.textContent = 'Create Budget';
     emptyAction.addEventListener('click', () => {
       state.dispatch({ type: 'RESET_BUDGET_FORM' });
+      openBudgetForm();
     });
     empty.appendChild(emptyIcon);
     empty.appendChild(emptyTitle);
@@ -138,42 +157,28 @@ export function render(context = {}) {
     root.appendChild(empty);
   } else {
     const summary = document.createElement('div');
-    summary.className = 'budgets-summary';
-    const totalEl = document.createElement('div');
-    totalEl.className = 'budgets-summary-item';
-    const totalLabel = document.createElement('span');
-    totalLabel.className = 'budgets-summary-label';
-    totalLabel.textContent = 'Total Budgeted';
-    const totalValue = document.createElement('span');
-    totalValue.className = 'budgets-summary-value amount amount-neutral';
-    totalValue.textContent = '…';
-    totalEl.appendChild(totalLabel);
-    totalEl.appendChild(totalValue);
-    summary.appendChild(totalEl);
-
-    const spentEl = document.createElement('div');
-    spentEl.className = 'budgets-summary-item';
-    const spentLabel = document.createElement('span');
-    spentLabel.className = 'budgets-summary-label';
-    spentLabel.textContent = 'Total Spent';
-    const spentValue = document.createElement('span');
-    spentValue.className = 'budgets-summary-value amount amount-neutral';
-    spentValue.textContent = '…';
-    spentEl.appendChild(spentLabel);
-    spentEl.appendChild(spentValue);
-    summary.appendChild(spentEl);
-
-    const remainingEl = document.createElement('div');
-    remainingEl.className = 'budgets-summary-item';
-    const remainingLabel = document.createElement('span');
-    remainingLabel.className = 'budgets-summary-label';
-    remainingLabel.textContent = 'Remaining';
-    const remainingValue = document.createElement('span');
-    remainingValue.className = 'budgets-summary-value amount amount-neutral';
-    remainingValue.textContent = '…';
-    remainingEl.appendChild(remainingLabel);
-    remainingEl.appendChild(remainingValue);
-    summary.appendChild(remainingEl);
+    summary.className = 'summary-strip';
+    const summaryValueEls = [];
+    const summaryItems = [
+        { label: 'Total Budgeted', valueClass: 'summary-strip-value amount amount-neutral' },
+        { label: 'Total Spent', valueClass: 'summary-strip-value amount amount-neutral' },
+        { label: 'Remaining', valueClass: 'summary-strip-value amount amount-neutral' },
+        { label: 'Utilization', valueClass: 'summary-strip-value amount amount-neutral' },
+    ];
+    for (const item of summaryItems) {
+        const stripItem = document.createElement('div');
+        stripItem.className = 'summary-strip-item';
+        const label = document.createElement('span');
+        label.className = 'summary-strip-label';
+        label.textContent = item.label;
+        const value = document.createElement('span');
+        value.className = item.valueClass;
+        value.textContent = '…';
+        stripItem.appendChild(label);
+        stripItem.appendChild(value);
+        summary.appendChild(stripItem);
+        summaryValueEls.push(value);
+    }
     root.appendChild(summary);
 
     const grid = document.createElement('div');
@@ -186,21 +191,27 @@ export function render(context = {}) {
       card.className = 'budget-card';
       card.dataset.budgetId = budget.id;
 
-      const header = document.createElement('div');
-      header.className = 'budget-card-header';
+      const cardHeader = document.createElement('div');
+      cardHeader.className = 'budget-card-header';
 
       const nameEl = document.createElement('div');
       nameEl.className = 'budget-card-name';
-      nameEl.textContent = budget.categoryId;
-      header.appendChild(nameEl);
+      nameEl.textContent = '';
+      cardHeader.appendChild(nameEl);
+
+      const statusBadge = document.createElement('span');
+      statusBadge.className = 'budget-status';
+      statusBadge.textContent = '';
+      cardHeader.appendChild(statusBadge);
 
       const actions = document.createElement('div');
       actions.className = 'budget-card-actions';
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
-      editBtn.className = 'btn btn-secondary';
-      editBtn.textContent = 'Edit';
+      editBtn.className = 'surface-list-item-action';
+      editBtn.textContent = '✎';
+      editBtn.setAttribute('aria-label', 'Edit budget');
       editBtn.addEventListener('click', () => {
         state.dispatch({
           type: 'SET_BUDGET_FORM',
@@ -210,15 +221,18 @@ export function render(context = {}) {
             amount: String(budget.amount),
           },
         });
+        openBudgetForm(budget);
       });
       actions.appendChild(editBtn);
 
       const archiveBtn = document.createElement('button');
       archiveBtn.type = 'button';
-      archiveBtn.className = 'btn btn-danger';
-      archiveBtn.textContent = 'Archive';
+      archiveBtn.className = 'surface-list-item-action surface-list-item-action--danger';
+      archiveBtn.textContent = '🗑';
+      archiveBtn.setAttribute('aria-label', 'Archive budget');
       archiveBtn.addEventListener('click', async () => {
-        if (!confirm('Archive this budget?')) return;
+        const confirmed = await showConfirm({ message: 'Archive this budget?' });
+        if (!confirmed) return;
         state.dispatch({ type: 'OPERATION_START', key: 'archiveBudget' });
         try {
           await modules.budget.archiveBudget({ budgetId: budget.id });
@@ -232,23 +246,35 @@ export function render(context = {}) {
       });
       actions.appendChild(archiveBtn);
 
-      header.appendChild(actions);
-      card.appendChild(header);
+      cardHeader.appendChild(actions);
+      card.appendChild(cardHeader);
 
       const body = document.createElement('div');
       body.className = 'budget-card-body';
 
-      const amountRow = document.createElement('div');
-      amountRow.className = 'budget-card-amounts';
-      const budgetAmount = document.createElement('span');
-      budgetAmount.className = 'budget-card-budget amount amount-neutral';
-      budgetAmount.textContent = formatCurrency(budget.amount);
-      const spentAmount = document.createElement('span');
-      spentAmount.className = 'budget-card-spent amount amount-negative';
-      spentAmount.textContent = '0.00';
-      amountRow.appendChild(budgetAmount);
-      amountRow.appendChild(spentAmount);
-      body.appendChild(amountRow);
+      const limitRow = document.createElement('div');
+      limitRow.className = 'budget-card-limit';
+      const limitLabel = document.createElement('span');
+      limitLabel.className = 'budget-card-limit-label';
+      limitLabel.textContent = 'Monthly budget';
+      const limitValue = document.createElement('span');
+      limitValue.className = 'budget-card-limit-value amount amount-neutral';
+      limitValue.textContent = formatCurrency(budget.amount);
+      limitRow.appendChild(limitLabel);
+      limitRow.appendChild(limitValue);
+      body.appendChild(limitRow);
+
+      const spentRow = document.createElement('div');
+      spentRow.className = 'budget-card-spent-row';
+      const spentLabel = document.createElement('span');
+      spentLabel.className = 'budget-card-spent-label';
+      spentLabel.textContent = 'Spent';
+      const spentValue = document.createElement('span');
+      spentValue.className = 'budget-card-spent amount amount-neutral';
+      spentValue.textContent = '0.00';
+      spentRow.appendChild(spentLabel);
+      spentRow.appendChild(spentValue);
+      body.appendChild(spentRow);
 
       const progressTrack = document.createElement('div');
       progressTrack.className = 'progress-bar-track';
@@ -256,17 +282,34 @@ export function render(context = {}) {
       progressFill.className = 'progress-bar-fill';
       progressFill.style.width = '0%';
       progressTrack.appendChild(progressFill);
+      progressTrack.style.height = '10px';
       body.appendChild(progressTrack);
 
-      const remainingText = document.createElement('div');
+      const remainingRow = document.createElement('div');
+      remainingRow.className = 'budget-card-remaining-row';
+      const remainingText = document.createElement('span');
       remainingText.className = 'budget-card-remaining';
       remainingText.textContent = 'Loading...';
-      body.appendChild(remainingText);
+      const pctText = document.createElement('span');
+      pctText.className = 'budget-card-pct';
+      pctText.textContent = '';
+      remainingRow.appendChild(remainingText);
+      remainingRow.appendChild(pctText);
+      body.appendChild(remainingRow);
 
       card.appendChild(body);
       grid.appendChild(card);
 
-      budgetProgressMap.set(budget.id, { card: card, spentEl: spentAmount, progressFill, remainingText, budgetAmount });
+      budgetProgressMap.set(budget.id, {
+        card,
+        spentEl: spentValue,
+        progressFill,
+        remainingText,
+        pctText,
+        limitValue,
+        spentRow,
+        statusBadge,
+      });
     }
     root.appendChild(grid);
 
@@ -296,13 +339,32 @@ export function render(context = {}) {
           const entry = budgetProgressMap.get(budget.id);
           if (!entry) return;
           const pct = budget.amount > 0 ? (progress.spent / budget.amount) * 100 : 0;
-          entry.progressFill.style.width = `${pct}%`;
+          const clampedPct = Math.min(pct, 100);
+          entry.progressFill.style.width = `${clampedPct}%`;
           entry.progressFill.className = `progress-bar-fill${progress.overBudget ? ' over-budget' : ''}`;
           entry.spentEl.textContent = formatCurrency(progress.spent);
           entry.spentEl.className = `budget-card-spent amount ${progress.overBudget ? 'amount-negative' : 'amount-neutral'}`;
           entry.remainingText.textContent = progress.overBudget
             ? `Over by ${formatCurrency(progress.spent - budget.amount)}`
             : `${formatCurrency(progress.remaining)} remaining`;
+          entry.pctText.textContent = `${Math.round(pct)}% used`;
+          entry.limitValue.textContent = formatCurrency(budget.amount);
+          if (progress.overBudget) {
+            entry.spentRow.classList.add('budget-card-spent-row--over');
+          } else {
+            entry.spentRow.classList.remove('budget-card-spent-row--over');
+          }
+          const utilizationPct = budget.amount > 0 ? (progress.spent / budget.amount) * 100 : 0;
+          if (utilizationPct < 70) {
+            entry.statusBadge.className = 'budget-status budget-status--healthy';
+            entry.statusBadge.textContent = 'Healthy';
+          } else if (utilizationPct <= 90) {
+            entry.statusBadge.className = 'budget-status budget-status--approaching';
+            entry.statusBadge.textContent = 'Approaching';
+          } else {
+            entry.statusBadge.className = 'budget-status budget-status--over';
+            entry.statusBadge.textContent = 'Over';
+          }
           return progress;
         } catch (_e) {
           return null;
@@ -321,172 +383,227 @@ export function render(context = {}) {
           totalSpent += progress.spent;
           totalRemaining += progress.remaining;
         }
-        const summaryValues = root.querySelectorAll('.budgets-summary-value');
-        if (summaryValues.length >= 3) {
-          summaryValues[0].textContent = formatCurrency(totalBudgeted);
-          summaryValues[0].className = 'budgets-summary-value amount amount-neutral';
-          summaryValues[1].textContent = formatCurrency(totalSpent);
-          summaryValues[1].className = `budgets-summary-value amount ${totalSpent > totalBudgeted ? 'amount-negative' : 'amount-neutral'}`;
-          summaryValues[2].textContent = formatCurrency(totalRemaining);
-          summaryValues[2].className = `budgets-summary-value amount ${totalRemaining < 0 ? 'amount-negative' : 'amount-positive'}`;
-        }
+        const [totalBudgetedEl, totalSpentEl, remainingEl, utilizationEl] = summaryValueEls;
+        totalBudgetedEl.textContent = formatCurrency(totalBudgeted);
+        totalBudgetedEl.className = 'summary-strip-value amount amount-neutral';
+        totalSpentEl.textContent = formatCurrency(totalSpent);
+        totalSpentEl.className = `summary-strip-value amount ${totalSpent > totalBudgeted ? 'summary-strip-value--negative' : 'amount-neutral'}`;
+        remainingEl.textContent = formatCurrency(totalRemaining);
+        remainingEl.className = `summary-strip-value amount ${totalRemaining < 0 ? 'summary-strip-value--negative' : 'summary-strip-value--positive'}`;
+        const utilization = totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0;
+        utilizationEl.textContent = `${utilization}%`;
+        utilizationEl.className = `summary-strip-value amount ${utilization > 90 ? 'summary-strip-value--negative' : utilization >= 70 ? 'summary-strip-value--muted' : 'summary-strip-value--positive'}`;
       }).catch(() => {});
     }
   }
 
-  const createSection = document.createElement('div');
-  createSection.className = 'create-budget-section';
+  return root;
 
-  const isEditing = form.editingId !== null && form.editingId !== undefined;
+  function openBudgetForm(budget = null) {
+    const isEditing = !!budget;
+    let editingId = null;
+    let formSnapshot = budget || state.getState().budgetForm || {};
+    if (budget && budget.id) {
+      editingId = budget.id;
+    }
 
-  const formTitle = document.createElement('h3');
-  formTitle.className = 'form-section-title';
-  formTitle.textContent = isEditing ? 'Edit Budget' : 'Create Budget';
-  createSection.appendChild(formTitle);
+    const buffer = createFormStateBuffer({
+      categoryId: formSnapshot.categoryId || '',
+      amount: formSnapshot.amount || '',
+      period: formSnapshot.period || 'monthly',
+    });
 
-  const formEl = document.createElement('form');
-  formEl.className = 'budget-form';
+    const body = document.createElement('div');
+    body.className = 'budget-form-body';
 
-  const categorySelect = document.createElement('select');
-  categorySelect.className = 'form-select';
-  const noneOption = document.createElement('option');
-  noneOption.value = '';
-  noneOption.textContent = 'Select category';
-  categorySelect.appendChild(noneOption);
-  formEl.appendChild(categorySelect);
+    const categoryWrapper = document.createElement('div');
+    categoryWrapper.className = 'form-field';
+    const categoryLabel = document.createElement('label');
+    categoryLabel.textContent = 'Category';
+    categoryLabel.className = 'form-label';
+    categoryWrapper.appendChild(categoryLabel);
 
-  const categoryWrapper = document.createElement('div');
-  categoryWrapper.className = 'form-field';
-  const categoryLabel = document.createElement('label');
-  categoryLabel.textContent = 'Category';
-  categoryWrapper.appendChild(categoryLabel);
-  categoryWrapper.appendChild(categorySelect);
-  formEl.appendChild(categoryWrapper);
+    const categorySelect = document.createElement('select');
+    categorySelect.className = 'form-select';
+    const noneOption = document.createElement('option');
+    noneOption.value = '';
+    noneOption.textContent = 'Select category';
+    categorySelect.appendChild(noneOption);
+    categoryWrapper.appendChild(categorySelect);
+    body.appendChild(categoryWrapper);
 
-  categorySelect.addEventListener('change', (e) => {
-    state.dispatch({ type: 'SET_BUDGET_FORM', form: { categoryId: e.target.value } });
-  });
+    categorySelect.addEventListener('change', (e) => {
+      buffer.setValue('categoryId', e.target.value);
+    });
 
-  if (form.categoryId) {
-    categorySelect.value = form.categoryId;
-  }
+    if (buffer.getState().categoryId) {
+      categorySelect.value = buffer.getState().categoryId;
+    }
 
-  const amountField = createField('Amount', 'number', form.amount || '', (value) => {
-    state.dispatch({ type: 'SET_BUDGET_FORM', form: { amount: value } });
-  });
-  const amountHint = document.createElement('span');
-  amountHint.className = 'form-hint';
-  amountHint.textContent = 'Monthly spending limit. Must be a positive value.';
-  amountField.appendChild(amountHint);
-  formEl.appendChild(amountField);
+    if (modules.category) {
+      modules.category.getCategories({ userId: state.getState().session.userId })
+        .then((categories) => {
+          while (categorySelect.options.length > 1) {
+            categorySelect.remove(1);
+          }
+          for (const category of categories) {
+            if (category.systemRole === 'opening-balance') continue;
+            if (category.systemRole === 'savings') continue;
+            if (category.archived) continue;
+            if (category.type !== 'expense') continue;
+            const opt = document.createElement('option');
+            opt.value = category.id;
+            opt.textContent = category.name;
+            categorySelect.appendChild(opt);
+          }
+          if (buffer.getState().categoryId) {
+            const stillValid = Array.from(categorySelect.options).some(o => o.value === buffer.getState().categoryId);
+            if (stillValid) {
+              categorySelect.value = buffer.getState().categoryId;
+            } else {
+              categorySelect.value = '';
+              buffer.setValue('categoryId', '');
+            }
+          }
+        })
+        .catch(() => {});
+    }
 
-  const formActions = document.createElement('div');
-  formActions.className = 'form-actions';
+    const amountField = createFormField('Amount', 'number', buffer.getState().amount, (value) => {
+      buffer.setValue('amount', value);
+    });
+    const amountHint = document.createElement('span');
+    amountHint.className = 'form-hint';
+    amountHint.textContent = 'Monthly spending limit. Must be a positive value.';
+    amountField.appendChild(amountHint);
+    body.appendChild(amountField);
 
-  const submitBtn = document.createElement('button');
-  submitBtn.type = 'submit';
-  submitBtn.textContent = isEditing ? 'Save Changes' : 'Create Budget';
-  submitBtn.className = 'btn btn-primary';
-  formActions.appendChild(submitBtn);
+    const formActions = document.createElement('div');
+    formActions.className = 'form-actions';
 
-  if (isEditing) {
+    const submitBtn = document.createElement('button');
+    submitBtn.type = 'submit';
+    submitBtn.textContent = isEditing ? 'Save Changes' : 'Create Budget';
+    submitBtn.className = 'btn btn-primary';
+    formActions.appendChild(submitBtn);
+
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.textContent = 'Cancel';
     cancelBtn.className = 'btn btn-secondary';
     cancelBtn.addEventListener('click', () => {
+      buffer.reset({ categoryId: '', amount: '', period: 'monthly' });
       state.dispatch({ type: 'RESET_BUDGET_FORM' });
+      closeModal();
     });
     formActions.appendChild(cancelBtn);
-  }
 
-  formEl.appendChild(formActions);
+    body.appendChild(formActions);
 
-  formEl.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const operationKey = isEditing ? 'updateBudget' : 'createBudget';
-    if (state.getState().operations[operationKey]?.loading) return;
+    const formEl = document.createElement('form');
+    formEl.className = 'budget-form';
+    formEl.appendChild(body);
 
-    const currentForm = state.getState().budgetForm;
-    const categoryId = currentForm.categoryId?.trim();
-    const rawAmount = currentForm.amount === '' ? undefined : Number(currentForm.amount);
-    const amount = rawAmount === undefined ? NaN : rawAmount;
+    let closeModal = () => {};
+    let triggerEl = null;
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
+      triggerEl = document.activeElement;
+      const sheet = document.createElement('div');
+      sheet.className = 'bottom-sheet';
+      const sheetBackdrop = document.createElement('div');
+      sheetBackdrop.className = 'bottom-sheet-backdrop';
+      const sheetPanel = document.createElement('div');
+      sheetPanel.className = 'bottom-sheet-panel';
+      sheetPanel.appendChild(formEl);
+      sheet.appendChild(sheetBackdrop);
+      sheet.appendChild(sheetPanel);
+      document.body.appendChild(sheet);
+      requestAnimationFrame(() => sheet.classList.add('is-open'));
 
-    if (!categoryId || !Number.isFinite(amount) || amount <= 0) {
-      alert('Please fill in all fields with valid values.');
-      return;
-    }
+      function handleEscape(e) {
+        if (e.key === 'Escape') {
+          closeModalFn();
+        }
+      }
+      document.addEventListener('keydown', handleEscape);
 
-    state.dispatch({ type: 'OPERATION_START', key: operationKey });
-
-    const submitBtn = formEl.querySelector('button[type="submit"]');
-    if (submitBtn) submitBtn.disabled = true;
-
-    try {
-      if (isEditing) {
-        await modules.budget.updateBudget({
-          budgetId: currentForm.editingId,
-          amount,
-        });
-      } else {
-        await modules.budget.createBudget({
-          userId: state.getState().session.userId,
-          categoryId,
-          amount,
-        });
+      function closeModalFn() {
+        document.removeEventListener('keydown', handleEscape);
+        sheet.classList.remove('is-open');
+        sheet.style.pointerEvents = 'none';
+        sheetBackdrop.style.pointerEvents = 'none';
+        setTimeout(() => {
+          sheet.remove();
+          if (triggerEl && typeof triggerEl.focus === 'function') {
+            triggerEl.focus();
+          }
+        }, 240);
       }
 
-      state.dispatch({ type: 'RESET_BUDGET_FORM' });
-
-      const refreshed = await modules.budget.getBudgets({ userId: state.getState().session.userId });
-      state.dispatch({ type: 'SET_BUDGETS', budgets: refreshed });
-    } catch (e) {
-      state.dispatch({ type: 'OPERATION_ERROR', key: operationKey, error: e.message });
-    } finally {
-      state.dispatch({ type: 'OPERATION_STOP', key: operationKey });
-      const finalBtn = formEl.querySelector('button[type="submit"]');
-      if (finalBtn) finalBtn.disabled = false;
+      closeModal = closeModalFn;
+      sheetBackdrop.addEventListener('click', closeModalFn);
+    } else {
+      const modalClose = showModal({
+        title: isEditing ? 'Edit Budget' : 'Create Budget',
+        bodyHTML: formEl,
+        size: 'sm',
+        onClose: () => {
+          buffer.reset({ categoryId: '', amount: '', period: 'monthly' });
+        },
+      });
+      closeModal = modalClose;
     }
-  });
 
-  createSection.appendChild(formEl);
-  root.appendChild(createSection);
+    formEl.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const operationKey = isEditing ? 'updateBudget' : 'createBudget';
+      if (state.getState().operations[operationKey]?.loading) return;
 
-  if (modules.category) {
-    modules.category.getCategories({ userId: snapshot.session.userId })
-      .then((categories) => {
-        while (categorySelect.options.length > 1) {
-          categorySelect.remove(1);
+      const currentForm = buffer.getState();
+      const categoryId = currentForm.categoryId?.trim();
+      const rawAmount = currentForm.amount === '' ? undefined : Number(currentForm.amount);
+      const amount = rawAmount === undefined ? NaN : rawAmount;
+
+      if (!categoryId || !Number.isFinite(amount) || amount <= 0) {
+        showToast({ message: 'Please fill in all fields with valid values.', type: 'error' });
+        return;
+      }
+
+      state.dispatch({ type: 'OPERATION_START', key: operationKey });
+
+      const submitBtn = formEl.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        if (isEditing) {
+          await modules.budget.updateBudget({
+            budgetId: editingId,
+            amount,
+          });
+          showToast({ message: 'Budget updated successfully.', type: 'success' });
+        } else {
+          await modules.budget.createBudget({
+            userId: state.getState().session.userId,
+            categoryId,
+            amount,
+          });
+          showToast({ message: 'Budget created successfully.', type: 'success' });
         }
-        for (const category of categories) {
-          if (category.systemRole === 'opening-balance') continue;
-          if (category.systemRole === 'savings') continue;
-          if (category.archived) continue;
-          if (category.type !== 'expense') continue;
-          const opt = document.createElement('option');
-          opt.value = category.id;
-          opt.textContent = category.name;
-          categorySelect.appendChild(opt);
-        }
-        if (form.categoryId) {
-          const stillValid = Array.from(categorySelect.options).some(o => o.value === form.categoryId);
-          if (stillValid) {
-            categorySelect.value = form.categoryId;
-          } else {
-            categorySelect.value = '';
-            state.dispatch({ type: 'SET_BUDGET_FORM', form: { categoryId: '' } });
-          }
-        }
-        for (const budget of budgets) {
-          const item = categoryMap.get(budget.categoryId) || budget.categoryId;
-          const nameEl = grid.querySelector(`[data-budget-id="${budget.id}"] .budget-card-name`);
-          if (nameEl) nameEl.textContent = item;
-        }
-      })
-      .catch(() => {});
+
+        closeModal();
+
+        const refreshed = await modules.budget.getBudgets({ userId: state.getState().session.userId });
+        state.dispatch({ type: 'SET_BUDGETS', budgets: refreshed });
+      } catch (e) {
+        state.dispatch({ type: 'OPERATION_ERROR', key: operationKey, error: e.message });
+        showToast({ message: e.message, type: 'error' });
+      } finally {
+        state.dispatch({ type: 'OPERATION_STOP', key: operationKey });
+        const finalBtn = formEl.querySelector('button[type="submit"]');
+        if (finalBtn) finalBtn.disabled = false;
+      }
+    });
   }
-
-  return root;
 }
 
 function createField(label, type, value, onChange) {
@@ -495,6 +612,7 @@ function createField(label, type, value, onChange) {
 
   const labelEl = document.createElement('label');
   labelEl.textContent = label;
+  labelEl.className = 'form-label';
   wrapper.appendChild(labelEl);
 
   const input = document.createElement('input');
@@ -505,4 +623,8 @@ function createField(label, type, value, onChange) {
   wrapper.appendChild(input);
 
   return wrapper;
+}
+
+function createFormField(label, type, value, onChange) {
+  return createField(label, type, value, onChange);
 }

@@ -160,7 +160,7 @@ export function createShell({ state, modules, root }) {
       Object.values(lifecycleEls).forEach((el) => {
         if (el) el.style.display = 'none';
       });
-      if (lifecycleEls.ready) lifecycleEls.ready.style.display = 'block';
+      if (lifecycleEls.ready) lifecycleEls.ready.style.display = 'flex';
 
       const activeTab = ui.activeTab || 'dashboard';
       const monthKey = ui.monthKey || '';

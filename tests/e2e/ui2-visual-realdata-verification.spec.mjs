@@ -14,10 +14,11 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SERVE_PORT = 3007;
+const PREFERRED_PORT = 3007;
 const SCREENSHOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'test-results', 'ui2-visual-verification');
+let serverPort = null;
 
-function createServer(rootDir, port) {
+function createServer(rootDir, preferredPort) {
   const uiDir = path.join(rootDir, 'src/ui');
   const srcDir = path.join(rootDir, 'src');
   return new Promise((resolve, reject) => {
@@ -64,7 +65,10 @@ function createServer(rootDir, port) {
       });
     });
     server.on('error', reject);
-    server.listen(port, () => resolve(server));
+    server.listen(0, '127.0.0.1', () => {
+      serverPort = server.address().port;
+      resolve(server);
+    });
   });
 }
 
@@ -76,15 +80,27 @@ async function navigateToTab(page, tab) {
 
 async function createAccountViaUI(page, { name, type, icon, color, openingBalance }) {
   await navigateToTab(page, 'accounts');
-  const form = page.locator('.account-form').first();
-  await form.locator('input[type="text"]').first().fill(name);
-  await form.locator('select').first().selectOption(type);
-  await form.locator('input[type="text"]').nth(1).fill(icon);
-  await form.locator('input[type="text"]').nth(2).fill(color);
-  if (openingBalance !== undefined && openingBalance !== null) {
-    await form.locator('input[type="number"]').first().fill(String(openingBalance));
+  const addBtn = page.locator('.accounts-add-btn').first();
+  await addBtn.click();
+  await page.waitForTimeout(300);
+
+  await page.locator('.account-form input[type="text"]').first().fill(name);
+  await page.locator('.account-form select').first().selectOption(type);
+
+  if (icon) {
+    const iconBtn = page.locator(`.icon-picker-btn[title="${icon}"]`).first();
+    if (await iconBtn.count() > 0) await iconBtn.click();
   }
-  await form.locator('button[type="submit"]').first().click();
+
+  if (color) {
+    const swatch = page.locator(`.color-swatch[title="${color}"]`).first();
+    if (await swatch.count() > 0) await swatch.click();
+  }
+
+  if (openingBalance !== undefined && openingBalance !== null) {
+    await page.locator('.account-form input[type="number"]').first().fill(String(openingBalance));
+  }
+  await page.locator('.account-form button[type="submit"]').first().click();
   await page.waitForTimeout(1200);
 }
 
@@ -103,6 +119,9 @@ async function createCategoryViaUI(page, { name, type, icon, color }) {
 
 async function createTransactionViaUI(page, { accountName, type, categoryName, amount, description, date }) {
   await navigateToTab(page, 'transactions');
+  const addBtn = page.locator('.transactions-add-btn').first();
+  await addBtn.click();
+  await page.waitForTimeout(300);
   const form = page.locator('.transaction-form').first();
   await form.locator('select').first().selectOption({ label: accountName });
   await form.locator('select').nth(1).selectOption(type);
@@ -118,6 +137,9 @@ async function createTransactionViaUI(page, { accountName, type, categoryName, a
 
 async function createBudgetViaUI(page, { categoryName, amount }) {
   await navigateToTab(page, 'budgets');
+  const addBtn = page.locator('.budgets-add-btn').first();
+  await addBtn.click();
+  await page.waitForTimeout(300);
   const form = page.locator('.budget-form').first();
   await form.locator('select').first().selectOption({ label: categoryName });
   await form.locator('input[type="number"]').first().fill(String(amount));
@@ -127,6 +149,8 @@ async function createBudgetViaUI(page, { categoryName, amount }) {
 
 async function createGoalViaUI(page, { name, target, deadline }) {
   await navigateToTab(page, 'goals');
+  await page.locator('.goals-add-btn').first().click();
+  await page.waitForTimeout(300);
   const form = page.locator('.goal-form').first();
   await form.locator('input[type="text"]').first().fill(name);
   await form.locator('input[type="number"]').first().fill(String(target));
@@ -138,13 +162,13 @@ async function createGoalViaUI(page, { name, target, deadline }) {
 async function depositToGoalViaUI(page, goalName, amount, accountName, date) {
   await navigateToTab(page, 'goals');
   const goalItem = page.locator(`.goal-item:has-text("${goalName}")`).first();
-  const actions = goalItem.locator('.goal-actions');
-  await actions.locator('select').first().selectOption({ label: accountName });
-  await actions.locator('button:has-text("Deposit")').first().click();
-  const depositForm = actions.locator('.deposit-form');
+  await goalItem.locator('.goal-actions button:has-text("Deposit")').first().click();
+  await page.waitForTimeout(300);
+  const depositForm = page.locator('.deposit-form').first();
+  await depositForm.locator('select').first().selectOption({ label: accountName });
   await depositForm.locator('input[type="number"]').first().fill(String(amount));
   await depositForm.locator('input[type="text"]').first().fill(date);
-  await depositForm.locator('button').first().click();
+  await depositForm.locator('button[type="submit"]').first().click();
   await page.waitForTimeout(1200);
 }
 
@@ -155,7 +179,7 @@ test.describe('Stage UI-2 Dashboard Visual + Real-Data Verification', () => {
     if (!fs.existsSync(SCREENSHOT_DIR)) {
       fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
     }
-    server = await createServer(PROJECT_ROOT, SERVE_PORT);
+    server = await createServer(PROJECT_ROOT, PREFERRED_PORT);
   });
 
   test.afterAll(async () => {
@@ -176,7 +200,7 @@ test.describe('Stage UI-2 Dashboard Visual + Real-Data Verification', () => {
     page.on('requestfailed', (req) => failedRequests.push(req.url()));
 
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     expect(consoleErrors, 'no console errors during load').toHaveLength(0);
@@ -270,7 +294,7 @@ test.describe('Stage UI-2 Dashboard Visual + Real-Data Verification', () => {
     const dashboardText = await page.locator('.dashboard-view').textContent();
     expect(dashboardText).toContain('Dashboard');
     expect(dashboardText).toContain('Total Balance');
-    expect(dashboardText).toContain('Safe-to-Spend');
+    expect(dashboardText).toContain('Safe to Spend');
 
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, 'desktop-1280x720.png'), fullPage: false });

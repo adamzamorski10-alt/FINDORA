@@ -9,7 +9,7 @@ export function createPersistence({ storageAdapter, userId }) {
   const listKeys = () => storageAdapter.keys();
 
   const repositories = {
-    userRepository: new UserRepository(storageAdapter),
+    userRepository: new UserRepository(storageAdapter, userId),
     accountRepository: new AccountRepository(storageAdapter, userId, listKeys),
     categoryRepository: new CategoryRepository(storageAdapter, userId, listKeys),
     transactionRepository: new TransactionRepository(storageAdapter, userId, listKeys),

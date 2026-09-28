@@ -12,10 +12,11 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SERVE_PORT = 3003;
+const PREFERRED_PORT = 3003;
 const SCREENSHOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'test-results', 'ui1-screenshots');
+let serverPort = null;
 
-function createServer(rootDir, port) {
+function createServer(rootDir, preferredPort) {
   const uiDir = path.join(rootDir, 'src/ui');
   const srcDir = path.join(rootDir, 'src');
   return new Promise((resolve, reject) => {
@@ -62,7 +63,10 @@ function createServer(rootDir, port) {
       });
     });
     server.on('error', reject);
-    server.listen(port, () => resolve(server));
+    server.listen(0, '127.0.0.1', () => {
+      serverPort = server.address().port;
+      resolve(server);
+    });
   });
 }
 
@@ -73,7 +77,7 @@ test.describe('Stage UI-1 Visual Verification', () => {
     if (!fs.existsSync(SCREENSHOT_DIR)) {
       fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
     }
-    server = await createServer(PROJECT_ROOT, SERVE_PORT);
+    server = await createServer(PROJECT_ROOT, PREFERRED_PORT);
   });
 
   test.afterAll(async () => {
@@ -85,7 +89,7 @@ test.describe('Stage UI-1 Visual Verification', () => {
 
   test('capture desktop screenshots', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     for (const tab of ['dashboard', 'accounts', 'transactions', 'settings']) {
@@ -97,7 +101,7 @@ test.describe('Stage UI-1 Visual Verification', () => {
 
   test('capture mobile screenshots', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     for (const tab of ['dashboard', 'accounts', 'transactions', 'settings']) {

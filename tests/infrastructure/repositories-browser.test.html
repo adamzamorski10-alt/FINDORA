@@ -53,7 +53,7 @@
           id: userId,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
-          settings: { currency: 'PLN', theme: 'system', privacyMode: false, excludeInvestmentsFromNetWorth: false },
+          settings: { currency: 'PLN', theme: 'system', accent: 'purple', privacyMode: false, excludeInvestmentsFromNetWorth: false },
         };
         await userRepo.save(user);
         const found = await userRepo.findById(userId);

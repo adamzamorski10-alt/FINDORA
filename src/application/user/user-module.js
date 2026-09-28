@@ -31,6 +31,7 @@ export function createUserModule({ userRepository }) {
       settings: settings || {
         currency: 'PLN',
         theme: 'system',
+        accent: 'purple',
         privacyMode: false,
         excludeInvestmentsFromNetWorth: false,
       },

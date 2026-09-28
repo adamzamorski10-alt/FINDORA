@@ -1,5 +1,5 @@
 /**
- * Stage UI-3 — Accounts Visual Verification
+ * Stage UI-4 — Accounts Visual Verification
  */
 
 import { test, expect } from '@playwright/test';
@@ -9,10 +9,11 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SERVE_PORT = 3008;
-const SCREENSHOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'test-results', 'ui3-accounts');
+const PREFERRED_PORT = 3008;
+const SCREENSHOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'test-results', 'ui4-accounts');
+let serverPort = null;
 
-function createServer(rootDir, port) {
+function createServer(rootDir, preferredPort) {
   const uiDir = path.join(rootDir, 'src/ui');
   const srcDir = path.join(rootDir, 'src');
   return new Promise((resolve, reject) => {
@@ -59,7 +60,10 @@ function createServer(rootDir, port) {
       });
     });
     server.on('error', reject);
-    server.listen(port, () => resolve(server));
+    server.listen(0, '127.0.0.1', () => {
+      serverPort = server.address().port;
+      resolve(server);
+    });
   });
 }
 
@@ -74,28 +78,49 @@ async function navigateToTab(page, tab) {
   await page.waitForTimeout(600);
 }
 
+async function openAddAccountModal(page) {
+  const addBtn = page.locator('.accounts-add-btn').first();
+  await addBtn.click();
+  await page.waitForTimeout(300);
+}
+
 async function createAccountViaUI(page, { name, type, icon, color, openingBalance }) {
   await navigateToTab(page, 'accounts');
-  const form = page.locator('.account-form').first();
-  await form.locator('input[type="text"]').first().fill(name);
-  await form.locator('select').first().selectOption(type);
-  await form.locator('input[type="text"]').nth(1).fill(icon);
-  await form.locator('input[type="text"]').nth(2).fill(color);
-  if (openingBalance !== undefined && openingBalance !== null) {
-    await form.locator('input[type="number"]').first().fill(String(openingBalance));
+  await openAddAccountModal(page);
+
+  await page.locator('.account-form input[type="text"]').first().fill(name);
+  await page.locator('.account-form select').first().selectOption(type);
+
+  if (icon) {
+    const iconBtn = page.locator(`.icon-picker-btn[title="${icon}"]`).first();
+    if (await iconBtn.count() > 0) {
+      await iconBtn.click();
+    }
   }
-  await form.locator('button[type="submit"]').first().click();
+
+  if (color) {
+    const swatch = page.locator(`.color-swatch[title="${color}"]`).first();
+    if (await swatch.count() > 0) {
+      await swatch.click();
+    }
+  }
+
+  if (openingBalance !== undefined && openingBalance !== null) {
+    await page.locator('.account-form input[type="number"]').first().fill(String(openingBalance));
+  }
+
+  await page.locator('.account-form button[type="submit"]').first().click();
   await page.waitForTimeout(1200);
 }
 
-test.describe('Stage UI-3 Accounts Verification', () => {
+test.describe('Stage UI-4 Accounts Verification', () => {
   let server = null;
 
   test.beforeAll(async () => {
     if (!fs.existsSync(SCREENSHOT_DIR)) {
       fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
     }
-    server = await createServer(PROJECT_ROOT, SERVE_PORT);
+    server = await createServer(PROJECT_ROOT, PREFERRED_PORT);
   });
 
   test.afterAll(async () => {
@@ -115,14 +140,14 @@ test.describe('Stage UI-3 Accounts Verification', () => {
     const failedRequests = [];
     page.on('requestfailed', (req) => failedRequests.push(req.url()));
 
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     await createAccountViaUI(page, {
       name: 'Main Account',
       type: 'bank',
-      icon: '🏦',
+      icon: 'Bank',
       color: '#0000FF',
       openingBalance: 5000,
     });
@@ -134,14 +159,14 @@ test.describe('Stage UI-3 Accounts Verification', () => {
     expect(pageErrors, 'no page errors').toHaveLength(0);
     expect(failedRequests, 'no failed requests').toHaveLength(0);
 
-    await expect(page.locator('.accounts-grid')).toBeVisible();
-    await expect(page.locator('.account-card').first()).toBeVisible();
+    await expect(page.locator('.account-list')).toBeVisible();
+    await expect(page.locator('.account-list-item').first()).toBeVisible();
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, 'desktop-populated.png'), fullPage: false });
   });
 
   test('mobile: populated accounts', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     const menuBtn = page.locator('.top-bar-menu-btn');
@@ -160,8 +185,8 @@ test.describe('Stage UI-3 Accounts Verification', () => {
   });
 
   test('empty state: fresh database', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     await navigateToTab(page, 'accounts');
@@ -171,14 +196,14 @@ test.describe('Stage UI-3 Accounts Verification', () => {
   });
 
   test('functional: edit and archive', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     await createAccountViaUI(page, {
       name: 'Test Account',
       type: 'bank',
-      icon: '🏦',
+      icon: 'Bank',
       color: '#0000FF',
       openingBalance: 1000,
     });
@@ -186,12 +211,12 @@ test.describe('Stage UI-3 Accounts Verification', () => {
     await navigateToTab(page, 'accounts');
     await page.waitForTimeout(1000);
 
-    const editBtn = page.locator('.account-card').first().locator('.account-card-actions .btn-secondary');
+    const editBtn = page.locator('.account-list-item').first().locator('.btn-secondary');
     await expect(editBtn).toBeVisible();
     await editBtn.click();
     await page.waitForTimeout(300);
 
-    const formTitle = page.locator('.form-section-title');
-    await expect(formTitle).toHaveText('Edit Account');
+    const modalTitle = page.locator('.modal-title');
+    await expect(modalTitle).toHaveText('Edit Account');
   });
 });

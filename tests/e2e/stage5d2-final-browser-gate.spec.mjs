@@ -11,9 +11,10 @@ import http from 'http';
 import { fileURLToPath } from 'url';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SERVE_PORT = 3001;
+const PREFERRED_PORT = 3001;
+let serverPort = null;
 
-function createServer(rootDir, port) {
+function createServer(rootDir, preferredPort) {
   const uiDir = path.join(rootDir, 'src/ui');
   const srcDir = path.join(rootDir, 'src');
   return new Promise((resolve, reject) => {
@@ -60,7 +61,10 @@ function createServer(rootDir, port) {
       });
     });
     server.on('error', reject);
-    server.listen(port, () => resolve(server));
+    server.listen(0, '127.0.0.1', () => {
+      serverPort = server.address().port;
+      resolve(server);
+    });
   });
 }
 
@@ -82,7 +86,7 @@ async function loadPage(page) {
   const pageErrors = [];
   page.on('pageerror', (err) => pageErrors.push(err.message));
 
-  await page.goto('http://localhost:3001/');
+  await page.goto(`http://localhost:${serverPort}/`);
   await page.waitForTimeout(3000);
 
   expect(consoleErrors, 'page load should have no console errors').toHaveLength(0);
@@ -91,20 +95,35 @@ async function loadPage(page) {
 
 async function createAccountViaUI(page, { name, type, icon, color, openingBalance }) {
   await navigateToTab(page, 'accounts');
-  const form = page.locator('.account-form').first();
-  await form.locator('input[type="text"]').first().fill(name);
-  await form.locator('select').first().selectOption(type);
-  await form.locator('input[type="text"]').nth(1).fill(icon);
-  await form.locator('input[type="text"]').nth(2).fill(color);
-  if (openingBalance !== undefined && openingBalance !== null) {
-    await form.locator('input[type="number"]').first().fill(String(openingBalance));
+  const addBtn = page.locator('.accounts-add-btn').first();
+  await addBtn.click();
+  await page.waitForTimeout(300);
+
+  await page.locator('.account-form input[type="text"]').first().fill(name);
+  await page.locator('.account-form select').first().selectOption(type);
+
+  if (icon) {
+    const iconBtn = page.locator(`.icon-picker-btn[title="${icon}"]`).first();
+    if (await iconBtn.count() > 0) await iconBtn.click();
   }
-  await form.locator('button[type="submit"]').first().click();
+
+  if (color) {
+    const swatch = page.locator(`.color-swatch[title="${color}"]`).first();
+    if (await swatch.count() > 0) await swatch.click();
+  }
+
+  if (openingBalance !== undefined && openingBalance !== null) {
+    await page.locator('.account-form input[type="number"]').first().fill(String(openingBalance));
+  }
+  await page.locator('.account-form button[type="submit"]').first().click();
   await page.waitForTimeout(1200);
 }
 
 async function createTransactionViaUI(page, { accountName, type, amount, categoryName, description, date }) {
   await navigateToTab(page, 'transactions');
+  const addBtn = page.locator('.transactions-add-btn').first();
+  await addBtn.click();
+  await page.waitForTimeout(300);
   const form = page.locator('.transaction-form').first();
   await form.locator('select').first().selectOption({ label: accountName });
   await form.locator('select').nth(1).selectOption(type);
@@ -120,6 +139,9 @@ async function createTransactionViaUI(page, { accountName, type, amount, categor
 
 async function createBudgetViaUI(page, { categoryName, amount }) {
   await navigateToTab(page, 'budgets');
+  const addBtn = page.locator('.budgets-add-btn').first();
+  await addBtn.click();
+  await page.waitForTimeout(300);
   const form = page.locator('.budget-form').first();
   await form.locator('select').first().selectOption({ label: categoryName });
   await form.locator('input[type="number"]').first().fill(String(amount));
@@ -129,6 +151,8 @@ async function createBudgetViaUI(page, { categoryName, amount }) {
 
 async function createGoalViaUI(page, { name, target, deadline }) {
   await navigateToTab(page, 'goals');
+  await page.locator('.goals-add-btn').first().click();
+  await page.waitForTimeout(300);
   const form = page.locator('.goal-form').first();
   await form.locator('input[type="text"]').first().fill(name);
   await form.locator('input[type="number"]').first().fill(String(target));
@@ -139,7 +163,7 @@ async function createGoalViaUI(page, { name, target, deadline }) {
 
 async function editBudgetViaUI(page, budgetId, newAmount) {
   const budgetCard = page.locator(`.budget-card[data-budget-id="${budgetId}"]`).first();
-  const editBtn = budgetCard.locator('.budget-card-actions button:has-text("Edit")').first();
+  const editBtn = budgetCard.locator('.budget-card-actions .surface-list-item-action:has-text("✎")').first();
   await editBtn.click();
   await page.waitForTimeout(300);
   const form = page.locator('.budget-form').first();
@@ -151,8 +175,7 @@ async function editBudgetViaUI(page, budgetId, newAmount) {
 
 async function editGoalViaUI(page, goalId, newName, newTarget) {
   const goalItem = page.locator(`.goal-item[data-goal-id="${goalId}"]`).first();
-  const editBtn = goalItem.locator('.goal-actions button:has-text("Edit")').first();
-  await editBtn.click();
+  await goalItem.locator('.goal-actions button:has-text("Edit")').first().click();
   await page.waitForTimeout(300);
   const form = page.locator('.goal-form').first();
   const nameInput = form.locator('input[type="text"]').first();
@@ -166,13 +189,13 @@ async function editGoalViaUI(page, goalId, newName, newTarget) {
 async function depositToGoalViaUI(page, goalName, amount, accountName, date) {
   await navigateToTab(page, 'goals');
   const goalItem = page.locator(`.goal-item:has-text("${goalName}")`).first();
-  const actions = goalItem.locator('.goal-actions');
-  await actions.locator('select').first().selectOption({ label: accountName });
-  await actions.locator('button:has-text("Deposit")').first().click();
-  const depositForm = actions.locator('.deposit-form');
+  await goalItem.locator('.goal-actions button:has-text("Deposit")').first().click();
+  await page.waitForTimeout(300);
+  const depositForm = page.locator('.deposit-form').first();
+  await depositForm.locator('select').first().selectOption({ label: accountName });
   await depositForm.locator('input[type="number"]').first().fill(String(amount));
   await depositForm.locator('input[type="text"]').first().fill(date);
-  await depositForm.locator('button').first().click();
+  await depositForm.locator('button[type="submit"]').first().click();
   await page.waitForTimeout(1200);
 }
 
@@ -180,7 +203,7 @@ test.describe('Stage 5D-2 Final Browser Gate', () => {
   let server = null;
 
   test.beforeAll(async () => {
-    server = await createServer(PROJECT_ROOT, SERVE_PORT);
+    server = await createServer(PROJECT_ROOT, PREFERRED_PORT);
   });
 
   test.afterAll(async () => {
@@ -223,13 +246,13 @@ test.describe('Stage 5D-2 Final Browser Gate', () => {
     });
 
     const budgetCard = page.locator('.budget-card').first();
-    const initialAmount = await budgetCard.locator('.budget-card-budget').first().textContent();
+    const initialAmount = await budgetCard.locator('.budget-card-limit-value').first().textContent();
     expect(initialAmount).toContain('500.00');
 
     const budgetId = await budgetCard.getAttribute('data-budget-id');
     await editBudgetViaUI(page, budgetId, 750);
 
-    const updatedAmount = await budgetCard.locator('.budget-card-budget').first().textContent();
+    const updatedAmount = await budgetCard.locator('.budget-card-limit-value').first().textContent();
     expect(updatedAmount).toContain('750.00');
   });
 
@@ -277,9 +300,15 @@ test.describe('Stage 5D-2 Final Browser Gate', () => {
     await page.waitForTimeout(1200);
 
     await navigateToTab(page, 'transactions');
+    const addBtn = page.locator('.transactions-add-btn').first();
+    await addBtn.click();
+    await page.waitForTimeout(300);
     const txForm = page.locator('.transaction-form').first();
     const optionsBefore = await txForm.locator('select').last().locator('option').allTextContents();
     expect(optionsBefore).toContain('Archivable Category');
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
 
     await page.evaluate(async () => {
       try {
@@ -379,7 +408,13 @@ test.describe('Stage 5D-2 Final Browser Gate', () => {
       });
     });
 
-    await loadPage(page);
+    const pageErrors = [];
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+
+    await page.goto(`http://localhost:${serverPort}/`);
+    await page.waitForTimeout(3000);
+
+    expect(pageErrors, 'page load should have no page errors').toHaveLength(0);
 
     await navigateToTab(page, 'dashboard');
     await page.waitForTimeout(2000);
@@ -410,17 +445,17 @@ test.describe('Stage 5D-2 Final Browser Gate', () => {
     await loadPage(page);
 
     await navigateToTab(page, 'settings');
-    const currencyField = page.locator('.settings-form input[type="text"]').first();
+    const currencyField = page.locator('.settings-section:has(.settings-section-title:has-text("Preferences")) input[type="text"]').first();
     await currencyField.fill('EUR');
 
-    await page.locator('.settings-form button[type="submit"]').first().click();
+    await page.locator('.settings-save-btn').first().click();
     await page.waitForTimeout(500);
 
     const errorVisible = await page.locator('.error-message').count();
     expect(errorVisible).toBeGreaterThan(0);
 
     await page.waitForTimeout(500);
-    const currencyAfter = await page.locator('.settings-form input[type="text"]').first().inputValue();
+    const currencyAfter = await page.locator('.settings-section:has(.settings-section-title:has-text("Preferences")) input[type="text"]').first().inputValue();
     expect(currencyAfter).toBe('PLN');
   });
 
@@ -458,9 +493,10 @@ test.describe('Stage 5D-2 Final Browser Gate', () => {
       date: dateStr,
     });
 
-    const metaEl = page.locator('.transaction-item-meta').first();
-    await expect(metaEl).toContainText('Display Name Account');
-    await expect(metaEl).toContainText('Display Name Category');
+    const accountEl = page.locator('.transaction-row .transaction-row-account').first();
+    await expect(accountEl).toContainText('Display Name Account');
+    const categoryEl = page.locator('.transaction-row .transaction-row-category').first();
+    await expect(categoryEl).toContainText('Display Name Category');
   });
 
   test('F-5D-12: amount validation', async ({ page }) => {
@@ -475,6 +511,9 @@ test.describe('Stage 5D-2 Final Browser Gate', () => {
     });
 
     await navigateToTab(page, 'transactions');
+    const addBtn = page.locator('.transactions-add-btn').first();
+    await addBtn.click();
+    await page.waitForTimeout(300);
     const form = page.locator('.transaction-form').first();
     await form.locator('select').first().selectOption({ label: 'Validation Account' });
     await form.locator('select').nth(1).selectOption('expense');

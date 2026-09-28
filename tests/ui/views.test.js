@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 function createMockDocument() {
   const elements = [];
+  let bodyChildren = [];
   function findInTree(node, predicate) {
     if (predicate(node)) return node;
     const children = node.children || [];
@@ -14,6 +15,7 @@ function createMockDocument() {
   }
 
   function createElement(tag) {
+    const styleProps = {};
     const classList = {
       _classes: [],
       add(c) { this._classes.push(c); },
@@ -25,7 +27,13 @@ function createMockDocument() {
       className: '',
       innerHTML: '',
       children: [],
-      style: {},
+      style: {
+        setProperty(name, value) { styleProps[name] = value; },
+        getPropertyValue(name) { return styleProps[name] || ''; },
+        removeProperty(name) { delete styleProps[name]; },
+        backgroundColor: '',
+        display: '',
+      },
       dataset: {},
       classList,
       setAttribute(name, value) {
@@ -36,11 +44,9 @@ function createMockDocument() {
         return this.attributes && this.attributes[name];
       },
       querySelector(selector) {
-        if (selector === '.account-balance') {
-          return findInTree(this, (c) => c.classList && c.classList.contains('account-balance')) || null;
-        }
-        if (selector === '.account-form') {
-          return findInTree(this, (c) => c.classList && c.classList.contains('account-form')) || null;
+        if (selector.startsWith('.') && !selector.includes(' ')) {
+          const className = selector.slice(1);
+          return findInTree(this, (c) => c.classList && c.classList.contains(className)) || null;
         }
         if (selector === 'button[type="submit"]') {
           return findInTree(this, (c) => c.type === 'submit') || null;
@@ -53,6 +59,14 @@ function createMockDocument() {
       appendChild(child) {
         this.children.push(child);
       },
+      remove() {
+        const parent = this.parent;
+        if (parent) {
+          const idx = parent.children.indexOf(this);
+          if (idx >= 0) parent.children.splice(idx, 1);
+        }
+      },
+      focus() {},
       addEventListener(event, handler) {
         if (!this._listeners) this._listeners = {};
         this._listeners[event] = handler;
@@ -69,10 +83,18 @@ function createMockDocument() {
     elements.push(el);
     return el;
   }
-  return { createElement };
+
+  const body = createElement('body');
+  body.children = bodyChildren;
+
+  const documentEl = createElement('document');
+  documentEl.body = body;
+  documentEl.createElement = createElement;
+
+  return { createElement, document: documentEl, body };
 }
 
-globalThis.document = createMockDocument();
+globalThis.document = createMockDocument().document;
 
 import { render as renderDashboard } from '../../src/ui/views/dashboard.js';
 import { render as renderAccounts } from '../../src/ui/views/accounts.js';
@@ -144,15 +166,11 @@ describe('UI Views', () => {
 
       const el = render({ state: mockState, modules: mockModules });
       assert.ok(el);
-      const grid = el.children[2];
-      assert.ok(grid && grid.className.includes('accounts-grid'), 'expected accounts grid');
-      const card = grid.children[0];
-      assert.ok(card && card.className.includes('account-card'), 'expected account card');
-      const body = card.children[1];
-      assert.ok(body && body.className.includes('account-card-body'), 'expected card body');
-      const balanceWrap = body.children[1];
-      assert.ok(balanceWrap && balanceWrap.className.includes('account-card-balance-wrap'), 'expected balance wrap');
-      const balanceEl = balanceWrap.children[1];
+      const list = el.querySelector('.account-list');
+      assert.ok(list, 'expected account list');
+      const item = list.querySelector('.account-list-item');
+      assert.ok(item, 'expected account list item');
+      const balanceEl = item.querySelector('.account-list-item-balance');
       assert.ok(balanceEl, 'expected balance element');
       await new Promise((resolve) => setTimeout(resolve, 50));
       assert.strictEqual(balanceEl.textContent, '1234.56');
@@ -194,8 +212,14 @@ describe('UI Views', () => {
 
       const el = render({ state: mockState, modules: mockModules });
       assert.ok(el);
-      const form = el.querySelector('.account-form');
-      assert.ok(form);
+      const addBtn = el.querySelector('.accounts-add-btn');
+      assert.ok(addBtn, 'expected add account button');
+      addBtn.dispatchEvent(new Event('click', { bubbles: true }));
+
+      const backdrop = document.body.children[document.body.children.length - 1];
+      assert.ok(backdrop, 'expected modal backdrop');
+      const form = backdrop.querySelector('.account-form');
+      assert.ok(form, 'expected account form in modal');
       const submitBtn = form.querySelector('button[type="submit"]');
       assert.ok(submitBtn);
 
@@ -247,7 +271,12 @@ describe('UI Views', () => {
       };
 
       const el = render({ state: mockState, modules: mockModules });
-      const form = el.querySelector('.account-form');
+      const addBtn = el.querySelector('.accounts-add-btn');
+      assert.ok(addBtn);
+      addBtn.dispatchEvent(new Event('click', { bubbles: true }));
+
+      const backdrop = document.body.children[document.body.children.length - 1];
+      const form = backdrop.querySelector('.account-form');
       const submitBtn = form.querySelector('button[type="submit"]');
 
       const event1 = new Event('submit', { bubbles: true });
@@ -296,7 +325,12 @@ describe('UI Views', () => {
       };
 
       const el = render({ state: mockState, modules: mockModules });
-      const form = el.querySelector('.account-form');
+      const addBtn = el.querySelector('.accounts-add-btn');
+      assert.ok(addBtn);
+      addBtn.dispatchEvent(new Event('click', { bubbles: true }));
+
+      const backdrop = document.body.children[document.body.children.length - 1];
+      const form = backdrop.querySelector('.account-form');
       const submitBtn = form.querySelector('button[type="submit"]');
 
       const event = new Event('submit', { bubbles: true });
@@ -351,7 +385,7 @@ describe('UI Views', () => {
         }
         return false;
       }
-      assert.ok(findButtonText(el, 'Edit'));
+      assert.ok(findButtonText(el, '✎'));
       assert.ok(findButtonText(el, '500.00'));
     });
   });
@@ -435,7 +469,7 @@ describe('UI Views', () => {
       const el = render({ state: mockState, modules: mockModules });
       assert.ok(el);
       function findText(node, text) {
-        if (node.textContent === text) return true;
+        if (typeof node.textContent === 'string' && node.textContent.includes(text)) return true;
         if (node.children) {
           for (const child of node.children) {
             if (findText(child, text)) return true;
@@ -455,6 +489,10 @@ describe('UI Views', () => {
           return {
             session: { userId: 'user-1' },
             ui: { monthKey: '2024-09' },
+            accounts: { items: [{ id: 'acc-1', name: 'Main' }] },
+            transactions: { items: [{ id: 'tx-1', accountId: 'acc-1', type: 'income', amount: 1000, description: 'Test', date: '2024-09-01' }] },
+            budgets: { items: [{ id: 'b-1', categoryId: 'cat-1', amount: 500 }] },
+            goals: { items: [{ id: 'g-1', name: 'Goal', target: 1000, current: 200 }] },
           };
         },
         subscribe() { return () => {}; },
@@ -462,19 +500,25 @@ describe('UI Views', () => {
       };
       const mockModules = {
         reporting: {
-          getMonthlySummary: async () => ({ monthKey: '2024-09', income: 1000, expense: 500, net: 500 }),
+          getMonthlySummary: async () => ({ monthKey: '2024-09', income: 1000, expense: 500, net: 500, transactionCount: 2 }),
+          getMonthCategoryBreakdown: async () => ({ monthKey: '2024-09', byCategory: { food: { total: 300, count: 5 } } }),
+          getAccountBalance: async () => ({ accountId: 'acc-1', balance: 5000 }),
         },
         account: {
           getActiveAccounts: async () => [{ id: 'acc-1', name: 'Main' }],
         },
         budget: {
-          getBudgets: async () => [],
+          getBudgets: async () => [{ id: 'b-1', categoryId: 'cat-1', amount: 500 }],
+          getBudgetProgress: async () => ({ spent: 400, remaining: 100, overBudget: false }),
         },
         goal: {
-          getActiveGoals: async () => [],
+          getActiveGoals: async () => [{ id: 'g-1', name: 'Goal', target: 1000, current: 200 }],
+        },
+        category: {
+          getCategories: async () => [{ id: 'cat-1', name: 'Food' }],
         },
         safeToSpend: {
-          computeForCurrentState: async () => ({ safeTotal: 500, perDay: 20 }),
+          computeForCurrentState: async () => ({ safeTotal: 500, perDay: 20, freeFunds: 800, goalsReq: 300, daysLeft: 10 }),
         },
       };
 
@@ -493,11 +537,77 @@ describe('UI Views', () => {
       assert.ok(findText(el, 'Total Balance'));
       assert.ok(findText(el, 'Income'));
       assert.ok(findText(el, 'Expenses'));
-      assert.ok(findText(el, 'Safe-to-Spend'));
-      assert.ok(findText(el, 'Cash Flow'));
+      assert.ok(findText(el, 'Safe to Spend'));
+      assert.ok(findText(el, 'Cash Flow Trend'));
       assert.ok(findText(el, 'Recent Transactions'));
-      assert.ok(findText(el, 'Budgets'));
+      assert.ok(findText(el, 'Budgets at Risk'));
       assert.ok(findText(el, 'Goals'));
+    });
+  });
+
+  describe('settings view', () => {
+    it('renders backup section without duplicate control elements', async () => {
+      const { render } = await import('../../src/ui/views/settings.js');
+      const mockState = {
+        getState() {
+          return {
+            session: { userId: 'user-1', profile: { id: 'user-1', settings: { accent: 'purple' } } },
+            operations: {},
+          };
+        },
+        subscribe() { return () => {}; },
+        dispatch() {},
+      };
+      const mockModules = {
+        user: {
+          getProfile: async () => ({ id: 'user-1', settings: { accent: 'purple' } }),
+          updateProfile: async () => ({}),
+        },
+        category: { createCategory: async () => ({}) },
+        backup: { createBackup: async () => ({}) },
+        restore: {
+          validateRestoreBackup: () => ({ valid: true, errors: [] }),
+          computeRestorePreview: () => ({ collections: {} }),
+        },
+      };
+
+      const el = render({ state: mockState, modules: mockModules });
+      assert.ok(el);
+
+      function findSection(node, title) {
+        if (node.children) {
+          for (const child of node.children) {
+            if (child.classList && child.classList.contains('settings-section-title') && child.textContent === title) {
+              return node;
+            }
+            const found = findSection(child, title);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      const backupSection = findSection(el, 'Data & Backup');
+      assert.ok(backupSection, 'expected backup section');
+
+      const allChildren = backupSection.children || [];
+      let errorCount = 0;
+      let successCount = 0;
+      let previewCount = 0;
+      let dangerCount = 0;
+
+      for (const child of allChildren) {
+        const cn = child.className || '';
+        if (cn.includes('error-message')) errorCount++;
+        if (cn.includes('success-message')) successCount++;
+        if (cn.includes('backup-preview')) previewCount++;
+        if (cn.includes('btn-danger')) dangerCount++;
+      }
+
+      assert.strictEqual(errorCount, 1, 'expected exactly 1 error element');
+      assert.strictEqual(successCount, 1, 'expected exactly 1 success element');
+      assert.strictEqual(previewCount, 1, 'expected exactly 1 preview element');
+      assert.strictEqual(dangerCount, 1, 'expected exactly 1 confirm button');
     });
   });
 
@@ -527,25 +637,23 @@ describe('UI Views', () => {
 
       const el = render({ state: mockState, modules: mockModules });
       assert.ok(el);
-      function findElementByClassName(node, className) {
-        if (node.className && node.className.includes && node.className.includes(className)) return node;
-        if (node.children) {
-          for (const child of node.children) {
-            const found = findElementByClassName(child, className);
-            if (found) return found;
-          }
-        }
-        return null;
-      }
-      const form = findElementByClassName(el, 'transaction-form');
-      assert.ok(form);
-      let alertCalled = false;
-      const originalAlert = globalThis.alert;
-      globalThis.alert = () => { alertCalled = true; };
+      const addBtn = el.querySelector('.transactions-add-btn');
+      assert.ok(addBtn, 'expected add transaction button');
+      addBtn.dispatchEvent(new Event('click', { bubbles: true }));
+
+      const backdrop = document.body.children[document.body.children.length - 1];
+      assert.ok(backdrop, 'expected modal backdrop');
+      const form = backdrop.querySelector('.transaction-form');
+      assert.ok(form, 'expected transaction form in modal');
+      let createCalled = false;
+      const originalCreate = mockModules.transaction.createTransaction;
+      mockModules.transaction.createTransaction = async (...args) => {
+        createCalled = true;
+        return originalCreate(...args);
+      };
       const event = new Event('submit', { bubbles: true });
       form.dispatchEvent(event);
-      globalThis.alert = originalAlert;
-      assert.strictEqual(alertCalled, true);
+      assert.strictEqual(createCalled, false);
     });
   });
 });

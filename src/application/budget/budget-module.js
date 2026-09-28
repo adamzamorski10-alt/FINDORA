@@ -68,15 +68,21 @@ export function createBudgetModule({ budgetRepository, transactionRepository, ca
     }
 
     const transactions = await txRepo.findByMonth(monthKey);
+    const budgetCategory = await categoryRepo.findById(budget.categoryId);
+    const isSavingsCategory = budgetCategory && budgetCategory.systemRole === 'savings';
+
+    // NOTE: Archived accounts' historical transactions remain in budget
+    // progress calculations because they represent actual financial history.
+    // Account archive does not retroactively invalidate past transactions.
+    // Creating new transactions against archived accounts is prevented at
+    // the transaction module boundary.
     const relevant = [];
     for (const tx of transactions) {
       if (tx.archived) continue;
       if (tx.metadata?.openingBalance) continue;
       if (tx.categoryId !== budget.categoryId) continue;
       if (tx.type !== 'expense') continue;
-
-      const category = await categoryRepo.findById(tx.categoryId);
-      if (category && category.systemRole === 'savings') continue;
+      if (isSavingsCategory) continue;
 
       relevant.push(tx);
     }
@@ -142,7 +148,7 @@ export function createBudgetModule({ budgetRepository, transactionRepository, ca
       throw new Error('VALIDATION_FAILED');
     }
     const all = await budgetRepo.findAll();
-    return all.filter(b => b.userId === userId);
+    return all.filter(b => b.userId === userId && !b.archived);
   }
 
   return {

@@ -14,7 +14,7 @@
  * It does not read globals, DOM, Firebase, or any external state.
  */
 
-function compute(inputs) {
+export function compute(inputs) {
   const goal = inputs.goal;
   const transactions = inputs.transactions || [];
   const currentDate = inputs.currentDate;
@@ -37,10 +37,6 @@ function compute(inputs) {
   const monthsNeeded = Math.ceil(remaining / avgPerMonth);
   const etaDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + monthsNeeded, 1);
   return { monthsNeeded, avgPerMonth, etaDate, unknown: false };
-}
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { compute };
 }
 
 if (typeof window !== 'undefined') {

@@ -11,10 +11,11 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SERVE_PORT = 3005;
+const PREFERRED_PORT = 3005;
 const SCREENSHOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'test-results', 'ui2-screenshots');
+let serverPort = null;
 
-function createServer(rootDir, port) {
+function createServer(rootDir, preferredPort) {
   const uiDir = path.join(rootDir, 'src/ui');
   const srcDir = path.join(rootDir, 'src');
   return new Promise((resolve, reject) => {
@@ -61,7 +62,10 @@ function createServer(rootDir, port) {
       });
     });
     server.on('error', reject);
-    server.listen(port, () => resolve(server));
+    server.listen(0, '127.0.0.1', () => {
+      serverPort = server.address().port;
+      resolve(server);
+    });
   });
 }
 
@@ -72,7 +76,7 @@ test.describe('Stage UI-2 Dashboard Visual Verification', () => {
     if (!fs.existsSync(SCREENSHOT_DIR)) {
       fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
     }
-    server = await createServer(PROJECT_ROOT, SERVE_PORT);
+    server = await createServer(PROJECT_ROOT, PREFERRED_PORT);
   });
 
   test.afterAll(async () => {
@@ -93,7 +97,7 @@ test.describe('Stage UI-2 Dashboard Visual Verification', () => {
     page.on('requestfailed', (req) => failedRequests.push(req.url()));
 
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     expect(consoleErrors, 'no console errors').toHaveLength(0);
@@ -103,20 +107,17 @@ test.describe('Stage UI-2 Dashboard Visual Verification', () => {
 
   test('desktop dashboard: sections present', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     await expect(page.locator('.dashboard-view')).toBeVisible();
-    await expect(page.locator('.dashboard-summary-grid')).toBeVisible();
-    await expect(page.locator('.dashboard-middle-grid')).toBeVisible();
-    await expect(page.locator('.dashboard-bottom-grid')).toBeVisible();
-    await expect(page.locator('.cash-flow-card')).toBeVisible();
-    await expect(page.locator('.safe-detail-card')).toBeVisible();
+    await expect(page.locator('.dashboard-analytics-grid')).toBeVisible();
+    await expect(page.locator('.dashboard-safe-card')).toBeVisible();
   });
 
   test('mobile dashboard: no horizontal overflow', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     const hasOverflow = await page.evaluate(() => {
@@ -127,7 +128,7 @@ test.describe('Stage UI-2 Dashboard Visual Verification', () => {
 
   test('capture desktop dashboard screenshot', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, 'desktop-dashboard.png'), fullPage: false });
@@ -135,7 +136,7 @@ test.describe('Stage UI-2 Dashboard Visual Verification', () => {
 
   test('capture mobile dashboard screenshot', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto(`http://localhost:${SERVE_PORT}/`);
+    await page.goto(`http://localhost:${serverPort}/`);
     await page.waitForTimeout(3000);
 
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, 'mobile-dashboard.png'), fullPage: false });

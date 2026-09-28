@@ -4,6 +4,7 @@ import { createBudgetModule } from '../../../src/application/budget/budget-modul
 import { BudgetRepository } from '../../../src/infrastructure/repositories/budget-repository.js';
 import { CategoryRepository } from '../../../src/infrastructure/repositories/category-repository.js';
 import { TransactionRepository } from '../../../src/infrastructure/repositories/transaction-repository.js';
+import { AccountRepository } from '../../../src/infrastructure/repositories/account-repository.js';
 import { InMemoryStorageAdapter } from '../../../src/infrastructure/storage/memory-storage-adapter.js';
 
 function createModule(deps) {
@@ -401,6 +402,62 @@ describe('BudgetModule', () => {
         assert.strictEqual(e.message, 'NOT_FOUND');
       }
       assert.ok(thrown);
+    });
+
+    it('performs exactly one category lookup regardless of transaction count', async () => {
+      const storage = new InMemoryStorageAdapter();
+      await storage.init();
+      const budgetRepo = new BudgetRepository(storage, 'user-1', () => storage.keys());
+      const categoryRepo = new CategoryRepository(storage, 'user-1', () => storage.keys());
+      const txRepo = new TransactionRepository(storage, 'user-1', () => storage.keys());
+
+      let findByIdCalls = 0;
+      const trackedCategoryRepo = {
+        ...categoryRepo,
+        findById: async (id) => {
+          findByIdCalls++;
+          return categoryRepo.findById(id);
+        },
+      };
+
+      const module = createModule({ budgetRepo, txRepo, categoryRepo: trackedCategoryRepo });
+
+      await categoryRepo.save({ id: 'cat-1', userId: 'user-1', name: 'Food', type: 'expense', icon: 'utensils', color: '#FF0000', parentId: null, isSystem: false, systemRole: null, archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' });
+      const budget = await module.createBudget({ userId: 'user-1', categoryId: 'cat-1', amount: 500 });
+      findByIdCalls = 0;
+
+      for (let i = 0; i < 20; i++) {
+        await txRepo.save({ id: `tx-${i}`, userId: 'user-1', accountId: 'acc-1', amount: 10 + i, type: 'expense', categoryId: 'cat-1', description: 'Test', date: '2024-01-15', notes: '', metadata: {}, archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' });
+      }
+
+      const progress = await module.getBudgetProgress({ budgetId: budget.id, monthKey: '2024-01' });
+      assert.strictEqual(findByIdCalls, 1);
+      assert.strictEqual(progress.spent, 390);
+      assert.strictEqual(progress.remaining, 110);
+      assert.strictEqual(progress.overBudget, false);
+    });
+
+    it('includes transactions from archived accounts in budget progress', async () => {
+      const storage = new InMemoryStorageAdapter();
+      await storage.init();
+      const budgetRepo = new BudgetRepository(storage, 'user-1', () => storage.keys());
+      const categoryRepo = new CategoryRepository(storage, 'user-1', () => storage.keys());
+      const txRepo = new TransactionRepository(storage, 'user-1', () => storage.keys());
+      const accountRepo = new AccountRepository(storage, 'user-1', () => storage.keys());
+      const module = createModule({ budgetRepo, txRepo, categoryRepo });
+
+      await categoryRepo.save({ id: 'cat-1', userId: 'user-1', name: 'Food', type: 'expense', icon: 'utensils', color: '#FF0000', parentId: null, isSystem: false, systemRole: null, archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' });
+      const account = { id: 'acc-1', userId: 'user-1', name: 'Bank', type: 'bank', icon: 'landmark', color: '#0000FF', archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' };
+      await accountRepo.save(account);
+      const budget = await module.createBudget({ userId: 'user-1', categoryId: 'cat-1', amount: 500 });
+
+      await txRepo.save({ id: 'tx-1', userId: 'user-1', accountId: account.id, amount: 200, type: 'expense', categoryId: 'cat-1', description: 'Test', date: '2024-01-15', notes: '', metadata: {}, archived: false, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' });
+
+      await accountRepo.save({ ...account, archived: true });
+
+      const progress = await module.getBudgetProgress({ budgetId: budget.id, monthKey: '2024-01' });
+      assert.strictEqual(progress.spent, 200, 'archived account historical transactions remain in budget progress');
+      assert.strictEqual(progress.remaining, 300);
     });
   });
 

@@ -59,6 +59,7 @@ async function bootstrap() {
           settings: {
             currency: 'PLN',
             theme: 'system',
+            accent: 'purple',
             privacyMode: false,
             excludeInvestmentsFromNetWorth: false,
           },
@@ -69,6 +70,11 @@ async function bootstrap() {
     }
 
     kernel.state.dispatch({ type: 'SET_USER_PROFILE', profile });
+
+    const accent = (profile.settings && profile.settings.accent) || 'purple';
+    const validAccents = ['purple', 'blue', 'emerald', 'amber', 'rose', 'cyan'];
+    const normalizedAccent = validAccents.includes(accent) ? accent : 'purple';
+    document.documentElement.setAttribute('data-accent', normalizedAccent);
 
     const currentMonthKey = new Date().toISOString().slice(0, 7);
     kernel.state.dispatch({ type: 'SET_MONTH_KEY', monthKey: currentMonthKey });

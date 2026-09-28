@@ -52,6 +52,7 @@ describe('UserModule', () => {
         settings: {
           currency: 'PLN',
           theme: 'system',
+          accent: 'purple',
           privacyMode: false,
           excludeInvestmentsFromNetWorth: false,
         },

@@ -1,0 +1,1515 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "F:\\Projects\\finanse\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--reporter=json"
+    ],
+    "configFile": "F:\\Projects\\finanse\\playwright.config.js",
+    "rootDir": "F:/Projects/finanse/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "F:/Projects/finanse/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "F:/Projects/finanse/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "backup-restore.spec.mjs",
+      "file": "backup-restore.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stage 5C Backup/Restore Browser E2E",
+          "file": "backup-restore.spec.mjs",
+          "line": 168,
+          "column": 6,
+          "specs": [
+            {
+              "title": "export → mutate → import → restore through real Settings UI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "F:\\Projects\\finanse\\tests\\e2e\\backup-restore.spec.mjs",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 19855,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:44:39.121Z",
+                      "annotations": [
+                        {
+                          "type": "serial",
+                          "location": {
+                            "file": "F:\\Projects\\finanse\\tests\\e2e\\backup-restore.spec.mjs",
+                            "line": 0,
+                            "column": 0
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e07792528aaf9668a2c3-9140201d4122b5151c7d",
+              "file": "backup-restore.spec.mjs",
+              "line": 182,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "debug-menu-button.spec.mjs",
+      "file": "debug-menu-button.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "debug menu button visibility",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3801,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "display: flex\n"
+                    },
+                    {
+                      "text": "visibility: visible\n"
+                    },
+                    {
+                      "text": "opacity: 1\n"
+                    },
+                    {
+                      "text": "rect: { x: \u001b[33m16\u001b[39m, y: \u001b[33m10.5\u001b[39m, width: \u001b[33m42\u001b[39m, height: \u001b[33m42\u001b[39m }\n"
+                    },
+                    {
+                      "text": "has class is-open on sidebar: \u001b[33mfalse\u001b[39m\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-24T16:44:39.093Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "7b7505d3d2107164c78c-bde5d379e86082cef837",
+          "file": "debug-menu-button.spec.mjs",
+          "line": 65,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "duplicate-submission-protection.spec.mjs",
+      "file": "duplicate-submission-protection.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stage 5D-1 Duplicate Submission Protection",
+          "file": "duplicate-submission-protection.spec.mjs",
+          "line": 85,
+          "column": 6,
+          "specs": [
+            {
+              "title": "account creation blocks second submit while first is pending",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 11523,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:44:39.094Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fe1b4db686c292a9507f-b7239877a8744d447f80",
+              "file": "duplicate-submission-protection.spec.mjs",
+              "line": 119,
+              "column": 3
+            },
+            {
+              "title": "transaction creation blocks second submit while first is pending",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 12508,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:44:50.826Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fe1b4db686c292a9507f-4d1a7e3cf94eeaf523d9",
+              "file": "duplicate-submission-protection.spec.mjs",
+              "line": 145,
+              "column": 3
+            },
+            {
+              "title": "submit button is re-enabled after failed mutation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 4313,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:03.357Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fe1b4db686c292a9507f-d46e6f6cea632dbfa3f2",
+              "file": "duplicate-submission-protection.spec.mjs",
+              "line": 193,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "final-browser-gate.spec.mjs",
+      "file": "final-browser-gate.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stage 5D-1 Final Browser Gate",
+          "file": "final-browser-gate.spec.mjs",
+          "line": 165,
+          "column": 6,
+          "specs": [
+            {
+              "title": "1. Accounts: create account and verify immediate UI refresh with balance",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 5607,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:44:39.109Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "de46c32fe3194d429d21-deeb410d4fbb593164ff",
+              "file": "final-browser-gate.spec.mjs",
+              "line": 199,
+              "column": 3
+            },
+            {
+              "title": "2. Transactions: create income and expense and verify immediate refresh",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 11350,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:44:45.065Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "de46c32fe3194d429d21-3c1a7ea409f914f06355",
+              "file": "final-browser-gate.spec.mjs",
+              "line": 215,
+              "column": 3
+            },
+            {
+              "title": "3. Budgets: create budget and verify immediate refresh with progress",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 9151,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:44:56.453Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "de46c32fe3194d429d21-988e65f38704054882fb",
+              "file": "final-browser-gate.spec.mjs",
+              "line": 261,
+              "column": 3
+            },
+            {
+              "title": "4. Goals: create goal, deposit, and verify progress updates immediately",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 9331,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:05.627Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "de46c32fe3194d429d21-8c4e5c1baa525f670393",
+              "file": "final-browser-gate.spec.mjs",
+              "line": 291,
+              "column": 3
+            },
+            {
+              "title": "5. Dashboard: verify financial values update after mutations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 12479,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "HTML after dashboard nav: <!DOCTYPE html><html lang=\"pl\" data-accent=\"purple\"><head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Finora — Personal Wealth OS</title>\n  <link rel=\"stylesheet\" href=\"app.css\">\n  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"\">\n  <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap\" rel=\"stylesheet\">\n</head>\n<body>\n  <div id=\"app\">\n    <div id=\"app-lifecycle-initializing\" class=\"lifecycle-state\" style=\"display: none;\">\n      <div class=\"sidebar-brand-badge\" style=\"width: 48px; height: 48px; font-size: 1.5rem; margin-bottom: 1rem;\">❖</div>\n      <p style=\"font-weight: 600; color: var(--color-text-primary);\">Finora Personal Wealth OS</p>\n      <p style=\"font-size: 0.875rem; color: var(--color-text-muted); margin-top: 0.25rem;\">Initializing application state...</p>\n    </div>\n    <div id=\"app-lifecycle-ready\" class=\"app-shell\" style=\"display: flex;\">\n      <div class=\"sidebar-overlay\" aria-hidden=\"true\"></div>\n      <aside class=\"sidebar\" aria-label=\"Sidebar navigation\" aria-hidden=\"true\">\n        <a href=\"#dashboard\" class=\"sidebar-brand\" data-tab=\"dashboard\">\n          <div class=\"sidebar-brand-badge\">❖</div>\n          <div class=\"sidebar-brand-text\">\n            <span>Finora</span>\n            <span class=\"sidebar-brand-sub\">WEALTH OS</span>\n          </div>\n        </a>\n        <nav class=\"sidebar-nav\">\n          <div class=\"nav-section-label\">OVERVIEW</div>\n          <ul class=\"sidebar-nav-list\">\n            <li>\n              <a href=\"#dashboard\" class=\"sidebar-link nav-link\" data-tab=\"dashboard\" aria-current=\"page\">\n                <svg class=\"sidebar-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"></rect></svg>\n                <span>Dashboard</span>\n              </a>\n            </li>\n          </ul>\n\n          <div class=\"nav-section-label\">MONEY</div>\n          <ul class=\"sidebar-nav-list\">\n            <li>\n              <a href=\"#accounts\" class=\"sidebar-link nav-link\" data-tab=\"accounts\" aria-current=\"false\">\n                <svg class=\"sidebar-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 10h16\"></path><path d=\"M4 14h16\"></path><rect x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"2\"></rect></svg>\n                <span>Accounts</span>\n              </a>\n            </li>\n            <li>\n              <a href=\"#transactions\" class=\"sidebar-link nav-link\" data-tab=\"transactions\" aria-current=\"false\">\n                <svg class=\"sidebar-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"22 12 18 12 15 21 9 3 6 12 2 12\"></polyline></svg>\n                <span>Transactions</span>\n              </a>\n            </li>\n            <li>\n              <a href=\"#budgets\" class=\"sidebar-link nav-link\" data-tab=\"budgets\" aria-current=\"false\">\n                <svg class=\"sidebar-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><polyline points=\"12 6 12 12 16 14\"></polyline></svg>\n                <span>Budgets</span>\n              </a>\n            </li>\n            <li>\n              <a href=\"#goals\" class=\"sidebar-link nav-link\" data-tab=\"goals\" aria-current=\"false\">\n                <svg class=\"sidebar-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><circle cx=\"12\" cy=\"12\" r=\"6\"></circle><circle cx=\"12\" cy=\"12\" r=\"2\"></circle></svg>\n                <span>Goals</span>\n              </a>\n            </li>\n          </ul>\n\n          <div class=\"nav-section-label\">INSIGHTS</div>\n          <ul class=\"sidebar-nav-list\">\n            <li>\n              <a href=\"#reports\" class=\"sidebar-link nav-link\" data-tab=\"reports\" aria-current=\"false\">\n                <svg class=\"sidebar-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z\"></path><polyline points=\"14 2 14 8 20 8\"></polyline></svg>\n                <span>Reports</span>\n              </a>\n            </li>\n          </ul>\n\n          <div class=\"nav-section-label\">PREFERENCES</div>\n          <ul class=\"sidebar-nav-list\">\n            <li>\n              <a href=\"#settings\" class=\"sidebar-link nav-link\" data-tab=\"settings\" aria-current=\"false\">\n                <svg class=\"sidebar-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z\"></path></svg>\n                <span>Settings</span>\n              </a>\n            </li>\n          </ul>\n        </nav>\n        <div class=\"sidebar-footer\">\n          <div class=\"sidebar-user\">\n            <div class=\"sidebar-avatar\" id=\"sidebar-user-avatar\">D</div>\n            <div class=\"sidebar-user-info\">\n              <div class=\"sidebar-user-name\" id=\"sidebar-user-name\">dev-user</div>\n              <div class=\"sidebar-user-email\" id=\"sidebar-user-email\">—</div>\n            </div>\n          </div>\n        </div>\n      </aside>\n      <div class=\"app-body\">\n        <header class=\"top-bar\">\n          <div class=\"top-bar-left\">\n            <button class=\"top-bar-menu-btn\" aria-label=\"Open menu\" aria-expanded=\"false\" type=\"button\">\n              <svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"3\" y1=\"12\" x2=\"21\" y2=\"12\"></line><line x1=\"3\" y1=\"6\" x2=\"21\" y2=\"6\"></line><line x1=\"3\" y1=\"18\" x2=\"21\" y2=\"18\"></line></svg>\n            </button>\n            <div class=\"top-bar-titles\">\n              <h1 class=\"top-bar-title\">Dashboard</h1>\n              <p class=\"top-bar-subtitle\" id=\"top-bar-subtitle\">Personal Financial Health &amp; Overview</p>\n            </div>\n          </div>\n          <div class=\"top-bar-right\">\n            <div class=\"top-bar-badge\" title=\"Local IndexedDB Engine Active\">\n              <span class=\"status-dot\"></span> Local Persistence\n            </div>\n            <a href=\"#settings\" class=\"top-bar-action nav-link\" data-tab=\"settings\" aria-label=\"Settings\" aria-current=\"false\">\n              <svg class=\"sidebar-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z\"></path></svg>\n            </a>\n          </div>\n        </header>\n        <main class=\"app-main\" id=\"app-main\" aria-live=\"polite\"><div class=\"month-nav-wrapper\"><div class=\"month-nav\">\n      <button class=\"month-nav-btn\" data-action=\"prev-month\" aria-label=\"Previous month\">‹</button>\n      <span class=\"month-nav-label\">September 2026</span>\n      <button class=\"month-nav-btn\" data-action=\"next-month\" aria-label=\"Next month\">›</button>\n    </div></div><div class=\"dashboard-view\"><div class=\"dashboard-hero-header\"><div class=\"dashboard-hero-titles\"><h2 class=\"dashboard-hero-title\">Dashboard</h2><p class=\"dashboard-hero-subtitle\">Personal Financial Health &amp; Overview • September 2026</p></div></div><div class=\"dashboard-summary-grid\"><div class=\"summary-card\"><div class=\"summary-card-header\"><div class=\"summary-card-icon\">🏦</div><span class=\"summary-card-label\">Total Balance</span></div><div class=\"summary-card-value amount amount-positive\">800.00</div></div><div class=\"summary-card\"><div class=\"summary-card-header\"><div class=\"summary-card-icon\">↓</div><span class=\"summary-card-label\">Income</span></div><div class=\"summary-card-value amount amount-positive\">0.00</div></div><div class=\"summary-card\"><div class=\"summary-card-header\"><div class=\"summary-card-icon\">↑</div><span class=\"summary-card-label\">Expenses</span></div><div class=\"summary-card-value amount amount-negative\">200.00</div></div><div class=\"summary-card is-safe\"><div class=\"summary-card-header\"><div class=\"summary-card-icon\">🛡️</div><span class=\"summary-card-label\">Safe-to-Spend</span></div><div class=\"summary-card-value amount amount-negative\">-200.00</div><div class=\"summary-card-subtitle\">-33.33 / day</div></div></div><div class=\"dashboard-middle-grid\"><div class=\"card cash-flow-card\"><h3 class=\"dashboard-section-title\">Cash Flow</h3><div class=\"cash-flow-bars\">\n    <div class=\"cash-flow-row\">\n      <span class=\"cash-flow-label\">Income</span>\n      <div class=\"cash-flow-bar-track\"><div class=\"cash-flow-bar-fill income\" style=\"width:0%\"></div></div>\n      <span class=\"cash-flow-value amount amount-positive\">0.00</span>\n    </div>\n    <div class=\"cash-flow-row\">\n      <span class=\"cash-flow-label\">Expenses</span>\n      <div class=\"cash-flow-bar-track\"><div class=\"cash-flow-bar-fill expense\" style=\"width: 100%;\"></div></div>\n      <span class=\"cash-flow-value amount amount-negative\">200.00</span>\n    </div>\n  </div></div><div class=\"card safe-detail-card\"><h3 class=\"dashboard-section-title\">Safe-to-Spend Breakdown</h3><div class=\"safe-detail-body\">\n    <div class=\"safe-detail-row\"><span>Free funds</span><span class=\"amount amount-negative\">-200.00</span></div>\n    <div class=\"safe-detail-row\"><span>Goals requirement</span><span class=\"amount amount-negative\">0.00</span></div>\n    <div class=\"safe-detail-row\"><span>Days left</span><span class=\"amount amount-neutral\">6</span></div>\n    <div class=\"safe-detail-row safe-detail-total\"><span>Safe to spend</span><span class=\"amount amount-negative\">-200.00</span></div>\n  </div></div></div><div class=\"dashboard-bottom-grid\"><div class=\"dashboard-section-card\"><h3 class=\"dashboard-section-title\">Recent Transactions</h3><ul class=\"recent-transactions-list\"><li class=\"recent-transaction-item\"><div class=\"recent-transaction-info\"><div class=\"recent-transaction-desc\">Test expense</div><div class=\"recent-transaction-meta\">Dashboard Gate Account • 2026-09-24</div></div><span class=\"recent-transaction-amount amount amount-negative\">-200.00</span></li><li class=\"recent-transaction-item\"><div class=\"recent-transaction-info\"><div class=\"recent-transaction-desc\">Opening balance</div><div class=\"recent-transaction-meta\">Dashboard Gate Account • 2026-09-24</div></div><span class=\"recent-transaction-amount amount amount-positive\">+1000.00</span></li></ul></div><div class=\"dashboard-section-card\"><h3 class=\"dashboard-section-title\">Budgets</h3><ul class=\"progress-list\">\n        <li class=\"empty-state-card\">\n          <div class=\"empty-state-icon\">📊</div>\n          <p class=\"empty-state-title\">No active budgets</p>\n          <p class=\"empty-state-desc\">Set spending limits to keep your finances under control.</p>\n        </li></ul></div><div class=\"dashboard-section-card\"><h3 class=\"dashboard-section-title\">Goals</h3><ul class=\"progress-list\">\n        <li class=\"empty-state-card\">\n          <div class=\"empty-state-icon\">🎯</div>\n          <p class=\"empty-state-title\">No active goals</p>\n          <p class=\"empty-state-desc\">Create your first goal to start tracking progress.</p>\n        </li></ul></div></div></div></main>\n      </div>\n    </div>\n    <div id=\"app-lifecycle-error\" class=\"lifecycle-state\" style=\"display:none;\">\n      <p>Initialization failed.</p>\n      <pre id=\"app-error-message\"></pre>\n    </div>\n  </div>\n  <script type=\"module\" src=\"bootstrap.js\"></script>\n\n\n</body></html>\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:14.978Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "de46c32fe3194d429d21-212704d043eabb54d9ed",
+              "file": "final-browser-gate.spec.mjs",
+              "line": 321,
+              "column": 3
+            },
+            {
+              "title": "6. Reports: verify reports reflect new transactions and balances",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 10300,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:27.485Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "de46c32fe3194d429d21-1592a92c232f5e403afa",
+              "file": "final-browser-gate.spec.mjs",
+              "line": 370,
+              "column": 3
+            },
+            {
+              "title": "7. Duplicate submission: rapid double-submit does not create duplicate",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 11340,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:37.804Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "de46c32fe3194d429d21-2385ba4ed642a304f14c",
+              "file": "final-browser-gate.spec.mjs",
+              "line": 409,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "stage5d2-final-browser-gate.spec.mjs",
+      "file": "stage5d2-final-browser-gate.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stage 5D-2 Final Browser Gate",
+          "file": "stage5d2-final-browser-gate.spec.mjs",
+          "line": 182,
+          "column": 6,
+          "specs": [
+            {
+              "title": "F-5D-04: budget edit UI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 11111,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:44:43.082Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f55afb63a3e4d78a61a-0e632f0174da6317a70f",
+              "file": "stage5d2-final-browser-gate.spec.mjs",
+              "line": 203,
+              "column": 3
+            },
+            {
+              "title": "F-5D-05: goal edit UI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 8865,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:44:54.226Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f55afb63a3e4d78a61a-e9ddd426dd81b617b551",
+              "file": "stage5d2-final-browser-gate.spec.mjs",
+              "line": 239,
+              "column": 3
+            },
+            {
+              "title": "F-5D-06: archived category safety",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 7960,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "OPTIONS AFTER: [ \u001b[32m'None'\u001b[39m, \u001b[32m'Savings'\u001b[39m ]\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:03.106Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f55afb63a3e4d78a61a-b6174d84e4927a57bc83",
+              "file": "stage5d2-final-browser-gate.spec.mjs",
+              "line": 270,
+              "column": 3
+            },
+            {
+              "title": "F-5D-07: dashboard partial failure",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 6046,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:11.084Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f55afb63a3e4d78a61a-6538bb64f48ce259bece",
+              "file": "stage5d2-final-browser-gate.spec.mjs",
+              "line": 368,
+              "column": 3
+            },
+            {
+              "title": "F-5D-09: settings rollback after persistence failure",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 5225,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:17.148Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f55afb63a3e4d78a61a-70c7c0254c07d7003018",
+              "file": "stage5d2-final-browser-gate.spec.mjs",
+              "line": 397,
+              "column": 3
+            },
+            {
+              "title": "F-5D-10: transaction display names",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 9226,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:22.405Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f55afb63a3e4d78a61a-01ac99fcee7356cd599d",
+              "file": "stage5d2-final-browser-gate.spec.mjs",
+              "line": 430,
+              "column": 3
+            },
+            {
+              "title": "F-5D-12: amount validation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 6443,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:31.660Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2f55afb63a3e4d78a61a-2bea25c776811ec10d5e",
+              "file": "stage5d2-final-browser-gate.spec.mjs",
+              "line": 469,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ui1-shell-verification.spec.mjs",
+      "file": "ui1-shell-verification.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stage UI-1 Shell Verification",
+          "file": "ui1-shell-verification.spec.mjs",
+          "line": 65,
+          "column": 6,
+          "specs": [
+            {
+              "title": "desktop shell: sidebar visible, no horizontal overflow",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3388,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:44:59.490Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4b2577543bdc69db3aef-aaef135080ef1956e306",
+              "file": "ui1-shell-verification.spec.mjs",
+              "line": 79,
+              "column": 3
+            },
+            {
+              "title": "mobile shell: sidebar hidden behind hamburger",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4101,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:02.906Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4b2577543bdc69db3aef-d09577066f4276505f56",
+              "file": "ui1-shell-verification.spec.mjs",
+              "line": 106,
+              "column": 3
+            },
+            {
+              "title": "navigation: all tabs work and update active state",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5828,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:07.021Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4b2577543bdc69db3aef-22984aa951fb26f09661",
+              "file": "ui1-shell-verification.spec.mjs",
+              "line": 131,
+              "column": 3
+            },
+            {
+              "title": "forms remain usable after shell redesign",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4058,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:12.869Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4b2577543bdc69db3aef-4df31c6f9c6b591a6ed4",
+              "file": "ui1-shell-verification.spec.mjs",
+              "line": 145,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ui1-visual-verification.spec.mjs",
+      "file": "ui1-visual-verification.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stage UI-1 Visual Verification",
+          "file": "ui1-visual-verification.spec.mjs",
+          "line": 69,
+          "column": 6,
+          "specs": [
+            {
+              "title": "capture desktop screenshots",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 6223,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:07.715Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "25abfb67225578e7780f-45a3598ce8da59a9c548",
+              "file": "ui1-visual-verification.spec.mjs",
+              "line": 86,
+              "column": 3
+            },
+            {
+              "title": "capture mobile screenshots",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 7576,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:13.980Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "25abfb67225578e7780f-161b01644862dd70a827",
+              "file": "ui1-visual-verification.spec.mjs",
+              "line": 98,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ui2-dashboard-verification.spec.mjs",
+      "file": "ui2-dashboard-verification.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stage UI-2 Dashboard Visual Verification",
+          "file": "ui2-dashboard-verification.spec.mjs",
+          "line": 68,
+          "column": 6,
+          "specs": [
+            {
+              "title": "dashboard loads without console or page errors",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3466,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:16.982Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2a8924ae2a6b5b18f940-846d1b7b0310a0d01944",
+              "file": "ui2-dashboard-verification.spec.mjs",
+              "line": 85,
+              "column": 3
+            },
+            {
+              "title": "desktop dashboard: sections present",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3381,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:20.536Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2a8924ae2a6b5b18f940-5ad560cef6cca6aaf1f0",
+              "file": "ui2-dashboard-verification.spec.mjs",
+              "line": 104,
+              "column": 3
+            },
+            {
+              "title": "mobile dashboard: no horizontal overflow",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3357,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:23.928Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2a8924ae2a6b5b18f940-481bd5079820bb1d394d",
+              "file": "ui2-dashboard-verification.spec.mjs",
+              "line": 117,
+              "column": 3
+            },
+            {
+              "title": "capture desktop dashboard screenshot",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3437,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:27.298Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2a8924ae2a6b5b18f940-6a30fa8432ad02437b83",
+              "file": "ui2-dashboard-verification.spec.mjs",
+              "line": 128,
+              "column": 3
+            },
+            {
+              "title": "capture mobile dashboard screenshot",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3401,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:30.750Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2a8924ae2a6b5b18f940-285fdecd91756b6506ce",
+              "file": "ui2-dashboard-verification.spec.mjs",
+              "line": 136,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ui2-visual-realdata-verification.spec.mjs",
+      "file": "ui2-visual-realdata-verification.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stage UI-2 Dashboard Visual + Real-Data Verification",
+          "file": "ui2-visual-realdata-verification.spec.mjs",
+          "line": 151,
+          "column": 6,
+          "specs": [
+            {
+              "title": "full verification: create data and capture screenshots",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 30930,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:21.613Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "f023d6ab6fdc1f9d38f6-f4bc4b29e165be4453a3",
+              "file": "ui2-visual-realdata-verification.spec.mjs",
+              "line": 168,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ui3-accounts-verification.spec.mjs",
+      "file": "ui3-accounts-verification.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stage UI-3 Accounts Verification",
+          "file": "ui3-accounts-verification.spec.mjs",
+          "line": 91,
+          "column": 6,
+          "specs": [
+            {
+              "title": "desktop: populated accounts",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 8156,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:34.189Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23f2514e1e760a962f8d-743692d223b8b687708d",
+              "file": "ui3-accounts-verification.spec.mjs",
+              "line": 108,
+              "column": 3
+            },
+            {
+              "title": "mobile: populated accounts",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5849,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:42.376Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23f2514e1e760a962f8d-7a5ccb401a17d8899ff4",
+              "file": "ui3-accounts-verification.spec.mjs",
+              "line": 142,
+              "column": 3
+            },
+            {
+              "title": "empty state: fresh database",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6197,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:48.241Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23f2514e1e760a962f8d-7c05c256b9bc10d5ba21",
+              "file": "ui3-accounts-verification.spec.mjs",
+              "line": 162,
+              "column": 3
+            },
+            {
+              "title": "functional: edit and archive",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 7297,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:54.460Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23f2514e1e760a962f8d-91c30c42ac3f095f6edd",
+              "file": "ui3-accounts-verification.spec.mjs",
+              "line": 173,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ui4-5-verification.spec.mjs",
+      "file": "ui4-5-verification.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stage UI-4/5 Transactions and Budgets Verification",
+          "file": "ui4-5-verification.spec.mjs",
+          "line": 126,
+          "column": 6,
+          "specs": [
+            {
+              "title": "full verification: create data and verify UI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 38202,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-24T16:45:38.171Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "7fd73c0ccd1acdb94054-5e47d6e2d3c87cbe3052",
+              "file": "ui4-5-verification.spec.mjs",
+              "line": 143,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-24T16:44:38.064Z",
+    "duration": 98428.475,
+    "expected": 36,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

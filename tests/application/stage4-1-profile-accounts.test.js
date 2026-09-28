@@ -32,7 +32,7 @@ describe('Stage 4.1 — Profile + Accounts', () => {
         if (e.message === 'NOT_FOUND') {
           profile = await userModule.createProfile({
             userId: 'user-1',
-            settings: { currency: 'PLN', theme: 'system', privacyMode: false, excludeInvestmentsFromNetWorth: false },
+            settings: { currency: 'PLN', theme: 'system', accent: 'purple', privacyMode: false, excludeInvestmentsFromNetWorth: false },
           });
         } else {
           throw e;
