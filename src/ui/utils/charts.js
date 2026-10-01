@@ -8,6 +8,8 @@
 const NS = 'http://www.w3.org/2000/svg';
 const canCreateSVG = typeof document !== 'undefined' && typeof document.createElementNS === 'function';
 
+import { t } from '../i18n.js';
+
 export function createLineChart(options) {
   const {
     data = [],
@@ -234,7 +236,7 @@ export function createHorizontalBarChart(options) {
 function createEmptyChart(width, height, padding, xLabel, yLabel) {
   if (!canCreateSVG) {
     const div = document.createElement('div');
-    div.textContent = 'No data available';
+    div.textContent = t('common.noData');
     div.style.color = 'var(--color-text-muted)';
     div.style.fontSize = '12px';
     div.style.fontFamily = 'inherit';
@@ -248,7 +250,7 @@ function createEmptyChart(width, height, padding, xLabel, yLabel) {
   svg.style.display = 'block';
 
   const desc = document.createElementNS(NS, 'desc');
-  desc.textContent = 'No data available';
+  desc.textContent = t('common.noData');
   svg.appendChild(desc);
 
   const text = document.createElementNS(NS, 'text');
@@ -258,7 +260,7 @@ function createEmptyChart(width, height, padding, xLabel, yLabel) {
   text.setAttribute('fill', 'var(--color-text-muted)');
   text.setAttribute('font-size', '12');
   text.setAttribute('font-family', 'inherit');
-  text.textContent = 'No data available';
+  text.textContent = t('common.noData');
   svg.appendChild(text);
 
   return svg;

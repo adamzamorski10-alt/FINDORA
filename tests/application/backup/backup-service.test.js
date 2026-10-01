@@ -88,6 +88,37 @@ describe('BackupService', () => {
     assert.ok(backup.data.transactions.some(tx => tx.metadata && tx.metadata.openingBalance === true));
   });
 
+  it('includes people and receivables', async () => {
+    const kernel = createTestKernel('backup-user-6');
+
+    const account = await kernel.modules.account.createAccount({
+      userId: 'backup-user-6',
+      name: 'Main Account',
+      type: 'bank',
+      icon: 'landmark',
+      color: '#4A90D9',
+    });
+
+    const person = await kernel.modules.receivable.createPerson({
+      userId: 'backup-user-6',
+      name: 'Jan',
+      note: 'Test',
+    });
+
+    await kernel.modules.receivable.createReceivable({
+      userId: 'backup-user-6',
+      personId: person.id,
+      amount: 100,
+      description: 'Test receivable',
+      date: '2024-01-15',
+      sourceAccountId: account.id,
+    });
+
+    const backup = await kernel.modules.backup.createBackup({ userId: 'backup-user-6' });
+    assert.ok(backup.data.people.some(p => p.id === person.id));
+    assert.ok(backup.data.receivables.some(r => r.personId === person.id));
+  });
+
   it('produces deterministic checksum for identical data', async () => {
     const kernel = createTestKernel('backup-user-5');
 

@@ -80,6 +80,7 @@ export function createBudgetModule({ budgetRepository, transactionRepository, ca
     for (const tx of transactions) {
       if (tx.archived) continue;
       if (tx.metadata?.openingBalance) continue;
+      if (tx.metadata?.receivableId) continue;
       if (tx.categoryId !== budget.categoryId) continue;
       if (tx.type !== 'expense') continue;
       if (isSavingsCategory) continue;

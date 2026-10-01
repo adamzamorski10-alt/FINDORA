@@ -8,6 +8,8 @@
 import { createAppKernel } from '../application/app-kernel.js';
 import { createShell } from './shell.js';
 import { IndexedDBStorageAdapter } from '../infrastructure/storage/indexeddb-storage-adapter.js';
+import { init as initI18n, setLocale, getLocale } from './i18n.js';
+import { setFormatLocale } from './i18n-format.js';
 
 const DEV_USER_ID = 'dev-user';
 const DEV_OPENING_BALANCE_CATEGORY_ID = 'system-opening-balance';
@@ -47,6 +49,7 @@ async function bootstrap() {
   kernel.state.dispatch({ type: 'SET_TRANSACTIONS_LOADING', loading: true });
   kernel.state.dispatch({ type: 'SET_BUDGETS_LOADING', loading: true });
   kernel.state.dispatch({ type: 'SET_GOALS_LOADING', loading: true });
+  kernel.state.dispatch({ type: 'SET_PEOPLE_LOADING', loading: true });
 
   try {
     let profile;
@@ -62,6 +65,7 @@ async function bootstrap() {
             accent: 'purple',
             privacyMode: false,
             excludeInvestmentsFromNetWorth: false,
+            language: 'pl',
           },
         });
       } else {
@@ -75,6 +79,10 @@ async function bootstrap() {
     const validAccents = ['purple', 'blue', 'emerald', 'amber', 'rose', 'cyan'];
     const normalizedAccent = validAccents.includes(accent) ? accent : 'purple';
     document.documentElement.setAttribute('data-accent', normalizedAccent);
+
+    const language = (profile.settings && profile.settings.language) || 'pl';
+    await initI18n(language);
+    setFormatLocale(getLocale());
 
     const currentMonthKey = new Date().toISOString().slice(0, 7);
     kernel.state.dispatch({ type: 'SET_MONTH_KEY', monthKey: currentMonthKey });
@@ -124,6 +132,24 @@ async function bootstrap() {
       kernel.state.dispatch({ type: 'SET_GOALS_ERROR', error: e.message });
     } finally {
       kernel.state.dispatch({ type: 'SET_GOALS_LOADING', loading: false });
+    }
+
+    try {
+      const people = await kernel.modules.receivable.getPersons({ userId: DEV_USER_ID });
+      kernel.state.dispatch({ type: 'SET_PEOPLE', people });
+    } catch (e) {
+      kernel.state.dispatch({ type: 'SET_PEOPLE_ERROR', error: e.message });
+    } finally {
+      kernel.state.dispatch({ type: 'SET_PEOPLE_LOADING', loading: false });
+    }
+
+    try {
+      const incomeProfiles = await kernel.modules.incomeProfile.listProfiles({ userId: DEV_USER_ID });
+      kernel.state.dispatch({ type: 'SET_INCOME_PROFILES', profiles: incomeProfiles });
+    } catch (e) {
+      kernel.state.dispatch({ type: 'SET_INCOME_PROFILES_ERROR', error: e.message });
+    } finally {
+      kernel.state.dispatch({ type: 'SET_INCOME_PROFILES_LOADING', loading: false });
     }
   } catch (e) {
     kernel.state.dispatch({ type: 'SET_INITIALIZATION_ERROR', error: e.message });

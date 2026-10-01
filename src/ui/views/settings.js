@@ -1,4 +1,5 @@
 import { showToast } from '../utils/feedback.js';
+import { t, getSupportedLocales, getDisplayName, setLocale } from '../i18n.js';
 
 const ACCENT_OPTIONS = [
   { value: 'purple', label: 'Purple', color: '#8B5CF6' },
@@ -40,10 +41,10 @@ export function render(context = {}) {
   const pageHeaderTitles = document.createElement('div');
   pageHeaderTitles.className = 'settings-page-header-titles';
 
-  const pageTitle = el('h1', 'settings-page-title', 'Settings');
+  const pageTitle = el('h1', 'settings-page-title', t('settings.title'));
   pageHeaderTitles.appendChild(pageTitle);
 
-  const pageSubtitle = el('p', 'settings-page-subtitle', 'Manage your preferences and data');
+  const pageSubtitle = el('p', 'settings-page-subtitle', t('settings.subtitle'));
   pageHeaderTitles.appendChild(pageSubtitle);
 
   pageHeader.appendChild(pageHeaderTitles);
@@ -52,7 +53,7 @@ export function render(context = {}) {
   if (!profile) {
     const emptyEl = document.createElement('div');
     emptyEl.className = 'empty-message';
-    emptyEl.textContent = 'No profile loaded.';
+    emptyEl.textContent = t('backup.noProfile');
     root.appendChild(emptyEl);
     return root;
   }
@@ -66,6 +67,7 @@ export function render(context = {}) {
       accent: initialSettings.accent || 'purple',
       privacyMode: initialSettings.privacyMode || false,
       excludeInvestmentsFromNetWorth: initialSettings.excludeInvestmentsFromNetWorth || false,
+      language: initialSettings.language || 'pl',
     },
     getState() {
       return { ...this._state };
@@ -82,16 +84,16 @@ export function render(context = {}) {
   const appearanceSection = document.createElement('div');
   appearanceSection.className = 'surface-interactive settings-section';
 
-  const appearanceTitle = el('h3', 'settings-section-title', 'Appearance');
+  const appearanceTitle = el('h3', 'settings-section-title', t('appearance.title'));
   appearanceSection.appendChild(appearanceTitle);
 
-  const appearanceDesc = el('p', 'settings-section-desc', 'Customize the look and feel of FINDORA.');
+  const appearanceDesc = el('p', 'settings-section-desc', t('appearance.description'));
   appearanceSection.appendChild(appearanceDesc);
 
   const accentRow = document.createElement('div');
   accentRow.className = 'settings-accent-row';
 
-  const accentLabel = el('span', 'settings-accent-label', 'Accent color');
+  const accentLabel = el('span', 'settings-accent-label', t('appearance.accentColor'));
   accentRow.appendChild(accentLabel);
 
   const accentSwatches = document.createElement('div');
@@ -117,10 +119,10 @@ export function render(context = {}) {
   accentRow.appendChild(accentSwatches);
   appearanceSection.appendChild(accentRow);
 
-  const themeField = createSelectField('Theme', [
-    { value: 'light', label: 'Light' },
-    { value: 'dark', label: 'Dark' },
-    { value: 'system', label: 'System' },
+  const themeField = createSelectField(t('appearance.theme'), [
+    { value: 'light', label: t('appearance.themeLight') },
+    { value: 'dark', label: t('appearance.themeDark') },
+    { value: 'system', label: t('appearance.themeSystem') },
   ], initialSettings.theme || 'system', (value) => {
     // Theme is applied immediately via data-theme attribute
     document.documentElement.setAttribute('data-theme', value);
@@ -133,26 +135,26 @@ export function render(context = {}) {
   const preferencesSection = document.createElement('div');
   preferencesSection.className = 'surface-interactive settings-section';
 
-  const preferencesTitle = el('h3', 'settings-section-title', 'Preferences');
+  const preferencesTitle = el('h3', 'settings-section-title', t('preferences.title'));
   preferencesSection.appendChild(preferencesTitle);
 
-  const preferencesDesc = el('p', 'settings-section-desc', 'Configure how FINDORA works for you.');
+  const preferencesDesc = el('p', 'settings-section-desc', t('preferences.description'));
   preferencesSection.appendChild(preferencesDesc);
 
-  const currencyField = createField('Currency', 'text', initialSettings.currency || 'PLN', (value) => {
+  const currencyField = createField(t('common.currency'), 'text', initialSettings.currency || 'PLN', (value) => {
     buffer.setValue('currency', value);
   });
   preferencesSection.appendChild(currencyField);
 
-  const privacyField = createSelectField('Privacy Mode', [
-    { value: 'false', label: 'Off' },
-    { value: 'true', label: 'On' },
+  const privacyField = createSelectField(t('preferences.privacyMode'), [
+    { value: 'false', label: t('preferences.off') },
+    { value: 'true', label: t('preferences.on') },
   ], String(initialSettings.privacyMode ?? false), (value) => {
     buffer.setValue('privacyMode', value === 'true');
   });
   preferencesSection.appendChild(privacyField);
 
-  const excludeInvestmentsField = createSelectField('Exclude Investments from Net Worth', [
+  const excludeInvestmentsField = createSelectField(t('preferences.excludeInvestments'), [
     { value: 'false', label: 'No' },
     { value: 'true', label: 'Yes' },
   ], String(initialSettings.excludeInvestmentsFromNetWorth ?? false), (value) => {
@@ -160,21 +162,30 @@ export function render(context = {}) {
   });
   preferencesSection.appendChild(excludeInvestmentsField);
 
+  const languageOptions = getSupportedLocales().map(locale => ({
+    value: locale,
+    label: getDisplayName(locale),
+  }));
+  const languageField = createSelectField(t('preferences.language'), languageOptions, initialSettings.language || 'pl', (value) => {
+    buffer.setValue('language', value);
+  });
+  preferencesSection.appendChild(languageField);
+
   root.appendChild(preferencesSection);
 
   // ── 4. Data & Backup Section ───────────────────────────────
   const backupSection = document.createElement('div');
   backupSection.className = 'surface-interactive settings-section';
 
-  const backupTitle = el('h3', 'settings-section-title', 'Data & Backup');
+  const backupTitle = el('h3', 'settings-section-title', t('backup.title'));
   backupSection.appendChild(backupTitle);
 
-  const backupDesc = el('p', 'settings-section-desc', 'Export, import, and safeguard your financial data.');
+  const backupDesc = el('p', 'settings-section-desc', t('backup.description'));
   backupSection.appendChild(backupDesc);
 
   const exportBtn = document.createElement('button');
   exportBtn.type = 'button';
-  exportBtn.textContent = 'Export Backup';
+  exportBtn.textContent = t('backup.export');
   exportBtn.className = 'btn btn-primary';
   backupSection.appendChild(exportBtn);
 
@@ -186,7 +197,7 @@ export function render(context = {}) {
 
   const importBtn = document.createElement('button');
   importBtn.type = 'button';
-  importBtn.textContent = 'Import Backup';
+  importBtn.textContent = t('backup.import');
   importBtn.className = 'btn btn-secondary';
   backupSection.appendChild(importBtn);
 
@@ -207,14 +218,14 @@ export function render(context = {}) {
 
   const confirmBtn = document.createElement('button');
   confirmBtn.type = 'button';
-  confirmBtn.textContent = 'Confirm Restore';
+  confirmBtn.textContent = t('common.confirmRestore');
   confirmBtn.className = 'btn btn-danger';
   confirmBtn.style.display = 'none';
   backupSection.appendChild(confirmBtn);
 
   const cancelBtn = document.createElement('button');
   cancelBtn.type = 'button';
-  cancelBtn.textContent = 'Cancel';
+  cancelBtn.textContent = t('common.cancel');
   cancelBtn.className = 'btn btn-secondary';
   cancelBtn.style.display = 'none';
   backupSection.appendChild(cancelBtn);
@@ -244,7 +255,7 @@ export function render(context = {}) {
 
     const currentProfile = state.getState().session.profile;
     if (!currentProfile) {
-      showBackupError('No profile loaded.');
+      showBackupError(t('backup.noProfile'));
       return;
     }
 
@@ -290,7 +301,7 @@ export function render(context = {}) {
 
       const currentProfile = state.getState().session.profile;
       if (!currentProfile) {
-        showBackupError('No profile loaded.');
+        showBackupError(t('backup.noProfile'));
         return;
       }
 
@@ -304,19 +315,19 @@ export function render(context = {}) {
 
       previewEl.innerHTML = '';
       const h4 = document.createElement('h4');
-      h4.textContent = 'Restore Preview';
+      h4.textContent = t('common.restorePreview');
       previewEl.appendChild(h4);
 
       const createdP = document.createElement('p');
       const createdStrong = document.createElement('strong');
-      createdStrong.textContent = 'Backup created: ';
+      createdStrong.textContent = t('common.backupCreated');
       createdP.appendChild(createdStrong);
       createdP.appendChild(document.createTextNode(new Date(envelope.createdAt).toLocaleString()));
       previewEl.appendChild(createdP);
 
       const userIdP = document.createElement('p');
       const userIdStrong = document.createElement('strong');
-      userIdStrong.textContent = 'User ID: ';
+      userIdStrong.textContent = t('common.userId');
       userIdP.appendChild(userIdStrong);
       userIdP.appendChild(document.createTextNode(envelope.userId));
       previewEl.appendChild(userIdP);
@@ -331,7 +342,7 @@ export function render(context = {}) {
 
       const warningP = document.createElement('p');
       warningP.className = 'warning';
-      warningP.textContent = 'This will replace all your current data with the backup data.';
+      warningP.textContent = t('common.replaceWarning');
       previewEl.appendChild(warningP);
       previewEl.style.display = 'block';
 
@@ -363,7 +374,7 @@ export function render(context = {}) {
     try {
       const currentProfile = state.getState().session.profile;
       if (!currentProfile) {
-        showBackupError('No profile loaded.');
+        showBackupError(t('backup.noProfile'));
         return;
       }
 
@@ -401,10 +412,10 @@ export function render(context = {}) {
   const categorySection = document.createElement('div');
   categorySection.className = 'surface-interactive settings-section';
 
-  const categoryTitle = el('h3', 'settings-section-title', 'Categories');
+  const categoryTitle = el('h3', 'settings-section-title', t('categories.title'));
   categorySection.appendChild(categoryTitle);
 
-  const categoryDesc = el('p', 'settings-section-desc', 'Create and manage transaction categories.');
+  const categoryDesc = el('p', 'settings-section-desc', t('categories.description'));
   categorySection.appendChild(categoryDesc);
 
   if (categoryError) {
@@ -424,32 +435,32 @@ export function render(context = {}) {
     setValue(key, value) { this._state[key] = value; },
   };
 
-  const categoryNameField = createField('Name', 'text', categoryBuffer.getState().name, (value) => {
+  const categoryNameField = createField(t('common.name'), 'text', categoryBuffer.getState().name, (value) => {
     categoryBuffer.setValue('name', value);
   });
   categoryFormEl.appendChild(categoryNameField);
 
-  const categoryTypeField = createSelectField('Type', [
-    { value: 'income', label: 'Income' },
-    { value: 'expense', label: 'Expense' },
+  const categoryTypeField = createSelectField(t('common.type'), [
+    { value: 'income', label: t('common.income') },
+    { value: 'expense', label: t('common.expense') },
   ], categoryBuffer.getState().type, (value) => {
     categoryBuffer.setValue('type', value);
   });
   categoryFormEl.appendChild(categoryTypeField);
 
-  const categoryIconField = createField('Icon', 'text', categoryBuffer.getState().icon || 'circle', (value) => {
+  const categoryIconField = createField(t('common.icon'), 'text', categoryBuffer.getState().icon || 'circle', (value) => {
     categoryBuffer.setValue('icon', value);
   });
   categoryFormEl.appendChild(categoryIconField);
 
-  const categoryColorField = createField('Color (hex)', 'text', categoryBuffer.getState().color || '#888888', (value) => {
+  const categoryColorField = createField(t('common.color'), 'text', categoryBuffer.getState().color || '#888888', (value) => {
     categoryBuffer.setValue('color', value);
   });
   categoryFormEl.appendChild(categoryColorField);
 
   const createCategoryBtn = document.createElement('button');
   createCategoryBtn.type = 'submit';
-  createCategoryBtn.textContent = 'Create Category';
+  createCategoryBtn.textContent = t('categories.create');
   createCategoryBtn.className = 'btn btn-primary';
   categoryFormEl.appendChild(createCategoryBtn);
 
@@ -464,7 +475,7 @@ export function render(context = {}) {
     const color = currentForm.color?.trim();
 
     if (!name || !type || !icon || !color) {
-      showToast({ message: 'Please fill in all category fields.', type: 'error' });
+      showToast({ message: t('common.pleaseFillAllFields'), type: 'error' });
       return;
     }
 
@@ -482,10 +493,10 @@ export function render(context = {}) {
         color,
       });
       categoryBuffer._state = { name: '', type: 'expense', icon: 'circle', color: '#888888' };
-      showToast({ message: 'Category created successfully.', type: 'success' });
+      showToast({ message: t('categories.createSuccess'), type: 'success' });
     } catch (err) {
       state.dispatch({ type: 'OPERATION_ERROR', key: 'createCategory', error: err.message });
-      showToast({ message: 'Failed to create category: ' + err.message, type: 'error' });
+      showToast({ message: t('categories.createFailed', { error: err.message }), type: 'error' });
     } finally {
       state.dispatch({ type: 'OPERATION_STOP', key: 'createCategory' });
       const finalBtn = categoryFormEl.querySelector('button[type="submit"]');
@@ -501,18 +512,18 @@ export function render(context = {}) {
   const infoSection = document.createElement('div');
   infoSection.className = 'surface-interactive settings-section';
 
-  const infoTitle = el('h3', 'settings-section-title', 'Application');
+  const infoTitle = el('h3', 'settings-section-title', t('settings.appInfo'));
   infoSection.appendChild(infoTitle);
 
-  const infoDesc = el('p', 'settings-section-desc', 'FINDORA Personal Wealth OS');
+  const infoDesc = el('p', 'settings-section-desc', t('settings.appInfo'));
   infoSection.appendChild(infoDesc);
 
-  const versionEl = el('p', 'settings-info-text', 'Version 1.0.0');
+  const versionEl = el('p', 'settings-info-text', t('common.version'));
   infoSection.appendChild(versionEl);
 
   const infoP = document.createElement('p');
   infoP.className = 'settings-info-text';
-  infoP.textContent = 'Local-first architecture. Your data stays on your device.';
+  infoP.textContent = t('common.localFirst');
   infoSection.appendChild(infoP);
 
   root.appendChild(infoSection);
@@ -530,6 +541,9 @@ export function render(context = {}) {
       document.documentElement.setAttribute('data-accent', accentValue);
     }
 
+    const previousLanguage = profile.settings?.language || 'pl';
+    const newLanguage = currentSettings.language || 'pl';
+
     state.dispatch({ type: 'SET_USER_PROFILE', profile: { ...profile, settings: currentSettings } });
     state.dispatch({ type: 'OPERATION_START', key: 'updateProfile' });
 
@@ -541,10 +555,15 @@ export function render(context = {}) {
         userId: profile.id,
         settings: currentSettings,
       });
-      showToast({ message: 'Settings saved successfully.', type: 'success' });
+      showToast({ message: t('settings.saveSuccess'), type: 'success' });
+
+      if (newLanguage !== previousLanguage) {
+        await setLocale(newLanguage);
+        window.location.reload();
+      }
     } catch (err) {
       state.dispatch({ type: 'OPERATION_ERROR', key: 'updateProfile', error: err.message });
-      showToast({ message: 'Failed to save settings: ' + err.message, type: 'error' });
+      showToast({ message: t('settings.saveFailed', { error: err.message }), type: 'error' });
       try {
         const reloaded = await modules.user.getProfile({ userId: profile.id });
         state.dispatch({ type: 'SET_USER_PROFILE', profile: reloaded });
@@ -560,7 +579,7 @@ export function render(context = {}) {
 
   const saveBtn = document.createElement('button');
   saveBtn.type = 'submit';
-  saveBtn.textContent = 'Save Settings';
+  saveBtn.textContent = t('settings.save') || 'Save Settings';
   saveBtn.className = 'btn btn-primary settings-save-btn';
   saveForm.appendChild(saveBtn);
 

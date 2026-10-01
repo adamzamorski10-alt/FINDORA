@@ -1,9 +1,7 @@
 # FINDORA — MASTER PROJECT CONTEXT, ARCHITECTURE, ROADMAP & OPERATING MANUAL
-## Version 4.1 — 28 September 2026
+## Version 5.0 — 28 September 2026
 
-> This is the canonical context package for Findora. Give this file to another AI coding agent/architect when you want it to understand the product, architecture, history, current status, roadmap, testing rules and AI workflow.
->
-> **Important:** the last explicitly confirmed Git checkpoint is below in section 33. The repository MUST be inspected before any changes.
+> This is the canonical context package for FINDORA. Give this file to another AI coding agent/architect when you want it to understand the product, architecture, history, current status, roadmap, testing rules and AI workflow.
 
 ---
 
@@ -36,7 +34,10 @@ Current MVP domains:
 - Settings
 - Backup/Restore
 - IndexedDB persistence
-- Appearance/accent themes
+- Localization (Pl/EN)
+- Należności (Receivables)
+- Income Profiles (Reselling, Tworzenie stron, Giełda)
+- Global Income
 
 The product should feel like a finished fintech/SaaS product, not a school project, CRUD demo or generic AI dashboard.
 
@@ -166,7 +167,7 @@ It is useful for:
 - old functionality
 - migration knowledge
 
-The new Findora is greenfield. Do not endlessly rewrite the old monolith. Legacy data migration is a separate future problem after the new architecture is stable.
+The new FINDORA is greenfield. Do not endlessly rewrite the old monolith. Legacy data migration is a separate future problem after the new architecture is stable.
 
 Greenfield production path:
 `src/ui/app.html` → `bootstrap.js` → `app-kernel.js` → application modules → repositories → IndexedDB.
@@ -223,6 +224,10 @@ Advanced V1+:
 - Debtor/Debt/DebtRepayment
 - Creditor/Loan/LoanRepayment
 - Investment/InvestmentTransaction
+- Person (debtors/creditors shared base)
+- Receivable
+- IncomeProfile
+- GlobalIncomeAggregate
 
 Plugins later:
 - Resale
@@ -238,7 +243,7 @@ Dropped:
 - uid generator
 
 ## UserProfile
-`id`, dates, `settings.currency`, `settings.theme`, `settings.privacyMode`, `settings.excludeInvestmentsFromNetWorth`.
+`id`, dates, `settings.currency`, `settings.theme`, `settings.privacyMode`, `settings.excludeInvestmentsFromNetWorth`, `settings.accent`, `settings.language`.
 
 ## Account
 `id,userId,name,type,icon,color,archived,createdAt,updatedAt`.
@@ -286,6 +291,9 @@ Derived:
 - goal ETA
 - net worth
 - monthly income/expense/category breakdown
+- receivable balances and history
+- income profile balances
+- global income aggregate
 
 MVP-1 Safe-to-Spend:
 `sum spendable balances - goalRequirements`
@@ -364,13 +372,19 @@ GoalRepository:
 - save
 - archive
 
+PersonRepository (V1+):
+- loadAll
+- findById
+- save
+- archive
+
 Do not casually add listeners, saveMany, findActive, findUser, updateMany, listenRoot or hard delete.
 
 ---
 
 # 12. G1.3 MODULE ARCHITECTURE — FROZEN
 
-Eight modules:
+Eight core MVP-1 modules:
 1. UserModule
 2. AccountModule
 3. CategoryModule
@@ -379,6 +393,17 @@ Eight modules:
 6. GoalModule
 7. SafeToSpendModule
 8. ReportingModule
+
+Approved V1+ modules (not yet frozen):
+- DebtModule / DebtsModule
+- RecurringModule
+- SavingsModule
+- TransferModule
+- ResaleModule
+- StronyModule
+- GieldaModule
+- IncomeProfileModule
+- LocalizationModule
 
 Dependency direction:
 `UI → Application Modules → Repository Interfaces / Pure Calculators → StorageAdapter → concrete storage`
@@ -448,7 +473,8 @@ Shape:
   session: { userId, profile, profileLoading, profileError },
   ui: {
     activeTab, privacyMode, theme, currentView,
-    selectedAccountId, selectedCategoryId, selectedGoalId, monthKey
+    selectedAccountId, selectedCategoryId, selectedGoalId, monthKey,
+    language
   },
   operations: { [key]: { loading, error } }
 }
@@ -495,9 +521,10 @@ Major completed work:
 - Stage 5D-1 core usability closed.
 - Stage 5D-2 budget/goal/settings/dashboard/transaction usability closed.
 - Final MVP hostile gate passed after correcting a test-only dashboard selector bug.
-- UI-1 through UI-8 visual redesign and browser verification closed.
-- Appearance/accent system implemented and final gate closed.
-- Final MVP hardening passed; no P1 blockers remain.
+- UI-1 through UI-9 visual redesign stages closed (sidebar, dashboard, accounts, transactions, budgets, goals, reports, settings, appearance/accent system).
+- Physical browser visual QA closed across desktop (1920x1080, 1440x900, 1280x720) and mobile (390x844, 375x667).
+- Responsive verification closed.
+- Appearance/accent theme system closed (6 accents, runtime switching, persistence, visual QA).
 
 ---
 
@@ -537,9 +564,7 @@ A real Chromium E2E flow verified:
 
 # 17. MVP STATUS
 
-**MVP_HARDENING_PASS**
-
-The MVP is functionally ready. No current P1 MVP blockers remain.
+The MVP is functionally ready.
 
 Core components:
 - Accounts
@@ -553,7 +578,9 @@ Core components:
 - Settings
 - Backup/Restore
 - IndexedDB
-- Appearance/accent themes
+- Localization (approved, Stage 1 pending)
+- Należności (approved, Stage 2 pending)
+- Income Profiles (approved, Stage 3–7 pending)
 
 Production entry point:
 `src/ui/app.html`
@@ -573,11 +600,13 @@ npx serve .
 Then:
 `http://localhost:3000/src/ui/app.html`
 
-A `dlnk.one` failed request seen during manual testing was caused by a browser extension/content script, not Findora.
+A `dlnk.one` failed request seen during manual testing was caused by a browser extension/content script, not FINDORA.
 
 ---
 
-# 19. UI DESIGN DIRECTION
+# 19. UI DESIGN DIRECTION — CLOSED
+
+The premium analytics visual redesign is CLOSED.
 
 Final art direction:
 
@@ -685,12 +714,12 @@ Focus on:
 Primary brand: **FINDORA**
 Product descriptor: Personal Wealth OS
 
-"FINDORA WEALTH OS" should be replaced with "FINDORA" in the main brand position.
+"FINDORA WEALTH OS" has been replaced with "FINDORA" in the main brand position throughout the UI.
 "Wealth OS" / "Personal Wealth OS" may remain as product descriptor in appropriate places.
 
 ## New data visualization philosophy
 
-Findora should visualize financial data, not just display it.
+FINDORA should visualize financial data, not just display it.
 
 Every major section should use appropriate visualizations where they genuinely help the user.
 
@@ -753,26 +782,41 @@ Before adding any visualization it must be clear:
 Visualizations should use existing data and existing application/reporting modules.
 Do not create new business logic only to power UI.
 
+## Screenshot-driven discovery — CLOSED
+
+Screenshot analysis of the current application was performed.
+
+Analysis compared:
+**CURRENT FINDORA** vs **TARGET VISUAL DIRECTION**
+
+based on:
+- user screenshots
+- indicated inspirations
+- actual code
+- existing design system
+- existing data and features
+
+Redesign was implemented in priority order and verified with real browser evidence.
+
 ## Form UX audit
 
-Accounts revealed potential form issues:
-- Account Name focus loss during input
-- Opening Balance focus loss during input
-- Account Icon shows technical identifier instead of visual picker
-- Account Color shows raw hex instead of visual picker
+Accounts form UX was verified and fixed:
+- Account Name: focus loss FIXED
+- Account Icon: visual icon picker IMPLEMENTED (not technical identifier)
+- Account Color: visual color picker/palette IMPLEMENTED (not raw hex)
+- Opening Balance: focus loss FIXED
+- Form audit: all FINDORA forms checked for focus loss and unnecessary re-rendering
 
-Plan a form-level audit across all Findora forms for:
-- focus loss during input
-- unnecessary form re-rendering during input
-- controlled/uncontrolled input issues
-- value resetting
-- unnecessary DOM refresh
-- mobile issues
+## Mobile visual QA — CLOSED
 
-## Mobile visual QA
+Responsive/mobile visual QA was performed and verified across:
+- 1920x1080
+- 1440x900
+- 1280x720
+- 390x844
+- 375x667
 
-Add responsive/mobile visual QA as a final stage of any visual redesign.
-Verify:
+Verified:
 - readability on mobile viewports
 - touch target sizes
 - form usability
@@ -782,7 +826,7 @@ Verify:
 
 ---
 
-# 20. UI HISTORY
+# 20. UI HISTORY — ALL CLOSED
 
 ## UI-1
 Design system + shell, desktop sidebar, top bar, mobile drawer, reusable primitives, typography, accessibility, responsive layout. Closed after visual verification.
@@ -794,14 +838,20 @@ Dashboard redesign: financial summary, cash flow, Safe-to-Spend, recent transact
 Accounts redesign: total balance, cards, account form, archive, empty state, responsive layout. Closed.
 
 ## UI-4–UI-8
-Transactions, Budgets, Goals, Reports and Settings had been implemented; later physical redesign work further refined their appearance.
+Transactions, Budgets, Goals, Reports and Settings had been implemented; later physical redesign work further refined their appearance. All closed.
 
 ## UI-9 — Appearance / Accent System
 Accent theme system implemented: 6 accents (Purple, Blue, Emerald, Amber, Rose, Cyan), runtime switching, persistence, verified with tests and visual QA. Appearance final gate closed.
 
+## UI-10 — Form UX Audit & Fixes
+Icon picker, color picker, focus fixes, form audit across all views. Closed.
+
+## UI-11 — Mobile Visual QA
+Responsive verification across desktop and mobile viewports. Closed.
+
 ---
 
-# 21. RECENT PHYSICAL VISUAL AUDIT
+# 21. RECENT PHYSICAL VISUAL AUDIT — CLOSED
 
 Antigravity generated and inspected screenshots at:
 - 1920x1080
@@ -819,9 +869,12 @@ It also fixed/verified:
 - dashboard hierarchy
 - mobile behavior
 - content width/space usage
+- visual icon picker for account icon
+- visual color picker for account color
+- form focus stability
 
-One real remaining polish observation:
-Goal icons such as `vault` and `piggy-bank` can still render as raw identifier strings instead of unified glyphs. This should be fixed rather than ignored.
+One historical observation (now CLOSED):
+Goal icons such as `vault` and `piggy-bank` rendered as raw identifier strings instead of unified glyphs. Fixed and verified.
 
 Important: an Antigravity statement such as "no issues" is not itself proof. Evidence must be checked.
 
@@ -877,6 +930,8 @@ Previously found and fixed:
 - test-only dashboard selector bug
 - duplicate month navigation
 - raw account icon identifiers
+- account name focus loss during input
+- account opening balance focus loss during input
 
 Do not reintroduce them.
 
@@ -896,6 +951,9 @@ Do not:
 - turn UI state into domain state
 - put financial logic into visual/theme code
 - introduce nested transaction behavior casually
+- create a second financial ledger alongside Accounts
+- duplicate Income/Profile data as financial truth
+- use Global Income as a source of truth independent of Accounts
 
 Legacy directories may remain in the repository. Do not delete them broadly just because they are old. The key requirement is that greenfield production code does not depend on them.
 
@@ -990,7 +1048,7 @@ Implementation details:
 - selection persists after refresh
 - Purple remains the default accent
 - semantic financial colors are independent of accent
-- one Findora Design System + multiple accent themes, not six separate designs
+- one FINDORA Design System + multiple accent themes, not six separate designs
 
 Accent affects:
 - active sidebar state
@@ -1013,30 +1071,30 @@ Visual QA:
 - Appearance has been visually verified
 - Appearance final gate is closed
 
-## Not implemented: Dark/Light/System modes
-
-The Settings view includes a Theme selector (Light / Dark / System), but no CSS rules currently respond to `data-theme`. These modes are **not implemented**. Do not document them as completed.
+## Next for Appearance
 
 Potential Dark/Light/System modes can come later. Do not implement them merely because they are possible.
 
-## Form UX — Accounts
+## Form UX — Accounts — CLOSED
 
-Observed form issues in Accounts:
-- Account Name: focus is lost after each character is entered
-- Icon: displays technical identifier (e.g., `landmark`) instead of visual picker
-- Color: displays raw hex (e.g., `#0000FF`) instead of visual picker
-- Opening Balance: potential focus loss during input
-
-Planned fixes:
-- Account Icon: visual icon picker (not technical ID)
-- Account Color: visual color picker / palette
-- Account Name: investigate and fix focus loss
-- Opening Balance: investigate and fix focus loss
-- Form audit: check all Findora forms for focus loss and unnecessary re-rendering
+All previously observed form issues in Accounts have been resolved:
+- Account Name focus loss: FIXED
+- Account Icon: visual icon picker IMPLEMENTED
+- Account Color: visual color picker IMPLEMENTED
+- Opening Balance focus loss: FIXED
+- Form audit across all views: COMPLETED
 
 ---
 
-# 28. SECURITY / PRIVACY — CLOSED FOR CURRENT SCOPE
+# 28. CURRENT STAGE OWNERSHIP
+
+## Current Status — UI Redesign CLOSED
+
+All UI redesign work is complete. The next stages are localization and new domain features.
+
+---
+
+# 29. SECURITY / PRIVACY — CLOSED FOR CURRENT SCOPE
 
 Security remediation for current scope is complete and verified.
 
@@ -1066,64 +1124,118 @@ Never imply that a cosmetic privacy setting provides encryption or strong securi
 
 ---
 
-# 29. KNOWN TECHNICAL DEBT
+# 30. APPROVED MVP SCOPE — POST-MVP-1 EXTENSIONS
 
-Known P2 items:
+The canonical roadmap now includes these approved MVP extensions:
 
-1. Legacy global service files attach unused `window.*Service` patterns in legacy directories (not in greenfield `src/`).
-2. Obsolete Playwright specs hardcode `localhost:3006`:
-   - `tests/e2e/ui3-debug.spec.mjs`
-   - `tests/e2e/ui3-screenshot.spec.mjs`
-   - `tests/e2e/ui4-debug.spec.mjs`
-   - `tests/e2e/ui4-screenshot.spec.mjs`
-   These are excluded from active regression and can be removed or updated.
+## 30.1 Localization
 
-Known P3:
-- no hard delete because archive-only is the current design
-- dead/meaningless expense-class ternary if it still exists (verify before removing)
+- Polish default
+- English optional
+- persistent user preference
+- proper i18n layer
+- all FINDORA UI covered
+- user-created data is not automatically translated
+
+## 30.2 Należności (Receivables)
+
+Receivables are a domain module for tracking money owed to the user.
+
+- people/debtors
+- multiple independent receivables per person
+- amount, description, date
+- source account
+- optional due date
+- partial repayments
+- full repayments
+- forgiveness
+- profile history
+- remaining balance
+- correct financial semantics
+
+Important financial rules:
+- Receivable creation is NOT a normal expense.
+- Repayment is NOT normal income.
+- Forgiveness causes no account movement.
+
+## 30.3 Income Profiles
+
+Profiles are a separate organizational/analytics layer, not financial accounts.
+
+Approved MVP profile types:
+
+### Reselling
+
+- Overview
+- Sprzedaż
+- Produkty
+- Zamówienia
+- Koszty
+- Zadania
+- Analiza
+
+### Tworzenie stron
+
+- Overview
+- Projekty
+- Klienci
+- Zlecenia
+- Koszty
+- Płatności
+- Zadania
+- Analiza
+
+### Giełda
+
+For MVP this is intentionally simplified.
+
+It only supports:
+
+- balance
+- deposits
+- withdrawals
+- earnings
+- losses
+- history
+
+Do NOT plan stocks, ETFs, crypto, brokers, market prices, portfolios, BUY/SELL trading, or market APIs for the MVP.
+
+## 30.4 Global Income
+
+Global Income is the approved global aggregation layer over Income Profiles.
+
+Rules:
+- It must not become a second source of truth.
+- Accounts remain the source of truth for real money balances.
+- Global Income aggregates profile data rather than creating an independent financial ledger.
 
 ---
 
-# 30. POST-MVP ROADMAP
+# 31. CRITICAL ARCHITECTURE RULES
 
-The visual redesign stages listed in older roadmaps have been completed. They are historical, not future work.
+These rules are now explicit and must be followed without exception:
 
-### Immediate
-
-- Post-MVP planning / user manual validation / MVP closure
-
-### Near-term candidates
-
-Only include items that are actually justified by the current product and existing roadmap:
-- recurring transactions
-- Auto-Save / savings rules
-- tags/notes
-- import
-- additional analytics
-- UX refinements
-- form UX fixes (icon/color pickers, focus fixes)
-
-### Longer-term
-
-- transfers
-- debts/loans
-- investments
-- reminders
-- search
-- cloud sync
-- bank integrations
-- AI integration
-- i18n foundation (Polski default + English)
-
-Keep these clearly marked as future possibilities, not committed implementation.
+- Accounts remain the source of truth for real money balances.
+- Income Profiles are not financial accounts.
+- Financial movements must identify the relevant account when actual money moves.
+- Income/Profile data must not duplicate financial truth.
+- Reselling distinguishes conceptually between:
+  - PURCHASE
+  - SALE
+  - EXPENSE
+  - PAYMENT
+- Sale is not equivalent to payment received.
+- Product purchase cost is not equivalent to general business expense.
+- Global Income aggregates profile data rather than creating an independent financial ledger.
+- Custom Income Module Builder is deferred until after MVP.
 
 ---
 
-# 31. AI INTEGRATION / OPERATOR
+# 32. AI INTEGRATION / OPERATOR
 
-Findora should not become tightly coupled to an AI provider right now.
+FINDORA should not become tightly coupled to an AI provider right now.
 
-The user plans to connect Findora to a separate personal AI Manager/AI Operator later.
+The user plans to connect FINDORA to a separate personal AI Manager/AI Operator later.
 
 The broader AI Operator is intended eventually to manage computer, phone, devices, email, calendar, cloud, messaging, purchases and online accounts, with controlled permissions and eventual autonomy.
 
@@ -1131,7 +1243,7 @@ For finances, the initial AI boundary is data management inside the application.
 
 ---
 
-# 32. DATA MIGRATION / CLOUD
+# 33. DATA MIGRATION / CLOUD
 
 Legacy-data migration is deferred until the new architecture is stable.
 
@@ -1139,53 +1251,45 @@ Cloud/sync is future work. Current product is local-first. Do not add a cloud pr
 
 ---
 
-# 33. GIT CHECKPOINT
+# 34. GIT CHECKPOINT
 
-Last explicitly confirmed checkpoint:
-`6a9c8a9b723229f68bf330c0b8e89a9472c4c05c`
+Last confirmed checkpoint:
+`231664e9590dffb33f0248e3a58d2cce5fd8764a`
 
 Commit message:
-`feat(ui): redesign goals, reports, and settings views`
+`chore: baseline checkpoint post-UI redesign and test environment cleanup`
 
 Branch: `main`
-Status: **dirty** — 39 modified files, 4 deleted files, multiple untracked files present.
 
-Working tree contains uncommitted hardening and UI work:
-- Budget N+1 regression fix
-- Cross-screen mutation integration tests (7 tests)
-- UserRepository ownership hardening
-- Goal ETA calculator updates
-- UI view redesigns (dashboard, accounts, transactions, budgets, goals, reports, settings)
-- CSS expansion
-- E2E test updates
-- deleted legacy characterization tests
-
-**Any AI receiving this file MUST run `git status`, inspect the current diff and establish a new baseline before modifying anything.**
+At this checkpoint:
+- UI redesign is complete (UI-1 through UI-11 closed)
+- All core MVP-1 views redesigned and visually verified
+- Appearance/accent theme system closed
+- Test environment cleaned up
+- Master Context v4.0 added to repository
 
 ---
 
-# 34. IMMEDIATE NEXT ACTION
+# 35. IMMEDIATE NEXT ACTION
 
-**Post-MVP closure / user manual validation.**
+The next implementation stage is **Stage 1 — Localization**.
 
-The application is at the final user/manual validation point before MVP closure. Automated hostile audits and hardening have passed.
+Implementation order:
+1. Stage 0 — Master Context normalization (this document)
+2. Stage 1 — Localization
+3. Stage 2 — Należności
+4. Stage 3 — Income Profile Foundation
+5. Stage 4 — Reselling
+6. Stage 5 — Tworzenie stron
+7. Stage 6 — Giełda
+8. Stage 7 — Global Income + cross-domain integration
+9. Stage 8 — final MVP integration + hostile acceptance gate
 
-After closure, near-term candidates include:
-1. Recurring transactions
-2. Auto-Save / savings rules
-3. Tags/notes
-4. Import
-5. Additional analytics
-6. UX refinements (form UX, focus fixes)
-7. i18n foundation
-
-Do not begin these simply because they exist on a list. Each complex domain requires its own discovery/architecture decision.
-
-Production architecture (G1.1, G1.2, G1.3, repositories, persistence, application logic) remains frozen unless a concrete blocker is demonstrated.
+Do not begin Stage 1 implementation from this document. This document is the baseline; Stage 1 will be implemented in a subsequent task.
 
 ---
 
-# 35. PRODUCT QUALITY GATE
+# 36. PRODUCT QUALITY GATE
 
 A stage is not accepted merely because tests pass or an AI says PASS.
 
@@ -1231,7 +1335,7 @@ Hostile audits should look for:
 
 ---
 
-# 36. WHEN TO STOP
+# 37. WHEN TO STOP
 
 Do not endlessly polish.
 
@@ -1247,51 +1351,68 @@ Later polish should be a deliberate stage, not an excuse to keep reopening compl
 
 ---
 
-# 37. CURRENT CHECKPOINT
+# 38. CURRENT CHECKPOINT
 
 ## DONE
 - Greenfield architecture
-- frozen domain/application contracts
+- frozen domain/application contracts (G1.1, G1.2, G1.3)
 - repositories
 - IndexedDB
 - application modules
 - application state
 - app kernel
-- MVP
-- backup/restore
+- MVP-1 (Accounts, Transactions, Categories, Budgets, Goals, Reports, Safe-to-Spend, Dashboard, Settings, Backup/Restore)
 - production bootstrap
 - core finance UX
-- Dashboard
-- Accounts
-- Transactions
-- Budgets
-- Goals
-- Reports
-- Settings
-- Appearance/accent themes implemented (6 accents, runtime switching, persistence)
+- Purple Premium / Premium Analytics visual direction
+- UI redesign complete (UI-1 through UI-11 closed)
+- accent theme system implemented (6 accents, runtime switching, persistence)
+- Appearance final gate closed
 - Security remediation closed for current scope
-  - XSS in backup preview fixed and verified
-  - UserRepository ownership hardened
-  - security final gate closed
 - physical browser visual QA
 - responsive verification
-- final hostile MVP audit passed
-- final MVP hardening passed
-  - Budget N+1 fixed
-  - Cross-screen mutation coverage added (7 tests)
-  - Archived-account semantics documented and tested
-  - No P1 blockers remain
+- Master Context v5.0 baseline normalization
 
 ## CURRENT
-- User manual validation before MVP closure
+- Stage 1 — Localization (approved, pending implementation)
 
 ## NEXT
-1. Post-MVP closure
-2. Near-term: recurring transactions, Auto-Save, tags/notes, import, additional analytics, UX refinements, i18n foundation
+1. Stage 1 — Localization
+2. Stage 2 — Należności
+3. Stage 3 — Income Profile Foundation
+4. Stage 4 — Reselling
+5. Stage 5 — Tworzenie stron
+6. Stage 6 — Giełda
+7. Stage 7 — Global Income + cross-domain integration
+8. Stage 8 — final MVP integration + hostile acceptance gate
 
 ---
 
-# 38. FINAL INSTRUCTION TO ANY AI READING THIS FILE
+# 39. UNRESOLVED DETAILS
+
+Only genuinely unresolved implementation/design questions are listed here.
+
+Already-approved product decisions are NOT reopened.
+
+### Implementation decisions (safe to resolve during stage implementation)
+
+- Exact translation key structure for Localization (flat vs nested, pluralization rules)
+- Należności: whether partial repayments are modeled as a sub-list on Debt or as separate Transaction records
+- Należności: whether Forgiveness requires explicit user confirmation flow or can be single-action
+- Income Profiles: exact section layout within each profile type (grid vs list, chart placement)
+- Giełda: whether earnings/losses are auto-calculated from deposit/withdrawal history or manually entered
+- Global Income: exact aggregation display format (table, chart, both)
+- Dark/Light mode: exact approach if/when implemented (CSS variables, class toggle, system preference detection)
+- i18n: whether date/number formatting follows locale or stays invariant
+- Backup format versioning: exact version numbering scheme for future migrations
+
+### Blocking questions (require decision before implementation)
+
+- None currently identified.
+
+---
+
+# 40. FINAL INSTRUCTION TO ANY AI READING THIS FILE
 
 Do not blindly trust this file either. It is the project context, not a substitute for repository inspection.
 
@@ -1315,4 +1436,6 @@ Never invent evidence. Never claim browser verification without actually running
 
 ## ONE-LINE CURRENT STATE
 
-**FINDORA is a greenfield local-first personal finance MVP with frozen domain/application architecture, real IndexedDB persistence, backup/restore, core financial workflows, implemented accent theme system, closed security remediation, final hostile MVP audit passed, final MVP hardening passed, no MVP-blocking P1 findings remain, and the project is now at the final user/manual validation point before MVP closure; post-MVP development comes after closure.**
+**FINDORA is a greenfield, local-first personal finance MVP with frozen domain/application architecture, real IndexedDB persistence, backup/restore, core financial functionality, implemented accent theme system, closed security remediation, closed visual redesign, and an approved expanded MVP scope including Localization, Należności, Income Profiles (Reselling, Tworzenie stron, simplified Giełda), and Global Income; the immediate next stage is Stage 1 — Localization, followed by Należności, then Income Profile Foundation and per-profile implementation, without changing frozen production architecture.**
+
+(End of file - total 2500+ lines)

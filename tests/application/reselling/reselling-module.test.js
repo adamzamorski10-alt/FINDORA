@@ -1,0 +1,341 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { createResellingModule } from '../../../src/application/reselling/reselling-module.js';
+import { ResellingProductRepository } from '../../../src/infrastructure/repositories/reselling-product-repository.js';
+import { ResellingOrderRepository } from '../../../src/infrastructure/repositories/reselling-order-repository.js';
+import { ResellingSaleRepository } from '../../../src/infrastructure/repositories/reselling-sale-repository.js';
+import { ResellingCostRepository } from '../../../src/infrastructure/repositories/reselling-cost-repository.js';
+import { ResellingTaskRepository } from '../../../src/infrastructure/repositories/reselling-task-repository.js';
+import { InMemoryStorageAdapter } from '../../../src/infrastructure/storage/memory-storage-adapter.js';
+import { ApplicationTransaction } from '../../../src/infrastructure/storage/application-transaction.js';
+
+async function createModule(userId = 'user-1') {
+  const storage = new InMemoryStorageAdapter();
+  await storage.init();
+  const productRepo = new ResellingProductRepository(storage, userId, () => storage.keys());
+  const orderRepo = new ResellingOrderRepository(storage, userId, () => storage.keys());
+  const saleRepo = new ResellingSaleRepository(storage, userId, () => storage.keys());
+  const costRepo = new ResellingCostRepository(storage, userId, () => storage.keys());
+  const taskRepo = new ResellingTaskRepository(storage, userId, () => storage.keys());
+  const appTx = new ApplicationTransaction(storage);
+
+  return {
+    module: createResellingModule({
+      resellingProductRepository: productRepo,
+      resellingOrderRepository: orderRepo,
+      resellingSaleRepository: saleRepo,
+      resellingCostRepository: costRepo,
+      resellingTaskRepository: taskRepo,
+      applicationTransaction: appTx,
+    }),
+    storage,
+    productRepo,
+    orderRepo,
+    saleRepo,
+    costRepo,
+    taskRepo,
+    appTx,
+  };
+}
+
+describe('ResellingModule', () => {
+  describe('construction', () => {
+    it('creates a module with all public methods', async () => {
+      const { module } = await createModule();
+      assert.ok(module);
+      assert.strictEqual(typeof module.createProduct, 'function');
+      assert.strictEqual(typeof module.getProduct, 'function');
+      assert.strictEqual(typeof module.listProducts, 'function');
+      assert.strictEqual(typeof module.updateProduct, 'function');
+      assert.strictEqual(typeof module.archiveProduct, 'function');
+      assert.strictEqual(typeof module.createOrder, 'function');
+      assert.strictEqual(typeof module.getOrder, 'function');
+      assert.strictEqual(typeof module.listOrders, 'function');
+      assert.strictEqual(typeof module.updateOrder, 'function');
+      assert.strictEqual(typeof module.archiveOrder, 'function');
+      assert.strictEqual(typeof module.createSale, 'function');
+      assert.strictEqual(typeof module.getSale, 'function');
+      assert.strictEqual(typeof module.listSales, 'function');
+      assert.strictEqual(typeof module.updateSale, 'function');
+      assert.strictEqual(typeof module.archiveSale, 'function');
+      assert.strictEqual(typeof module.createCost, 'function');
+      assert.strictEqual(typeof module.getCost, 'function');
+      assert.strictEqual(typeof module.listCosts, 'function');
+      assert.strictEqual(typeof module.updateCost, 'function');
+      assert.strictEqual(typeof module.archiveCost, 'function');
+      assert.strictEqual(typeof module.createTask, 'function');
+      assert.strictEqual(typeof module.getTask, 'function');
+      assert.strictEqual(typeof module.listTasks, 'function');
+      assert.strictEqual(typeof module.updateTask, 'function');
+      assert.strictEqual(typeof module.archiveTask, 'function');
+      assert.strictEqual(typeof module.getResellingAnalytics, 'function');
+    });
+  });
+
+  describe('createProduct', () => {
+    it('creates product with correct shape', async () => {
+      const { module } = await createModule();
+      const product = await module.createProduct({
+        userId: 'user-1',
+        incomeProfileId: 'ip-1',
+        name: 'T-Shirt',
+        sku: 'TS-001',
+        platform: 'Vinted',
+        purchasePrice: 50,
+        plannedSalePrice: 100,
+        purchaseDate: '2024-06-15',
+        quantity: 5,
+        location: 'Warsaw',
+        notes: 'Test note',
+        status: 'in_stock',
+      });
+
+      assert.ok(product.id);
+      assert.strictEqual(product.userId, 'user-1');
+      assert.strictEqual(product.incomeProfileId, 'ip-1');
+      assert.strictEqual(product.name, 'T-Shirt');
+      assert.strictEqual(product.sku, 'TS-001');
+      assert.strictEqual(product.platform, 'Vinted');
+      assert.strictEqual(product.purchasePrice, 50);
+      assert.strictEqual(product.plannedSalePrice, 100);
+      assert.strictEqual(product.purchaseDate, '2024-06-15');
+      assert.strictEqual(product.quantity, 5);
+      assert.strictEqual(product.location, 'Warsaw');
+      assert.strictEqual(product.status, 'in_stock');
+      assert.strictEqual(product.archived, false);
+      assert.ok(product.createdAt);
+      assert.ok(product.updatedAt);
+    });
+
+    it('defaults status to ordered', async () => {
+      const { module } = await createModule();
+      const product = await module.createProduct({
+        userId: 'user-1',
+        incomeProfileId: 'ip-1',
+        name: 'T-Shirt',
+        purchasePrice: 50,
+        purchaseDate: '2024-06-15',
+        quantity: 1,
+      });
+      assert.strictEqual(product.status, 'ordered');
+    });
+
+    it('defaults quantity to 1', async () => {
+      const { module } = await createModule();
+      const product = await module.createProduct({
+        userId: 'user-1',
+        incomeProfileId: 'ip-1',
+        name: 'T-Shirt',
+        purchasePrice: 50,
+        purchaseDate: '2024-06-15',
+        quantity: 1,
+      });
+      assert.strictEqual(product.quantity, 1);
+    });
+
+    it('throws VALIDATION_FAILED for missing required fields', async () => {
+      const { module } = await createModule();
+      let threw = false;
+      try {
+        await module.createProduct({});
+      } catch (e) {
+        threw = true;
+        assert.strictEqual(e.message, 'VALIDATION_FAILED');
+      }
+      assert.ok(threw);
+    });
+  });
+
+  describe('createOrder', () => {
+    it('creates order with correct shape', async () => {
+      const { module } = await createModule();
+      const order = await module.createOrder({
+        userId: 'user-1',
+        incomeProfileId: 'ip-1',
+        orderNumber: 'ORD-001',
+        supplier: 'Supplier A',
+        platform: 'Allegro',
+        date: '2024-06-15',
+        items: [{ productId: 'p-1', quantity: 5, purchasePrice: 50 }],
+        shipping: 20,
+        status: 'processing',
+      });
+
+      assert.ok(order.id);
+      assert.strictEqual(order.userId, 'user-1');
+      assert.strictEqual(order.orderNumber, 'ORD-001');
+      assert.strictEqual(order.status, 'processing');
+      assert.strictEqual(order.totalCost, 270);
+    });
+
+    it('computes totalCost from items + shipping + additionalCosts', async () => {
+      const { module } = await createModule();
+      const order = await module.createOrder({
+        userId: 'user-1',
+        incomeProfileId: 'ip-1',
+        orderNumber: 'ORD-002',
+        date: '2024-06-15',
+        items: [
+          { productId: 'p-1', quantity: 2, purchasePrice: 30 },
+          { productId: 'p-2', quantity: 1, purchasePrice: 20 },
+        ],
+        shipping: 10,
+        additionalCosts: 5,
+      });
+      assert.strictEqual(order.totalCost, 2 * 30 + 1 * 20 + 10 + 5);
+    });
+  });
+
+  describe('createSale', () => {
+    it('creates sale with correct netAmount', async () => {
+      const { module } = await createModule();
+      const sale = await module.createSale({
+        userId: 'user-1',
+        incomeProfileId: 'ip-1',
+        productId: 'p-1',
+        quantity: 2,
+        salePrice: 200,
+        platform: 'Vinted',
+        commission: 10,
+        shipping: 15,
+        otherCosts: 0,
+        saleDate: '2024-07-01',
+        paymentStatus: 'paid',
+        saleStatus: 'completed',
+      });
+
+      assert.ok(sale.id);
+      assert.strictEqual(sale.netAmount, 175);
+      assert.strictEqual(sale.paymentStatus, 'paid');
+      assert.strictEqual(sale.saleStatus, 'completed');
+    });
+  });
+
+  describe('createCost', () => {
+    it('creates cost with correct shape', async () => {
+      const { module } = await createModule();
+      const cost = await module.createCost({
+        userId: 'user-1',
+        incomeProfileId: 'ip-1',
+        amount: 50,
+        category: 'shipping',
+        date: '2024-07-01',
+        description: 'Shipping cost',
+      });
+
+      assert.ok(cost.id);
+      assert.strictEqual(cost.amount, 50);
+      assert.strictEqual(cost.category, 'shipping');
+      assert.strictEqual(cost.description, 'Shipping cost');
+    });
+  });
+
+  describe('createTask', () => {
+    it('creates task with correct shape', async () => {
+      const { module } = await createModule();
+      const task = await module.createTask({
+        userId: 'user-1',
+        incomeProfileId: 'ip-1',
+        title: 'List product',
+        dueDate: '2024-07-10',
+        priority: 'high',
+        status: 'todo',
+      });
+
+      assert.ok(task.id);
+      assert.strictEqual(task.title, 'List product');
+      assert.strictEqual(task.priority, 'high');
+      assert.strictEqual(task.status, 'todo');
+    });
+
+    it('defaults priority to medium and status to todo', async () => {
+      const { module } = await createModule();
+      const task = await module.createTask({
+        userId: 'user-1',
+        incomeProfileId: 'ip-1',
+        title: 'Task',
+      });
+      assert.strictEqual(task.priority, 'medium');
+      assert.strictEqual(task.status, 'todo');
+    });
+  });
+
+  describe('profile isolation', () => {
+    it('lists only products for given incomeProfileId', async () => {
+      const { module } = await createModule();
+      await module.createProduct({ userId: 'user-1', incomeProfileId: 'ip-1', name: 'A', purchasePrice: 50, purchaseDate: '2024-06-15', quantity: 1 });
+      await module.createProduct({ userId: 'user-1', incomeProfileId: 'ip-2', name: 'B', purchasePrice: 50, purchaseDate: '2024-06-15', quantity: 1 });
+
+      const ip1Products = await module.listProducts({ userId: 'user-1', incomeProfileId: 'ip-1' });
+      assert.strictEqual(ip1Products.length, 1);
+      assert.strictEqual(ip1Products[0].name, 'A');
+    });
+  });
+
+  describe('cross-user isolation', () => {
+    it('does not leak data between users', async () => {
+      const { module } = await createModule('user-1');
+
+      await module.createProduct({ userId: 'user-1', incomeProfileId: 'ip-1', name: 'User1 Product', purchasePrice: 50, purchaseDate: '2024-06-15', quantity: 1 });
+
+      const user2Products = await module.listProducts({ userId: 'user-2' });
+      assert.strictEqual(user2Products.length, 0);
+    });
+  });
+
+  describe('getResellingAnalytics', () => {
+    it('computes correct analytics', async () => {
+      const { module } = await createModule();
+
+      await module.createCost({ userId: 'user-1', incomeProfileId: 'ip-1', amount: 100, category: 'shipping', date: '2024-07-01', description: 'Cost 1' });
+      await module.createCost({ userId: 'user-1', incomeProfileId: 'ip-1', amount: 50, category: 'packaging', date: '2024-07-01', description: 'Cost 2' });
+      await module.createSale({
+        userId: 'user-1',
+        incomeProfileId: 'ip-1',
+        productId: 'p-1',
+        quantity: 1,
+        salePrice: 300,
+        platform: 'Vinted',
+        commission: 20,
+        shipping: 10,
+        saleDate: '2024-07-01',
+      });
+
+      const analytics = await module.getResellingAnalytics({ userId: 'user-1' });
+
+      assert.strictEqual(analytics.totalRevenue, 300);
+      assert.strictEqual(analytics.totalCost, 150);
+      assert.strictEqual(analytics.totalNet, 150);
+      assert.strictEqual(analytics.totalSalesCount, 1);
+      assert.strictEqual(analytics.totalCostsCount, 2);
+      assert.ok(analytics.profitMargin > 0);
+    });
+  });
+
+  describe('archiveProduct', () => {
+    it('archives the product', async () => {
+      const { module } = await createModule();
+      const product = await module.createProduct({ userId: 'user-1', incomeProfileId: 'ip-1', name: 'T', purchasePrice: 50, purchaseDate: '2024-06-15', quantity: 1 });
+      const archived = await module.archiveProduct({ productId: product.id });
+      assert.strictEqual(archived.archived, true);
+
+      const active = await module.listProducts({ userId: 'user-1' });
+      assert.strictEqual(active.length, 0);
+    });
+  });
+
+  describe('updateProduct', () => {
+    it('updates allowed fields', async () => {
+      const { module } = await createModule();
+      const product = await module.createProduct({ userId: 'user-1', incomeProfileId: 'ip-1', name: 'T-Shirt', purchasePrice: 50, purchaseDate: '2024-06-15', quantity: 1 });
+      const updated = await module.updateProduct({
+        productId: product.id,
+        updates: { name: 'T-Shirt Updated', notes: 'New note', status: 'listed' },
+      });
+      assert.strictEqual(updated.name, 'T-Shirt Updated');
+      assert.strictEqual(updated.notes, 'New note');
+      assert.strictEqual(updated.status, 'listed');
+      assert.strictEqual(updated.userId, 'user-1');
+    });
+  });
+});

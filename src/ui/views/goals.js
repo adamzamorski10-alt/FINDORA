@@ -1,19 +1,8 @@
 import { renderIcon } from '../utils/icons.js';
 import { createFormStateBuffer } from '../utils/form-state.js';
 import { showToast, showConfirm, showModal } from '../utils/feedback.js';
-
-function formatCurrency(value) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
-  return Number(value).toFixed(2);
-}
-
-function formatDate(value) {
-  if (!value) return '';
-  const [year, month, day] = value.split('-').map(Number);
-  if (!year || !month || !day) return value;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${months[month - 1]} ${day}, ${year}`;
-}
+import { t } from '../i18n.js';
+import { formatCurrency, formatDate } from '../i18n-format.js';
 
 function createField(label, type, value, onChange) {
   const wrapper = document.createElement('div');
@@ -47,7 +36,7 @@ function createSelectField(label, options, selected, onChange) {
   select.className = 'form-select';
   const noneOption = document.createElement('option');
   noneOption.value = '';
-  noneOption.textContent = 'Select account';
+  noneOption.textContent = t('goals.selectAccount');
   select.appendChild(noneOption);
   for (const option of options) {
     const opt = document.createElement('option');
@@ -109,7 +98,7 @@ export function render(context = {}) {
   if (!state) {
     const el = document.createElement('div');
     el.className = 'view-placeholder';
-    el.innerHTML = '<h2>Goals</h2><p>Goals placeholder — functional screens will be added in later stages.</p>';
+    el.innerHTML = `<h2>${t('goals.title')}</h2><p>${t('common.placeholder')}</p>`;
     return el;
   }
 
@@ -128,16 +117,16 @@ export function render(context = {}) {
   header.className = 'page-header';
   const headerTitles = document.createElement('div');
   headerTitles.className = 'page-header-titles';
-  const title = el('h1', 'page-header-title', 'Goals');
+  const title = el('h1', 'page-header-title', t('goals.title'));
   headerTitles.appendChild(title);
-  const subtitle = el('p', 'page-header-subtitle', 'Track progress toward your financial goals');
+  const subtitle = el('p', 'page-header-subtitle', t('goals.subtitle'));
   headerTitles.appendChild(subtitle);
   header.appendChild(headerTitles);
 
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'btn btn-primary goals-add-btn';
-  addBtn.textContent = 'Add Goal';
+  addBtn.textContent = t('goals.add');
   addBtn.addEventListener('click', () => {
     state.dispatch({ type: 'RESET_GOAL_FORM' });
     openGoalForm();
@@ -155,7 +144,7 @@ export function render(context = {}) {
   if (loading) {
     const loadingSurface = document.createElement('div');
     loadingSurface.className = 'surface-analytic';
-    const loadingTitle = el('div', 'section-title', 'Financial Goals');
+    const loadingTitle = el('div', 'section-title', t('goals.loadingTitle'));
     loadingSurface.appendChild(loadingTitle);
     const skeletonGrid = document.createElement('div');
     skeletonGrid.style.display = 'grid';
@@ -177,12 +166,12 @@ export function render(context = {}) {
     const emptyIcon = document.createElement('div');
     emptyIcon.className = 'empty-state-icon';
     emptyIcon.textContent = '🗺️';
-    const emptyTitle = el('p', 'empty-state-title', 'No goals yet');
-    const emptyDesc = el('p', 'empty-state-desc', 'Create your first goal to start tracking progress toward your financial future.');
+    const emptyTitle = el('p', 'empty-state-title', t('goals.noGoals'));
+    const emptyDesc = el('p', 'empty-state-desc', t('goals.emptyDesc'));
     const emptyAction = document.createElement('button');
     emptyAction.type = 'button';
     emptyAction.className = 'btn btn-primary';
-    emptyAction.textContent = 'Create Goal';
+    emptyAction.textContent = t('goals.createGoal');
     emptyAction.addEventListener('click', () => {
       state.dispatch({ type: 'RESET_GOAL_FORM' });
       openGoalForm();
@@ -242,9 +231,9 @@ export function render(context = {}) {
       const metaEl = document.createElement('div');
       metaEl.className = 'goal-card-meta';
       const targetText = document.createElement('span');
-      targetText.textContent = `Target ${formatCurrency(goal.target)}`;
+      targetText.textContent = t('goals.targetText', { amount: formatCurrency(goal.target) });
       const remainingText = document.createElement('span');
-      remainingText.textContent = `${formatCurrency(remaining)} remaining`;
+      remainingText.textContent = t('goals.remainingText', { amount: formatCurrency(remaining) });
       metaEl.appendChild(targetText);
       metaEl.appendChild(remainingText);
       card.appendChild(metaEl);
@@ -272,7 +261,7 @@ export function render(context = {}) {
       deadlineEl.className = 'goal-card-deadline';
       const today = new Date().toISOString().slice(0, 10);
       if (goal.deadline) {
-        deadlineEl.textContent = `Due ${formatDate(goal.deadline)}`;
+        deadlineEl.textContent = t('goals.dueText', { date: formatDate(goal.deadline) });
         if (goal.deadline < today && pct < 100) {
           deadlineEl.classList.add('goal-card-deadline--past');
         }
@@ -280,7 +269,7 @@ export function render(context = {}) {
           deadlineEl.classList.add('goal-card-deadline--complete');
         }
       } else {
-        deadlineEl.textContent = 'No deadline';
+        deadlineEl.textContent = t('goals.noDeadline');
         deadlineEl.classList.add('goal-card-deadline--none');
       }
       card.appendChild(deadlineEl);
@@ -290,14 +279,14 @@ export function render(context = {}) {
 
       const depositBtn = document.createElement('button');
       depositBtn.type = 'button';
-      depositBtn.textContent = 'Deposit';
+      depositBtn.textContent = t('goals.deposit');
       depositBtn.className = 'btn btn-primary goal-deposit-btn';
       depositBtn.addEventListener('click', () => openDepositModal(goal, accounts));
       actions.appendChild(depositBtn);
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
-      editBtn.textContent = 'Edit';
+      editBtn.textContent = t('common.edit');
       editBtn.className = 'btn btn-secondary';
       editBtn.addEventListener('click', () => {
         state.dispatch({
@@ -318,17 +307,17 @@ export function render(context = {}) {
 
       const archiveBtn = document.createElement('button');
       archiveBtn.type = 'button';
-      archiveBtn.textContent = 'Archive';
+      archiveBtn.textContent = t('common.archive');
       archiveBtn.className = 'btn btn-danger';
       archiveBtn.addEventListener('click', async () => {
-        const confirmed = await showConfirm({ message: 'Archive this goal?' });
+        const confirmed = await showConfirm({ message: t('goals.archiveConfirm') });
         if (!confirmed) return;
         state.dispatch({ type: 'OPERATION_START', key: 'archiveGoal' });
         try {
           await modules.goal.archiveGoal({ goalId: goal.id });
           const refreshed = await modules.goal.getActiveGoals({ userId: state.getState().session.userId });
           state.dispatch({ type: 'SET_GOALS', goals: refreshed });
-          showToast({ message: 'Goal archived.', type: 'success' });
+          showToast({ message: t('goals.archivedSuccess'), type: 'success' });
         } catch (e) {
           state.dispatch({ type: 'OPERATION_ERROR', key: 'archiveGoal', error: e.message });
           showToast({ message: e.message, type: 'error' });
@@ -364,10 +353,10 @@ export function render(context = {}) {
     }
 
     const items = [
-      { label: 'Total Saved', value: formatCurrency(totalSaved), valueClass: 'summary-strip-value--positive' },
-      { label: 'Total Target', value: formatCurrency(totalTarget), valueClass: 'summary-strip-value--muted' },
-      { label: 'Active Goals', value: String(activeCount), valueClass: '' },
-      { label: 'Nearest Deadline', value: nearestDeadline ? formatDate(nearestDeadline) : '—', valueClass: '' },
+      { label: t('goals.totalSaved'), value: formatCurrency(totalSaved), valueClass: 'summary-strip-value--positive' },
+      { label: t('goals.totalTarget'), value: formatCurrency(totalTarget), valueClass: 'summary-strip-value--muted' },
+      { label: t('goals.activeGoals'), value: String(activeCount), valueClass: '' },
+      { label: t('goals.nearestDeadline'), value: nearestDeadline ? formatDate(nearestDeadline) : t('common.none'), valueClass: '' },
     ];
 
     for (const item of items) {
@@ -407,27 +396,27 @@ export function render(context = {}) {
     const body = document.createElement('div');
     body.className = 'goal-form-body';
 
-    const nameField = createField('Name', 'text', buffer.getState().name, (value) => {
+    const nameField = createField(t('common.name'), 'text', buffer.getState().name, (value) => {
       buffer.setValue('name', value);
     });
     body.appendChild(nameField);
 
-    const targetField = createField('Target Amount', 'number', buffer.getState().target || '', (value) => {
+    const targetField = createField(t('goals.targetAmount'), 'number', buffer.getState().target || '', (value) => {
       buffer.setValue('target', value);
     });
     body.appendChild(targetField);
 
-    const deadlineField = createField('Deadline (YYYY-MM-DD)', 'text', buffer.getState().deadline || '', (value) => {
+    const deadlineField = createField(t('goals.deadlineField'), 'text', buffer.getState().deadline || '', (value) => {
       buffer.setValue('deadline', value);
     });
     body.appendChild(deadlineField);
 
-    const iconField = createField('Icon (emoji)', 'text', buffer.getState().icon || '🎯', (value) => {
+    const iconField = createField(t('common.icon'), 'text', buffer.getState().icon || '🎯', (value) => {
       buffer.setValue('icon', value);
     });
     body.appendChild(iconField);
 
-    const colorField = createField('Color (hex)', 'text', buffer.getState().color || '#FF0000', (value) => {
+    const colorField = createField(t('common.color'), 'text', buffer.getState().color || '#FF0000', (value) => {
       buffer.setValue('color', value);
     });
     body.appendChild(colorField);
@@ -437,13 +426,13 @@ export function render(context = {}) {
 
     const submitBtn = document.createElement('button');
     submitBtn.type = 'submit';
-    submitBtn.textContent = isEditing ? 'Save Changes' : 'Create Goal';
+    submitBtn.textContent = isEditing ? t('goals.saveChanges') : t('goals.createGoal');
     submitBtn.className = 'btn btn-primary';
     formActions.appendChild(submitBtn);
 
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('common.cancel');
     cancelBtn.className = 'btn btn-secondary';
     cancelBtn.addEventListener('click', () => {
       buffer.reset({ name: '', target: '', deadline: '', icon: '🎯', color: '#FF0000', priority: 'medium' });
@@ -464,7 +453,7 @@ export function render(context = {}) {
 
     let closeModal = () => {};
     const modalClose = showModal({
-      title: isEditing ? 'Edit Goal' : 'Create Goal',
+      title: isEditing ? t('goals.editGoal') : t('goals.createGoal'),
       bodyHTML: createSection,
       size: 'sm',
       onClose: () => {
@@ -488,7 +477,7 @@ export function render(context = {}) {
       const color = currentForm.color?.trim();
 
       if (!name || !Number.isFinite(target) || target <= 0 || !deadline || !icon || !color) {
-        showToast({ message: 'Please fill in all fields with valid values.', type: 'error' });
+        showToast({ message: t('common.pleaseFillAllFields'), type: 'error' });
         return;
       }
 
@@ -501,7 +490,7 @@ export function render(context = {}) {
             goalId: editingId,
             updates: { name, target, deadline, icon, color },
           });
-          showToast({ message: 'Goal updated successfully.', type: 'success' });
+          showToast({ message: t('goals.updatedSuccess'), type: 'success' });
         } else {
           await modules.goal.createGoal({
             userId: state.getState().session.userId,
@@ -512,7 +501,7 @@ export function render(context = {}) {
             color,
             priority: currentForm.priority || 'medium',
           });
-          showToast({ message: 'Goal created successfully.', type: 'success' });
+          showToast({ message: t('goals.createdSuccess'), type: 'success' });
         }
 
         closeModal();
@@ -539,17 +528,17 @@ export function render(context = {}) {
     body.className = 'deposit-form-body';
 
     const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name }));
-    const accountField = createSelectField('Account', accountOptions, '', (value) => {
+    const accountField = createSelectField(t('goals.selectAccount'), accountOptions, '', (value) => {
       buffer.setValue('accountId', value);
     });
     body.appendChild(accountField);
 
-    const amountField = createField('Amount', 'number', buffer.getState().amount, (value) => {
+    const amountField = createField(t('common.amount'), 'number', buffer.getState().amount, (value) => {
       buffer.setValue('amount', value);
     });
     body.appendChild(amountField);
 
-    const dateField = createField('Date (YYYY-MM-DD)', 'text', buffer.getState().date, (value) => {
+    const dateField = createField(t('goals.dateField'), 'text', buffer.getState().date, (value) => {
       buffer.setValue('date', value);
     });
     body.appendChild(dateField);
@@ -559,13 +548,13 @@ export function render(context = {}) {
 
     const submitBtn = document.createElement('button');
     submitBtn.type = 'submit';
-    submitBtn.textContent = 'Submit Deposit';
+    submitBtn.textContent = t('goals.submitDeposit');
     submitBtn.className = 'btn btn-primary';
     formActions.appendChild(submitBtn);
 
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('common.cancel');
     cancelBtn.className = 'btn btn-secondary';
     cancelBtn.addEventListener('click', () => {
       buffer.reset({ amount: '', date: new Date().toISOString().slice(0, 10), accountId: '' });
@@ -585,7 +574,7 @@ export function render(context = {}) {
 
     let closeModal = () => {};
     const modalClose = showModal({
-      title: `Deposit to ${goal.name}`,
+      title: t('goals.depositTitle', { name: goal.name }),
       bodyHTML: depositSection,
       size: 'sm',
       onClose: () => {
@@ -605,15 +594,15 @@ export function render(context = {}) {
       const accountId = depositFormState.accountId;
 
       if (!accountId) {
-        showToast({ message: 'Please select an account first.', type: 'error' });
+        showToast({ message: t('goals.selectAccountFirst'), type: 'error' });
         return;
       }
       if (!Number.isFinite(amount) || amount <= 0 || isNaN(amount)) {
-        showToast({ message: 'Please enter a valid amount.', type: 'error' });
+        showToast({ message: t('goals.enterValidAmount'), type: 'error' });
         return;
       }
       if (!date) {
-        showToast({ message: 'Please enter a date.', type: 'error' });
+        showToast({ message: t('goals.enterDate'), type: 'error' });
         return;
       }
 
@@ -631,7 +620,8 @@ export function render(context = {}) {
         });
         const refreshed = await modules.goal.getActiveGoals({ userId: state.getState().session.userId });
         state.dispatch({ type: 'SET_GOALS', goals: refreshed });
-        showToast({ message: 'Deposit successful.', type: 'success' });
+          showToast({ message: t('goals.depositSuccess'), type: 'success' });
+
         closeModal();
       } catch (e) {
         state.dispatch({ type: 'OPERATION_ERROR', key: 'depositToGoal', error: e.message });

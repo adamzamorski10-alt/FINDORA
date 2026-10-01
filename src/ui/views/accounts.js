@@ -6,14 +6,24 @@
  * Preserves all domain contracts and key DOM selector contracts.
  */
 
+console.log('ACCOUNTS VIEW MODULE LOADED');
+
 import { renderIcon } from '../utils/icons.js';
 import { createFormStateBuffer } from '../utils/form-state.js';
 import { showToast, showConfirm, showModal } from '../utils/feedback.js';
+import { t } from '../i18n.js';
+import { formatCurrency as formatLocaleCurrency } from '../i18n-format.js';
+
+function formatCurrency(value) {
+  return formatLocaleCurrency(value, 'PLN');
+}
+
+console.log('ACCOUNTS VIEW LOADED - VERSION 2');
 
 const TYPE_LABELS = {
-  bank: 'Bank',
-  savings: 'Savings',
-  cash: 'Cash',
+  bank: 'accounts.bank',
+  savings: 'accounts.savings',
+  cash: 'accounts.cash',
 };
 
 const CURATED_ICONS = [
@@ -41,11 +51,6 @@ const CURATED_COLORS = [
   '#6B7280',
   '#0000FF',
 ];
-
-function formatCurrency(value) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
-  return Number(value).toFixed(2);
-}
 
 function sanitizeColor(color) {
   if (!color || typeof color !== 'string') return '#6B7280';
@@ -109,7 +114,7 @@ export function render(context = {}) {
   if (!state) {
     const el = document.createElement('div');
     el.className = 'view-placeholder';
-    el.innerHTML = '<h2>Accounts</h2><p>Accounts placeholder — functional screens will be added in later stages.</p>';
+    el.innerHTML = `<h2>${t('nav.accounts')}</h2><p>${t('common.placeholder') || ''}</p>`;
     return el;
   }
 
@@ -126,16 +131,16 @@ export function render(context = {}) {
   header.className = 'page-header';
   const headerTitles = document.createElement('div');
   headerTitles.className = 'page-header-titles';
-  const title = el('h1', 'page-header-title', 'Accounts');
+  const title = el('h1', 'page-header-title', t('nav.accounts'));
   headerTitles.appendChild(title);
-  const subtitle = el('p', 'page-header-subtitle', 'Manage your accounts and balances');
+  const subtitle = el('p', 'page-header-subtitle', t('accounts.subtitle'));
   headerTitles.appendChild(subtitle);
   header.appendChild(headerTitles);
 
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'btn btn-primary accounts-add-btn';
-  addBtn.textContent = 'Add Account';
+  addBtn.textContent = t('accounts.add');
   addBtn.addEventListener('click', () => {
     openAccountForm();
   });
@@ -178,12 +183,12 @@ export function render(context = {}) {
     const emptyIcon = document.createElement('div');
     emptyIcon.className = 'empty-state-icon';
     emptyIcon.textContent = '🏦';
-    const emptyTitle = el('p', 'empty-state-title', 'No accounts yet');
-    const emptyDesc = el('p', 'empty-state-desc', 'Create your first account to start tracking your balances.');
+    const emptyTitle = el('p', 'empty-state-title', t('accounts.noAccounts'));
+    const emptyDesc = el('p', 'empty-state-desc', t('accounts.emptyDesc'));
     const emptyAction = document.createElement('button');
     emptyAction.type = 'button';
     emptyAction.className = 'btn btn-primary';
-    emptyAction.textContent = 'Add Account';
+    emptyAction.textContent = t('accounts.emptyAction');
     emptyAction.addEventListener('click', () => {
       openAccountForm();
     });
@@ -195,7 +200,7 @@ export function render(context = {}) {
   } else {
     const hero = document.createElement('div');
     hero.className = 'surface-hero';
-    const heroLabel = el('span', 'summary-strip-label', 'Total Balance');
+    const heroLabel = el('span', 'summary-strip-label', t('dashboard.totalBalance'));
     hero.appendChild(heroLabel);
     const heroValue = el('span', 'summary-strip-value', '…');
     hero.appendChild(heroValue);
@@ -227,7 +232,7 @@ export function render(context = {}) {
 
       const typeEl = document.createElement('div');
       typeEl.className = 'account-list-item-meta';
-      typeEl.textContent = TYPE_LABELS[account.type] || account.type;
+      typeEl.textContent = t(TYPE_LABELS[account.type]) || account.type;
       body.appendChild(typeEl);
 
       li.appendChild(body);
@@ -243,7 +248,7 @@ export function render(context = {}) {
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'btn btn-secondary';
-      editBtn.textContent = 'Edit';
+      editBtn.textContent = t('common.edit');
       editBtn.addEventListener('click', () => {
         openAccountForm(account);
       });
@@ -252,16 +257,16 @@ export function render(context = {}) {
       const archiveBtn = document.createElement('button');
       archiveBtn.type = 'button';
       archiveBtn.className = 'btn btn-danger';
-      archiveBtn.textContent = 'Archive';
+      archiveBtn.textContent = t('common.archive');
       archiveBtn.addEventListener('click', async () => {
-        const confirmed = await showConfirm({ message: 'Archive this account?' });
+        const confirmed = await showConfirm({ message: t('accounts.archiveConfirm') });
         if (!confirmed) return;
         state.dispatch({ type: 'OPERATION_START', key: 'archiveAccount' });
         try {
           await modules.account.archiveAccount({ accountId: account.id });
           const refreshed = await modules.account.getActiveAccounts({ userId: state.getState().session.userId });
           state.dispatch({ type: 'SET_ACCOUNTS', accounts: refreshed });
-          showToast({ message: 'Account archived.', type: 'success' });
+          showToast({ message: t('accounts.archivedSuccess'), type: 'success' });
         } catch (e) {
           state.dispatch({ type: 'OPERATION_ERROR', key: 'archiveAccount', error: e.message });
           showToast({ message: e.message, type: 'error' });
@@ -337,25 +342,27 @@ export function render(context = {}) {
     const body = document.createElement('div');
     body.className = 'account-form-body';
 
-    const nameField = createFormField('Account Name', 'text', buffer.getState().name, (value) => {
+    const nameField = createFormField(t('accounts.accountName'), 'text', buffer.getState().name, (value) => {
       buffer.setValue('name', value);
     });
+    nameField.querySelector('input')?.setAttribute('name', 'name');
     body.appendChild(nameField);
 
-    const typeField = createFormSelectField('Account Type', ['bank', 'savings', 'cash'], buffer.getState().type, (value) => {
+    const typeField = createFormSelectField(t('accounts.accountType'), ['bank', 'savings', 'cash'], buffer.getState().type, (value) => {
       buffer.setValue('type', value);
     });
+    typeField.querySelector('select')?.setAttribute('name', 'type');
     body.appendChild(typeField);
 
     const iconLabel = document.createElement('label');
-    iconLabel.textContent = 'Icon';
+    iconLabel.textContent = t('common.icon');
     iconLabel.className = 'form-label';
     body.appendChild(iconLabel);
 
     const iconPicker = document.createElement('div');
     iconPicker.className = 'icon-picker';
     iconPicker.setAttribute('role', 'radiogroup');
-    iconPicker.setAttribute('aria-label', 'Account icon');
+    iconPicker.setAttribute('aria-label', t('accounts.accountIcon'));
     for (const iconDef of CURATED_ICONS) {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -383,14 +390,14 @@ export function render(context = {}) {
     body.appendChild(iconPicker);
 
     const colorLabel = document.createElement('label');
-    colorLabel.textContent = 'Color';
+    colorLabel.textContent = t('common.color');
     colorLabel.className = 'form-label';
     body.appendChild(colorLabel);
 
     const colorPicker = document.createElement('div');
     colorPicker.className = 'color-picker';
     colorPicker.setAttribute('role', 'radiogroup');
-    colorPicker.setAttribute('aria-label', 'Account color');
+    colorPicker.setAttribute('aria-label', t('accounts.accountColor'));
     for (const color of CURATED_COLORS) {
       const swatch = document.createElement('button');
       swatch.type = 'button';
@@ -418,13 +425,14 @@ export function render(context = {}) {
     body.appendChild(colorPicker);
 
     if (!isEditing) {
-      const openingBalanceField = createFormField('Opening Balance', 'number', buffer.getState().openingBalance || '', (value) => {
+      const openingBalanceField = createFormField(t('accounts.openingBalance'), 'number', buffer.getState().openingBalance === undefined ? '' : String(buffer.getState().openingBalance), (value) => {
         const parsed = value === '' ? undefined : Number(value);
         buffer.setValue('openingBalance', parsed);
       });
+      openingBalanceField.querySelector('input')?.setAttribute('name', 'openingBalance');
       const openingHint = document.createElement('span');
       openingHint.className = 'form-hint';
-      openingHint.textContent = 'Use a negative value for starting debt.';
+      openingHint.textContent = t('accounts.negativeOpeningBalance');
       openingBalanceField.appendChild(openingHint);
       body.appendChild(openingBalanceField);
     }
@@ -434,13 +442,13 @@ export function render(context = {}) {
 
     const submitBtn = document.createElement('button');
     submitBtn.type = 'submit';
-    submitBtn.textContent = isEditing ? 'Save Changes' : 'Create Account';
+    submitBtn.textContent = isEditing ? t('common.save') : t('accounts.addAccount');
     submitBtn.className = 'btn btn-primary';
     actionsRow.appendChild(submitBtn);
 
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('common.cancel');
     cancelBtn.className = 'btn btn-secondary';
     cancelBtn.addEventListener('click', () => {
       buffer.reset({
@@ -506,6 +514,7 @@ export function render(context = {}) {
     }
 
     formEl.addEventListener('submit', async (e) => {
+      console.log('ACCOUNT FORM SUBMIT');
       e.preventDefault();
       const operationKey = isEditing ? 'updateAccount' : 'createAccount';
       if (state.getState().operations[operationKey]?.loading) return;
@@ -552,6 +561,7 @@ export function render(context = {}) {
         closeModal();
 
         const refreshed = await modules.account.getActiveAccounts({ userId: state.getState().session.userId });
+        console.log('ACCOUNTS VIEW - refreshed count:', refreshed.length);
         state.dispatch({ type: 'SET_ACCOUNTS', accounts: refreshed });
       } catch (e) {
         state.dispatch({ type: 'OPERATION_ERROR', key: operationKey, error: e.message });
@@ -604,7 +614,7 @@ function createFormSelectField(label, options, selected, onChange) {
   for (const option of options) {
     const opt = document.createElement('option');
     opt.value = option;
-    opt.textContent = TYPE_LABELS[option] || option;
+    opt.textContent = t(TYPE_LABELS[option]) || option;
     if (option === selected) opt.selected = true;
     select.appendChild(opt);
   }

@@ -8,23 +8,8 @@
 
 import { createFormStateBuffer } from '../utils/form-state.js';
 import { showToast, showConfirm, showModal } from '../utils/feedback.js';
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-function formatCurrency(value) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
-  return Number(value).toFixed(2);
-}
-
-function formatMonthLabel(monthKey) {
-  if (!monthKey) return '';
-  const [year, month] = monthKey.split('-').map(Number);
-  if (!year || !month) return monthKey;
-  return `${MONTH_NAMES[month - 1]} ${year}`;
-}
+import { t } from '../i18n.js';
+import { formatCurrency, formatMonthLabel, getMonthNames } from '../i18n-format.js';
 
 function el(tag, className, textContent) {
   const e = document.createElement(tag);
@@ -73,7 +58,7 @@ export function render(context = {}) {
   if (!state) {
     const el = document.createElement('div');
     el.className = 'view-placeholder';
-    el.innerHTML = '<h2>Budgets</h2><p>Budgets placeholder — functional screens will be added in later stages.</p>';
+    el.innerHTML = `<h2>${t('budgets.title')}</h2><p>${t('common.placeholder')}</p>`;
     return el;
   }
 
@@ -92,16 +77,16 @@ export function render(context = {}) {
   header.className = 'page-header';
   const headerTitles = document.createElement('div');
   headerTitles.className = 'page-header-titles';
-  const title = el('h1', 'page-header-title', 'Budgets');
+  const title = el('h1', 'page-header-title', t('budgets.title'));
   headerTitles.appendChild(title);
-  const subtitle = el('p', 'page-header-subtitle', 'Plan and monitor your spending limits');
+  const subtitle = el('p', 'page-header-subtitle', t('budgets.subtitle'));
   headerTitles.appendChild(subtitle);
   header.appendChild(headerTitles);
 
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'btn btn-primary budgets-add-btn';
-  addBtn.textContent = 'Add Budget';
+  addBtn.textContent = t('budgets.add');
   addBtn.addEventListener('click', () => {
     state.dispatch({ type: 'RESET_BUDGET_FORM' });
     openBudgetForm();
@@ -119,7 +104,7 @@ export function render(context = {}) {
   if (loading) {
     const loadingSurface = document.createElement('div');
     loadingSurface.className = 'surface-analytic';
-    const loadingTitle = el('div', 'section-title', 'Budgets');
+    const loadingTitle = el('div', 'section-title', t('budgets.title'));
     loadingSurface.appendChild(loadingTitle);
     const skeletonGrid = document.createElement('div');
     skeletonGrid.style.display = 'grid';
@@ -140,12 +125,12 @@ export function render(context = {}) {
     const emptyIcon = document.createElement('div');
     emptyIcon.className = 'empty-state-icon';
     emptyIcon.textContent = '📊';
-    const emptyTitle = el('p', 'empty-state-title', 'No budgets yet');
-    const emptyDesc = el('p', 'empty-state-desc', 'Create your first budget to start tracking spending against your plan.');
+    const emptyTitle = el('p', 'empty-state-title', t('budgets.noBudgets'));
+    const emptyDesc = el('p', 'empty-state-desc', t('budgets.emptyDesc'));
     const emptyAction = document.createElement('button');
     emptyAction.type = 'button';
     emptyAction.className = 'btn btn-primary';
-    emptyAction.textContent = 'Create Budget';
+    emptyAction.textContent = t('budgets.createBudget');
     emptyAction.addEventListener('click', () => {
       state.dispatch({ type: 'RESET_BUDGET_FORM' });
       openBudgetForm();
@@ -160,10 +145,10 @@ export function render(context = {}) {
     summary.className = 'summary-strip';
     const summaryValueEls = [];
     const summaryItems = [
-        { label: 'Total Budgeted', valueClass: 'summary-strip-value amount amount-neutral' },
-        { label: 'Total Spent', valueClass: 'summary-strip-value amount amount-neutral' },
-        { label: 'Remaining', valueClass: 'summary-strip-value amount amount-neutral' },
-        { label: 'Utilization', valueClass: 'summary-strip-value amount amount-neutral' },
+        { label: t('budgets.totalBudgeted'), valueClass: 'summary-strip-value amount amount-neutral' },
+        { label: t('budgets.totalSpent'), valueClass: 'summary-strip-value amount amount-neutral' },
+        { label: t('common.remaining'), valueClass: 'summary-strip-value amount amount-neutral' },
+        { label: t('budgets.utilization'), valueClass: 'summary-strip-value amount amount-neutral' },
     ];
     for (const item of summaryItems) {
         const stripItem = document.createElement('div');
@@ -211,7 +196,7 @@ export function render(context = {}) {
       editBtn.type = 'button';
       editBtn.className = 'surface-list-item-action';
       editBtn.textContent = '✎';
-      editBtn.setAttribute('aria-label', 'Edit budget');
+      editBtn.setAttribute('aria-label', t('budgets.editAria'));
       editBtn.addEventListener('click', () => {
         state.dispatch({
           type: 'SET_BUDGET_FORM',
@@ -229,9 +214,9 @@ export function render(context = {}) {
       archiveBtn.type = 'button';
       archiveBtn.className = 'surface-list-item-action surface-list-item-action--danger';
       archiveBtn.textContent = '🗑';
-      archiveBtn.setAttribute('aria-label', 'Archive budget');
+      archiveBtn.setAttribute('aria-label', t('budgets.archiveAria'));
       archiveBtn.addEventListener('click', async () => {
-        const confirmed = await showConfirm({ message: 'Archive this budget?' });
+        const confirmed = await showConfirm({ message: t('budgets.archiveConfirm') });
         if (!confirmed) return;
         state.dispatch({ type: 'OPERATION_START', key: 'archiveBudget' });
         try {
@@ -256,7 +241,7 @@ export function render(context = {}) {
       limitRow.className = 'budget-card-limit';
       const limitLabel = document.createElement('span');
       limitLabel.className = 'budget-card-limit-label';
-      limitLabel.textContent = 'Monthly budget';
+      limitLabel.textContent = t('common.monthlyBudget');
       const limitValue = document.createElement('span');
       limitValue.className = 'budget-card-limit-value amount amount-neutral';
       limitValue.textContent = formatCurrency(budget.amount);
@@ -268,7 +253,7 @@ export function render(context = {}) {
       spentRow.className = 'budget-card-spent-row';
       const spentLabel = document.createElement('span');
       spentLabel.className = 'budget-card-spent-label';
-      spentLabel.textContent = 'Spent';
+      spentLabel.textContent = t('common.spent');
       const spentValue = document.createElement('span');
       spentValue.className = 'budget-card-spent amount amount-neutral';
       spentValue.textContent = '0.00';
@@ -289,7 +274,7 @@ export function render(context = {}) {
       remainingRow.className = 'budget-card-remaining-row';
       const remainingText = document.createElement('span');
       remainingText.className = 'budget-card-remaining';
-      remainingText.textContent = 'Loading...';
+      remainingText.textContent = t('common.loading');
       const pctText = document.createElement('span');
       pctText.className = 'budget-card-pct';
       pctText.textContent = '';
@@ -345,9 +330,9 @@ export function render(context = {}) {
           entry.spentEl.textContent = formatCurrency(progress.spent);
           entry.spentEl.className = `budget-card-spent amount ${progress.overBudget ? 'amount-negative' : 'amount-neutral'}`;
           entry.remainingText.textContent = progress.overBudget
-            ? `Over by ${formatCurrency(progress.spent - budget.amount)}`
-            : `${formatCurrency(progress.remaining)} remaining`;
-          entry.pctText.textContent = `${Math.round(pct)}% used`;
+            ? t('budgets.overByText', { amount: formatCurrency(progress.spent - budget.amount) })
+            : t('budgets.remainingText', { amount: formatCurrency(progress.remaining) });
+          entry.pctText.textContent = t('budgets.pctUsedText', { pct: Math.round(pct) });
           entry.limitValue.textContent = formatCurrency(budget.amount);
           if (progress.overBudget) {
             entry.spentRow.classList.add('budget-card-spent-row--over');
@@ -357,13 +342,13 @@ export function render(context = {}) {
           const utilizationPct = budget.amount > 0 ? (progress.spent / budget.amount) * 100 : 0;
           if (utilizationPct < 70) {
             entry.statusBadge.className = 'budget-status budget-status--healthy';
-            entry.statusBadge.textContent = 'Healthy';
+            entry.statusBadge.textContent = t('budgets.statusHealthy');
           } else if (utilizationPct <= 90) {
             entry.statusBadge.className = 'budget-status budget-status--approaching';
-            entry.statusBadge.textContent = 'Approaching';
+            entry.statusBadge.textContent = t('budgets.statusApproaching');
           } else {
             entry.statusBadge.className = 'budget-status budget-status--over';
-            entry.statusBadge.textContent = 'Over';
+            entry.statusBadge.textContent = t('budgets.statusOver');
           }
           return progress;
         } catch (_e) {
@@ -419,7 +404,7 @@ export function render(context = {}) {
     const categoryWrapper = document.createElement('div');
     categoryWrapper.className = 'form-field';
     const categoryLabel = document.createElement('label');
-    categoryLabel.textContent = 'Category';
+    categoryLabel.textContent = t('common.category');
     categoryLabel.className = 'form-label';
     categoryWrapper.appendChild(categoryLabel);
 
@@ -427,7 +412,7 @@ export function render(context = {}) {
     categorySelect.className = 'form-select';
     const noneOption = document.createElement('option');
     noneOption.value = '';
-    noneOption.textContent = 'Select category';
+    noneOption.textContent = t('common.selectCategory');
     categorySelect.appendChild(noneOption);
     categoryWrapper.appendChild(categorySelect);
     body.appendChild(categoryWrapper);
@@ -469,12 +454,12 @@ export function render(context = {}) {
         .catch(() => {});
     }
 
-    const amountField = createFormField('Amount', 'number', buffer.getState().amount, (value) => {
+    const amountField = createFormField(t('common.amount'), 'number', buffer.getState().amount, (value) => {
       buffer.setValue('amount', value);
     });
     const amountHint = document.createElement('span');
     amountHint.className = 'form-hint';
-    amountHint.textContent = 'Monthly spending limit. Must be a positive value.';
+    amountHint.textContent = t('budgets.monthlySpendingLimit');
     amountField.appendChild(amountHint);
     body.appendChild(amountField);
 
@@ -483,13 +468,13 @@ export function render(context = {}) {
 
     const submitBtn = document.createElement('button');
     submitBtn.type = 'submit';
-    submitBtn.textContent = isEditing ? 'Save Changes' : 'Create Budget';
+    submitBtn.textContent = isEditing ? t('budgets.saveChanges') : t('budgets.createBudget');
     submitBtn.className = 'btn btn-primary';
     formActions.appendChild(submitBtn);
 
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('common.cancel');
     cancelBtn.className = 'btn btn-secondary';
     cancelBtn.addEventListener('click', () => {
       buffer.reset({ categoryId: '', amount: '', period: 'monthly' });
@@ -544,7 +529,7 @@ export function render(context = {}) {
       sheetBackdrop.addEventListener('click', closeModalFn);
     } else {
       const modalClose = showModal({
-        title: isEditing ? 'Edit Budget' : 'Create Budget',
+        title: isEditing ? t('budgets.editTitle') : t('budgets.createBudget'),
         bodyHTML: formEl,
         size: 'sm',
         onClose: () => {
@@ -565,7 +550,7 @@ export function render(context = {}) {
       const amount = rawAmount === undefined ? NaN : rawAmount;
 
       if (!categoryId || !Number.isFinite(amount) || amount <= 0) {
-        showToast({ message: 'Please fill in all fields with valid values.', type: 'error' });
+        showToast({ message: t('common.pleaseFillAllFields'), type: 'error' });
         return;
       }
 
@@ -580,14 +565,14 @@ export function render(context = {}) {
             budgetId: editingId,
             amount,
           });
-          showToast({ message: 'Budget updated successfully.', type: 'success' });
+          showToast({ message: t('budgets.updatedSuccess'), type: 'success' });
         } else {
           await modules.budget.createBudget({
             userId: state.getState().session.userId,
             categoryId,
             amount,
           });
-          showToast({ message: 'Budget created successfully.', type: 'success' });
+          showToast({ message: t('budgets.createdSuccess'), type: 'success' });
         }
 
         closeModal();

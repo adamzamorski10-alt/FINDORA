@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FINDORA</title>
+  <link rel="stylesheet" href="app.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <div id="app-lifecycle-initializing" class="lifecycle-state">
+      <div class="sidebar-brand-badge" style="width: 48px; height: 48px; font-size: 1.5rem; margin-bottom: 1rem;">❖</div>
+      <p style="font-weight: 600; color: var(--color-text-primary);" data-i18n="app.brand">FINDORA</p>
+      <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem; letter-spacing: 0.04em;" data-i18n="app.brandSub">PERSONAL WEALTH OS</p>
+    </div>
+    <div id="app-lifecycle-ready" class="app-shell" style="display:none;">
+      <div class="sidebar-overlay" aria-hidden="true"></div>
+      <aside class="sidebar" aria-label="Sidebar navigation" aria-hidden="true">
+        <a href="#dashboard" class="sidebar-brand" data-tab="dashboard">
+          <div class="sidebar-brand-badge">❖</div>
+          <div class="sidebar-brand-text">
+            <span data-i18n="app.brand">FINDORA</span>
+            <span class="sidebar-brand-sub" data-i18n="app.brandSub">Personal Wealth OS</span>
+          </div>
+        </a>
+        <nav class="sidebar-nav">
+          <div class="nav-section-label" data-i18n="nav.section.overview">OVERVIEW</div>
+          <ul class="sidebar-nav-list">
+            <li>
+              <a href="#dashboard" class="sidebar-link nav-link" data-tab="dashboard">
+                <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                <span data-i18n="nav.dashboard">Dashboard</span>
+              </a>
+            </li>
+          </ul>
+
+          <div class="nav-section-label" data-i18n="nav.section.money">MONEY</div>
+          <ul class="sidebar-nav-list">
+            <li>
+              <a href="#accounts" class="sidebar-link nav-link" data-tab="accounts">
+                <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16"/><path d="M4 14h16"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+                <span data-i18n="nav.accounts">Accounts</span>
+              </a>
+            </li>
+            <li>
+              <a href="#transactions" class="sidebar-link nav-link" data-tab="transactions">
+                <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span data-i18n="nav.transactions">Transactions</span>
+              </a>
+            </li>
+            <li>
+              <a href="#budgets" class="sidebar-link nav-link" data-tab="budgets">
+                <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span data-i18n="nav.budgets">Budgets</span>
+              </a>
+            </li>
+            <li>
+              <a href="#goals" class="sidebar-link nav-link" data-tab="goals">
+                <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                <span data-i18n="nav.goals">Goals</span>
+              </a>
+            </li>
+            <li>
+              <a href="#receivables" class="sidebar-link nav-link" data-tab="receivables">
+                <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+                <span data-i18n="nav.receivables">Należności</span>
+              </a>
+            </li>
+          </ul>
+
+          <div class="nav-section-label" data-i18n="nav.section.insights">INSIGHTS</div>
+          <ul class="sidebar-nav-list">
+            <li>
+              <a href="#reports" class="sidebar-link nav-link" data-tab="reports">
+                <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span data-i18n="nav.reports">Reports</span>
+              </a>
+            </li>
+          </ul>
+
+          <div class="nav-section-label" data-i18n="nav.section.preferences">PREFERENCES</div>
+          <ul class="sidebar-nav-list">
+            <li>
+              <a href="#settings" class="sidebar-link nav-link" data-tab="settings">
+                <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l.06.06a2 2 0 012.83-2.83l.06-.06a1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                <span data-i18n="nav.settings">Settings</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-user">
+            <div class="sidebar-avatar" id="sidebar-user-avatar">F</div>
+            <div class="sidebar-user-info">
+              <div class="sidebar-user-name" id="sidebar-user-name">Guest User</div>
+              <div class="sidebar-user-email" id="sidebar-user-email">Local Database Active</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+      <div class="app-body">
+        <header class="top-bar">
+          <div class="top-bar-left">
+            <button class="top-bar-menu-btn" aria-label="Open menu" aria-expanded="false" type="button">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="top-bar-titles">
+              <h1 class="top-bar-title" data-i18n="nav.dashboard">Dashboard</h1>
+              <p class="top-bar-subtitle" id="top-bar-subtitle" data-i18n="dashboard.subtitle">Personal Financial Health &amp; Overview</p>
+            </div>
+          </div>
+          <div class="top-bar-right">
+            <div class="top-bar-badge" title="Local IndexedDB Engine Active">
+              <span class="status-dot"></span> Local Persistence
+            </div>
+            <a href="#settings" class="top-bar-action nav-link" data-tab="settings" aria-label="Settings">
+              <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l.06.06a2 2 0 012.83-2.83l.06-.06a1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l.06.06a2 2 0 012.83-2.83l.06-.06a1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            </a>
+          </div>
+        </header>
+        <main class="app-main" id="app-main" aria-live="polite">
+          <!-- Views are rendered here -->
+        </main>
+      </div>
+    </div>
+    <div id="app-lifecycle-error" class="lifecycle-state" style="display:none;">
+      <p data-i18n="common.initializationError">Initialization failed.</p>
+      <pre id="app-error-message"></pre>
+    </div>
+  </div>
+  <script type="module" src="bootstrap.js"></script>
+</body>
+</html>

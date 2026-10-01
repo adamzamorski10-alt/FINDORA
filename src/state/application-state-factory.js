@@ -52,6 +52,42 @@ const Lifecycle = {
   RESET_GOAL_DEPOSIT_FORM: 'RESET_GOAL_DEPOSIT_FORM',
   SET_CATEGORY_FORM: 'SET_CATEGORY_FORM',
   RESET_CATEGORY_FORM: 'RESET_CATEGORY_FORM',
+  SET_PEOPLE_LOADING: 'SET_PEOPLE_LOADING',
+  SET_PEOPLE: 'SET_PEOPLE',
+  SET_PEOPLE_ERROR: 'SET_PEOPLE_ERROR',
+  SET_RECEIVABLES_LOADING: 'SET_RECEIVABLES_LOADING',
+  SET_RECEIVABLES: 'SET_RECEIVABLES',
+  SET_RECEIVABLES_ERROR: 'SET_RECEIVABLES_ERROR',
+  SET_INCOME_PROFILES_LOADING: 'SET_INCOME_PROFILES_LOADING',
+  SET_INCOME_PROFILES: 'SET_INCOME_PROFILES',
+  SET_INCOME_PROFILES_ERROR: 'SET_INCOME_PROFILES_ERROR',
+  SET_INCOME_PROFILE_FORM: 'SET_INCOME_PROFILE_FORM',
+  RESET_INCOME_PROFILE_FORM: 'RESET_INCOME_PROFILE_FORM',
+  SET_RESELLING_PRODUCTS_LOADING: 'SET_RESELLING_PRODUCTS_LOADING',
+  SET_RESELLING_PRODUCTS: 'SET_RESELLING_PRODUCTS',
+  SET_RESELLING_PRODUCTS_ERROR: 'SET_RESELLING_PRODUCTS_ERROR',
+  SET_RESELLING_ORDERS_LOADING: 'SET_RESELLING_ORDERS_LOADING',
+  SET_RESELLING_ORDERS: 'SET_RESELLING_ORDERS',
+  SET_RESELLING_ORDERS_ERROR: 'SET_RESELLING_ORDERS_ERROR',
+  SET_RESELLING_SALES_LOADING: 'SET_RESELLING_SALES_LOADING',
+  SET_RESELLING_SALES: 'SET_RESELLING_SALES',
+  SET_RESELLING_SALES_ERROR: 'SET_RESELLING_SALES_ERROR',
+  SET_RESELLING_COSTS_LOADING: 'SET_RESELLING_COSTS_LOADING',
+  SET_RESELLING_COSTS: 'SET_RESELLING_COSTS',
+  SET_RESELLING_COSTS_ERROR: 'SET_RESELLING_COSTS_ERROR',
+  SET_RESELLING_TASKS_LOADING: 'SET_RESELLING_TASKS_LOADING',
+  SET_RESELLING_TASKS: 'SET_RESELLING_TASKS',
+  SET_RESELLING_TASKS_ERROR: 'SET_RESELLING_TASKS_ERROR',
+  SET_RESELLING_PRODUCT_FORM: 'SET_RESELLING_PRODUCT_FORM',
+  RESET_RESELLING_PRODUCT_FORM: 'RESET_RESELLING_PRODUCT_FORM',
+  SET_RESELLING_ORDER_FORM: 'SET_RESELLING_ORDER_FORM',
+  RESET_RESELLING_ORDER_FORM: 'RESET_RESELLING_ORDER_FORM',
+  SET_RESELLING_SALE_FORM: 'SET_RESELLING_SALE_FORM',
+  RESET_RESELLING_SALE_FORM: 'RESET_RESELLING_SALE_FORM',
+  SET_RESELLING_COST_FORM: 'SET_RESELLING_COST_FORM',
+  RESET_RESELLING_COST_FORM: 'RESET_RESELLING_COST_FORM',
+  SET_RESELLING_TASK_FORM: 'SET_RESELLING_TASK_FORM',
+  RESET_RESELLING_TASK_FORM: 'RESET_RESELLING_TASK_FORM',
   OPERATION_START: 'OPERATION_START',
   OPERATION_STOP: 'OPERATION_STOP',
   OPERATION_ERROR: 'OPERATION_ERROR',
@@ -140,6 +176,121 @@ function createInitialState() {
       type: 'expense',
       icon: 'circle',
       color: '#888888',
+    },
+    people: {
+      loading: false,
+      error: null,
+      items: [],
+    },
+    receivables: {
+      loading: false,
+      error: null,
+      items: [],
+    },
+    incomeProfiles: {
+      loading: false,
+      error: null,
+      items: [],
+    },
+    incomeProfileForm: {
+      editingId: null,
+      type: '',
+      name: '',
+      description: '',
+    },
+    resellingProducts: {
+      loading: false,
+      error: null,
+      items: [],
+    },
+    resellingOrders: {
+      loading: false,
+      error: null,
+      items: [],
+    },
+    resellingSales: {
+      loading: false,
+      error: null,
+      items: [],
+    },
+    resellingCosts: {
+      loading: false,
+      error: null,
+      items: [],
+    },
+    resellingTasks: {
+      loading: false,
+      error: null,
+      items: [],
+    },
+    resellingProductForm: {
+      editingId: null,
+      incomeProfileId: '',
+      name: '',
+      sku: '',
+      platform: '',
+      purchasePrice: '',
+      plannedSalePrice: '',
+      purchaseDate: '',
+      quantity: 1,
+      location: '',
+      notes: '',
+      status: 'ordered',
+    },
+    resellingOrderForm: {
+      editingId: null,
+      incomeProfileId: '',
+      orderNumber: '',
+      supplier: '',
+      platform: '',
+      date: '',
+      items: [],
+      shipping: 0,
+      additionalCosts: 0,
+      totalCost: '',
+      status: 'ordered',
+      tracking: '',
+      notes: '',
+    },
+    resellingSaleForm: {
+      editingId: null,
+      incomeProfileId: '',
+      productId: '',
+      quantity: 1,
+      salePrice: '',
+      platform: '',
+      commission: 0,
+      shipping: 0,
+      otherCosts: 0,
+      saleDate: '',
+      paymentStatus: 'pending',
+      saleStatus: 'sold',
+      accountId: '',
+      linkedTransactionId: '',
+    },
+    resellingCostForm: {
+      editingId: null,
+      incomeProfileId: '',
+      amount: '',
+      category: 'shipping',
+      date: '',
+      description: '',
+      accountId: '',
+      linkedProductId: '',
+      linkedSaleId: '',
+      linkedOrderId: '',
+    },
+    resellingTaskForm: {
+      editingId: null,
+      incomeProfileId: '',
+      title: '',
+      dueDate: '',
+      priority: 'medium',
+      status: 'todo',
+      linkedProductId: '',
+      linkedSaleId: '',
+      linkedOrderId: '',
+      note: '',
     },
     operations: {},
   };
@@ -494,6 +645,327 @@ export function createApplicationState() {
             type: 'expense',
             icon: 'circle',
             color: '#888888',
+          },
+        };
+        break;
+
+      case ActionTypes.SET_PEOPLE_LOADING:
+        state = {
+          ...state,
+          people: { ...state.people, loading: action.loading },
+        };
+        break;
+
+      case ActionTypes.SET_PEOPLE:
+        state = {
+          ...state,
+          people: { ...state.people, items: action.people, error: null, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_PEOPLE_ERROR:
+        state = {
+          ...state,
+          people: { ...state.people, error: action.error, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RECEIVABLES_LOADING:
+        state = {
+          ...state,
+          receivables: { ...state.receivables, loading: action.loading },
+        };
+        break;
+
+      case ActionTypes.SET_RECEIVABLES:
+        state = {
+          ...state,
+          receivables: { ...state.receivables, items: action.receivables, error: null, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RECEIVABLES_ERROR:
+        state = {
+          ...state,
+          receivables: { ...state.receivables, error: action.error, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_INCOME_PROFILES_LOADING:
+        state = {
+          ...state,
+          incomeProfiles: { ...state.incomeProfiles, loading: action.loading },
+        };
+        break;
+
+      case ActionTypes.SET_INCOME_PROFILES:
+        state = {
+          ...state,
+          incomeProfiles: { ...state.incomeProfiles, items: action.profiles, error: null, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_INCOME_PROFILES_ERROR:
+        state = {
+          ...state,
+          incomeProfiles: { ...state.incomeProfiles, error: action.error, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_INCOME_PROFILE_FORM:
+        state = {
+          ...state,
+          incomeProfileForm: { ...state.incomeProfileForm, ...action.form },
+        };
+        break;
+
+      case ActionTypes.RESET_INCOME_PROFILE_FORM:
+        state = {
+          ...state,
+          incomeProfileForm: {
+            editingId: null,
+            type: '',
+            name: '',
+            description: '',
+          },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_PRODUCTS_LOADING:
+        state = {
+          ...state,
+          resellingProducts: { ...state.resellingProducts, loading: action.loading },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_PRODUCTS:
+        state = {
+          ...state,
+          resellingProducts: { ...state.resellingProducts, items: action.products, error: null, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_PRODUCTS_ERROR:
+        state = {
+          ...state,
+          resellingProducts: { ...state.resellingProducts, error: action.error, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_ORDERS_LOADING:
+        state = {
+          ...state,
+          resellingOrders: { ...state.resellingOrders, loading: action.loading },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_ORDERS:
+        state = {
+          ...state,
+          resellingOrders: { ...state.resellingOrders, items: action.orders, error: null, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_ORDERS_ERROR:
+        state = {
+          ...state,
+          resellingOrders: { ...state.resellingOrders, error: action.error, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_SALES_LOADING:
+        state = {
+          ...state,
+          resellingSales: { ...state.resellingSales, loading: action.loading },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_SALES:
+        state = {
+          ...state,
+          resellingSales: { ...state.resellingSales, items: action.sales, error: null, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_SALES_ERROR:
+        state = {
+          ...state,
+          resellingSales: { ...state.resellingSales, error: action.error, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_COSTS_LOADING:
+        state = {
+          ...state,
+          resellingCosts: { ...state.resellingCosts, loading: action.loading },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_COSTS:
+        state = {
+          ...state,
+          resellingCosts: { ...state.resellingCosts, items: action.costs, error: null, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_COSTS_ERROR:
+        state = {
+          ...state,
+          resellingCosts: { ...state.resellingCosts, error: action.error, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_TASKS_LOADING:
+        state = {
+          ...state,
+          resellingTasks: { ...state.resellingTasks, loading: action.loading },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_TASKS:
+        state = {
+          ...state,
+          resellingTasks: { ...state.resellingTasks, items: action.tasks, error: null, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_TASKS_ERROR:
+        state = {
+          ...state,
+          resellingTasks: { ...state.resellingTasks, error: action.error, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_PRODUCT_FORM:
+        state = {
+          ...state,
+          resellingProductForm: { ...state.resellingProductForm, ...action.form },
+        };
+        break;
+
+      case ActionTypes.RESET_RESELLING_PRODUCT_FORM:
+        state = {
+          ...state,
+          resellingProductForm: {
+            editingId: null,
+            incomeProfileId: '',
+            name: '',
+            sku: '',
+            platform: '',
+            purchasePrice: '',
+            plannedSalePrice: '',
+            purchaseDate: '',
+            quantity: 1,
+            location: '',
+            notes: '',
+            status: 'ordered',
+          },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_ORDER_FORM:
+        state = {
+          ...state,
+          resellingOrderForm: { ...state.resellingOrderForm, ...action.form },
+        };
+        break;
+
+      case ActionTypes.RESET_RESELLING_ORDER_FORM:
+        state = {
+          ...state,
+          resellingOrderForm: {
+            editingId: null,
+            incomeProfileId: '',
+            orderNumber: '',
+            supplier: '',
+            platform: '',
+            date: '',
+            items: [],
+            shipping: 0,
+            additionalCosts: 0,
+            totalCost: '',
+            status: 'ordered',
+            tracking: '',
+            notes: '',
+          },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_SALE_FORM:
+        state = {
+          ...state,
+          resellingSaleForm: { ...state.resellingSaleForm, ...action.form },
+        };
+        break;
+
+      case ActionTypes.RESET_RESELLING_SALE_FORM:
+        state = {
+          ...state,
+          resellingSaleForm: {
+            editingId: null,
+            incomeProfileId: '',
+            productId: '',
+            quantity: 1,
+            salePrice: '',
+            platform: '',
+            commission: 0,
+            shipping: 0,
+            otherCosts: 0,
+            saleDate: '',
+            paymentStatus: 'pending',
+            saleStatus: 'sold',
+            accountId: '',
+            linkedTransactionId: '',
+          },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_COST_FORM:
+        state = {
+          ...state,
+          resellingCostForm: { ...state.resellingCostForm, ...action.form },
+        };
+        break;
+
+      case ActionTypes.RESET_RESELLING_COST_FORM:
+        state = {
+          ...state,
+          resellingCostForm: {
+            editingId: null,
+            incomeProfileId: '',
+            amount: '',
+            category: 'shipping',
+            date: '',
+            description: '',
+            accountId: '',
+            linkedProductId: '',
+            linkedSaleId: '',
+            linkedOrderId: '',
+          },
+        };
+        break;
+
+      case ActionTypes.SET_RESELLING_TASK_FORM:
+        state = {
+          ...state,
+          resellingTaskForm: { ...state.resellingTaskForm, ...action.form },
+        };
+        break;
+
+      case ActionTypes.RESET_RESELLING_TASK_FORM:
+        state = {
+          ...state,
+          resellingTaskForm: {
+            editingId: null,
+            incomeProfileId: '',
+            title: '',
+            dueDate: '',
+            priority: 'medium',
+            status: 'todo',
+            linkedProductId: '',
+            linkedSaleId: '',
+            linkedOrderId: '',
+            note: '',
           },
         };
         break;

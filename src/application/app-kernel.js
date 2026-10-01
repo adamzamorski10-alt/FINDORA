@@ -25,6 +25,9 @@ import { createBudgetModule } from './budget/budget-module.js';
 import { createGoalModule } from './goal/goal-module.js';
 import { createSafeToSpendModule } from './safe-to-spend/safe-to-spend-module.js';
 import { createReportingModule } from './reporting/reporting-module.mjs';
+import { createReceivablesModule } from './receivable/receivable-module.js';
+import { createIncomeProfileModule } from './income-profile/income-profile-module.js';
+import { createResellingModule } from './reselling/reselling-module.js';
 import { createApplicationState } from '../state/application-state-factory.js';
 import { compute as safeToSpendCompute } from '../domain/safe-to-spend/safe-to-spend-calculator.js';
 import { compute as goalRequiredDepositCompute } from '../domain/goals/goal-required-deposit-calculator.js';
@@ -65,6 +68,14 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
     transactionRepository: persistence.transactionRepository,
     budgetRepository: persistence.budgetRepository,
     goalRepository: persistence.goalRepository,
+    personRepository: persistence.personRepository,
+    receivableRepository: persistence.receivableRepository,
+    incomeProfileRepository: persistence.incomeProfileRepository,
+    resellingProductRepository: persistence.resellingProductRepository,
+    resellingOrderRepository: persistence.resellingOrderRepository,
+    resellingSaleRepository: persistence.resellingSaleRepository,
+    resellingCostRepository: persistence.resellingCostRepository,
+    resellingTaskRepository: persistence.resellingTaskRepository,
   });
 
   const restoreService = createRestoreService({
@@ -77,6 +88,14 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
     transactionRepository: persistence.transactionRepository,
     budgetRepository: persistence.budgetRepository,
     goalRepository: persistence.goalRepository,
+    personRepository: persistence.personRepository,
+    receivableRepository: persistence.receivableRepository,
+    incomeProfileRepository: persistence.incomeProfileRepository,
+    resellingProductRepository: persistence.resellingProductRepository,
+    resellingOrderRepository: persistence.resellingOrderRepository,
+    resellingSaleRepository: persistence.resellingSaleRepository,
+    resellingCostRepository: persistence.resellingCostRepository,
+    resellingTaskRepository: persistence.resellingTaskRepository,
     goalModule,
     categoryModule,
   });
@@ -117,6 +136,25 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
       transactionRepository: persistence.transactionRepository,
       accountRepository: persistence.accountRepository,
       categoryRepository: persistence.categoryRepository,
+    }),
+    receivable: createReceivablesModule({
+      personRepository: persistence.personRepository,
+      receivableRepository: persistence.receivableRepository,
+      transactionRepository: persistence.transactionRepository,
+      accountRepository: persistence.accountRepository,
+      applicationTransaction: appTx,
+    }),
+    incomeProfile: createIncomeProfileModule({
+      incomeProfileRepository: persistence.incomeProfileRepository,
+      applicationTransaction: appTx,
+    }),
+    reselling: createResellingModule({
+      resellingProductRepository: persistence.resellingProductRepository,
+      resellingOrderRepository: persistence.resellingOrderRepository,
+      resellingSaleRepository: persistence.resellingSaleRepository,
+      resellingCostRepository: persistence.resellingCostRepository,
+      resellingTaskRepository: persistence.resellingTaskRepository,
+      applicationTransaction: appTx,
     }),
     backup: backupService,
     restore: restoreService,

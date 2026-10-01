@@ -33,6 +33,8 @@ describe('RestoreService', () => {
       transactionRepository: kernel.persistence.transactionRepository,
       budgetRepository: kernel.persistence.budgetRepository,
       goalRepository: kernel.persistence.goalRepository,
+      personRepository: kernel.persistence.personRepository,
+      receivableRepository: kernel.persistence.receivableRepository,
       goalModule: kernel.modules.goal,
       categoryModule: kernel.modules.category,
     });
@@ -95,6 +97,14 @@ describe('RestoreService', () => {
           transactions: [],
           budgets: [],
           goals: [],
+          people: [],
+          receivables: [],
+          incomeProfiles: [],
+          resellingProducts: [],
+          resellingOrders: [],
+          resellingSales: [],
+          resellingCosts: [],
+          resellingTasks: [],
         },
         integrity: { checksum: 'fake' },
       };
@@ -120,6 +130,14 @@ describe('RestoreService', () => {
           ],
           budgets: [],
           goals: [],
+          people: [],
+          receivables: [],
+          incomeProfiles: [],
+          resellingProducts: [],
+          resellingOrders: [],
+          resellingSales: [],
+          resellingCosts: [],
+          resellingTasks: [],
         },
         integrity: { checksum: 'fake' },
       };
@@ -223,6 +241,49 @@ describe('RestoreService', () => {
       assert.strictEqual(result.success, true);
       assert.strictEqual(result.dryRun, true);
       assert.ok(result.preview);
+    });
+
+    it('restores people and receivables with reference integrity', async () => {
+      const kernel = createTestKernel('restore-user-4');
+
+      const person = await kernel.modules.receivable.createPerson({
+        userId: 'restore-user-4',
+        name: 'Jan',
+        note: 'Test',
+      });
+
+      const account = await kernel.modules.account.createAccount({
+        userId: 'restore-user-4',
+        name: 'Main Account',
+        type: 'bank',
+        icon: 'landmark',
+        color: '#4A90D9',
+      });
+
+      await kernel.modules.receivable.createReceivable({
+        userId: 'restore-user-4',
+        personId: person.id,
+        amount: 100,
+        description: 'Test receivable',
+        date: '2024-01-15',
+        sourceAccountId: account.id,
+      });
+
+      const backup = await kernel.modules.backup.createBackup({ userId: 'restore-user-4' });
+
+      await kernel.modules.receivable.archivePerson({ userId: 'restore-user-4', personId: person.id });
+
+      const restoreService = createRestore(kernel);
+      const result = await restoreService.executeRestore(backup, { userId: 'restore-user-4' });
+      assert.strictEqual(result.success, true);
+
+      const restoredPerson = await kernel.modules.receivable.getPerson({ personId: person.id });
+      assert.ok(restoredPerson);
+      assert.strictEqual(restoredPerson.archived, false);
+
+      const restoredReceivables = await kernel.modules.receivable.getReceivables({ personId: person.id });
+      assert.strictEqual(restoredReceivables.length, 1);
+      assert.strictEqual(restoredReceivables[0].archived, false);
     });
   });
 

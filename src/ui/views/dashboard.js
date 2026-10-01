@@ -7,23 +7,18 @@
  */
 
 import { createLineChart, createHorizontalBarChart } from '../utils/charts.js';
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+import { t } from '../i18n.js';
+import { formatCurrency as formatLocaleCurrency, formatMonthLabel as formatLocaleMonthLabel, getMonthNames } from '../i18n-format.js';
 
 function formatCurrency(value) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
-  return Number(value).toFixed(2);
+  return formatLocaleCurrency(value, 'PLN');
 }
 
 function formatMonthLabel(monthKey) {
-  if (!monthKey) return '';
-  const [year, month] = monthKey.split('-').map(Number);
-  if (!year || !month) return monthKey;
-  return `${MONTH_NAMES[month - 1]} ${year}`;
+  return formatLocaleMonthLabel(monthKey);
 }
+
+const MONTH_NAMES = getMonthNames();
 
 function formatShortMonth(monthKey) {
   if (!monthKey) return '';
@@ -58,7 +53,7 @@ export function render(context = {}) {
   if (!state) {
     const placeholder = document.createElement('div');
     placeholder.className = 'view-placeholder';
-    placeholder.innerHTML = '<h2>Dashboard</h2><p>Dashboard placeholder — functional screens will be added in later stages.</p>';
+    placeholder.innerHTML = `<h2>${t('nav.dashboard')}</h2><p>${t('common.pleaseLogin', { view: t('nav.dashboard').toLowerCase() })}</p>`;
     return placeholder;
   }
 
@@ -70,7 +65,7 @@ export function render(context = {}) {
     empty.className = 'dashboard-view';
     const p = document.createElement('p');
     p.className = 'empty-message';
-    p.textContent = 'Please log in to view your dashboard.';
+    p.textContent = t('common.pleaseLogin', { view: t('nav.dashboard').toLowerCase() });
     empty.appendChild(p);
     return empty;
   }
@@ -91,10 +86,10 @@ export function render(context = {}) {
   const pageHeaderTitles = document.createElement('div');
   pageHeaderTitles.className = 'dashboard-page-header-titles';
 
-  const pageTitle = el('h1', 'dashboard-page-title', 'Dashboard');
+  const pageTitle = el('h1', 'dashboard-page-title', t('nav.dashboard'));
   pageHeaderTitles.appendChild(pageTitle);
 
-  const pageSubtitle = el('p', 'dashboard-page-subtitle', 'Personal Financial Health & Overview');
+  const pageSubtitle = el('p', 'dashboard-page-subtitle', t('dashboard.subtitle'));
   pageHeaderTitles.appendChild(pageSubtitle);
 
   pageHeader.appendChild(pageHeaderTitles);
@@ -104,13 +99,13 @@ export function render(context = {}) {
   const heroSection = document.createElement('div');
   heroSection.className = 'surface-hero dashboard-hero';
 
-  const heroLabel = el('span', 'dashboard-hero-label', 'Total Balance');
+  const heroLabel = el('span', 'dashboard-hero-label', t('dashboard.totalBalance') || '');
   heroSection.appendChild(heroLabel);
 
   const heroValue = el('div', 'dashboard-hero-value amount amount-neutral', '…');
   heroSection.appendChild(heroValue);
 
-  const heroMeta = el('div', 'dashboard-hero-meta', `Personal Financial Health \u2022 ${formatMonthLabel(monthKey)}`);
+  const heroMeta = el('div', 'dashboard-hero-meta', `${t('dashboard.subtitle')} • ${formatMonthLabel(monthKey)}`);
   heroSection.appendChild(heroMeta);
 
   root.appendChild(heroSection);
@@ -121,7 +116,7 @@ export function render(context = {}) {
 
   const cashFlowCard = document.createElement('div');
   cashFlowCard.className = 'surface-analytic dashboard-analytic-card';
-  const cashFlowTitle = el('h3', 'dashboard-section-title', 'Cash Flow Trend');
+  const cashFlowTitle = el('h3', 'dashboard-section-title', t('dashboard.cashFlow'));
   cashFlowCard.appendChild(cashFlowTitle);
   const cashFlowChartWrap = document.createElement('div');
   cashFlowChartWrap.className = 'dashboard-chart-wrap';
@@ -130,7 +125,7 @@ export function render(context = {}) {
 
   const categoryCard = document.createElement('div');
   categoryCard.className = 'surface-analytic dashboard-analytic-card';
-  const categoryTitle = el('h3', 'dashboard-section-title', 'Category Breakdown');
+  const categoryTitle = el('h3', 'dashboard-section-title', t('dashboard.categoryBreakdown'));
   categoryCard.appendChild(categoryTitle);
   const categoryChartWrap = document.createElement('div');
   categoryChartWrap.className = 'dashboard-chart-wrap';
@@ -146,13 +141,13 @@ export function render(context = {}) {
   const safeCard = document.createElement('div');
   safeCard.className = 'dashboard-safe-card';
 
-  const safeTitle = el('div', 'dashboard-safe-card-title', 'Safe to Spend');
+  const safeTitle = el('div', 'dashboard-safe-card-title', t('dashboard.safeToSpend'));
   safeCard.appendChild(safeTitle);
 
   const safeValue = el('div', 'dashboard-safe-card-value amount amount-neutral', '…');
   safeCard.appendChild(safeValue);
 
-  const safeMeta = el('div', 'dashboard-safe-card-meta', 'Available after obligations');
+  const safeMeta = el('div', 'dashboard-safe-card-meta', t('dashboard.availableAfterObligations'));
   safeCard.appendChild(safeMeta);
 
   const safeBreakdown = document.createElement('div');
@@ -160,7 +155,7 @@ export function render(context = {}) {
 
   const freeFundsItem = document.createElement('div');
   freeFundsItem.className = 'dashboard-safe-card-breakdown-item';
-  const freeFundsLabel = el('span', 'dashboard-safe-card-breakdown-label', 'Free funds');
+  const freeFundsLabel = el('span', 'dashboard-safe-card-breakdown-label', t('dashboard.freeFunds'));
   const freeFundsValue = el('span', 'dashboard-safe-card-breakdown-value amount amount-neutral', '…');
   freeFundsItem.appendChild(freeFundsLabel);
   freeFundsItem.appendChild(freeFundsValue);
@@ -168,7 +163,7 @@ export function render(context = {}) {
 
   const obligationsItem = document.createElement('div');
   obligationsItem.className = 'dashboard-safe-card-breakdown-item';
-  const obligationsLabel = el('span', 'dashboard-safe-card-breakdown-label', 'Upcoming obligations');
+  const obligationsLabel = el('span', 'dashboard-safe-card-breakdown-label', t('dashboard.upcomingObligations'));
   const obligationsValue = el('span', 'dashboard-safe-card-breakdown-value amount amount-negative', '…');
   obligationsItem.appendChild(obligationsLabel);
   obligationsItem.appendChild(obligationsValue);
@@ -179,7 +174,7 @@ export function render(context = {}) {
 
   const incomeItem = document.createElement('div');
   incomeItem.className = 'summary-strip-item';
-  const incomeLabel = el('span', 'summary-strip-label', 'Income');
+  const incomeLabel = el('span', 'summary-strip-label', t('dashboard.income'));
   const incomeValue = el('span', 'summary-strip-value summary-strip-value--positive', '…');
   incomeItem.appendChild(incomeLabel);
   incomeItem.appendChild(incomeValue);
@@ -187,7 +182,7 @@ export function render(context = {}) {
 
   const expenseItem = document.createElement('div');
   expenseItem.className = 'summary-strip-item';
-  const expenseLabel = el('span', 'summary-strip-label', 'Expenses');
+  const expenseLabel = el('span', 'summary-strip-label', t('dashboard.expenses'));
   const expenseValue = el('span', 'summary-strip-value summary-strip-value--negative', '…');
   expenseItem.appendChild(expenseLabel);
   expenseItem.appendChild(expenseValue);
@@ -195,7 +190,7 @@ export function render(context = {}) {
 
   const netItem = document.createElement('div');
   netItem.className = 'summary-strip-item';
-  const netLabel = el('span', 'summary-strip-label', 'Net');
+  const netLabel = el('span', 'summary-strip-label', t('dashboard.net'));
   const netValue = el('span', 'summary-strip-value summary-strip-value--muted', '…');
   netItem.appendChild(netLabel);
   netItem.appendChild(netValue);
@@ -212,7 +207,7 @@ export function render(context = {}) {
 
   const txHeader = document.createElement('div');
   txHeader.className = 'dashboard-list-header';
-  const txTitle = el('h3', 'dashboard-section-title', 'Recent Transactions');
+  const txTitle = el('h3', 'dashboard-section-title', t('dashboard.recentTransactions'));
   txHeader.appendChild(txTitle);
   txCard.appendChild(txHeader);
 
@@ -228,7 +223,7 @@ export function render(context = {}) {
     budgetCard = document.createElement('div');
     budgetCard.className = 'surface-analytic dashboard-section-card dashboard-section-card--compact';
 
-    const budgetTitle = el('h3', 'dashboard-section-title', 'Budgets at Risk');
+    const budgetTitle = el('h3', 'dashboard-section-title', t('dashboard.budgetsAtRisk'));
     budgetCard.appendChild(budgetTitle);
 
     const budgetList = document.createElement('ul');
@@ -241,13 +236,41 @@ export function render(context = {}) {
     goalCard = document.createElement('div');
     goalCard.className = 'surface-analytic dashboard-section-card dashboard-section-card--compact';
 
-    const goalTitle = el('h3', 'dashboard-section-title', 'Goals');
+    const goalTitle = el('h3', 'dashboard-section-title', t('dashboard.goals'));
     goalCard.appendChild(goalTitle);
 
     const goalList = document.createElement('ul');
     goalList.className = 'progress-list';
     goalCard.appendChild(goalList);
     attentionGrid.appendChild(goalCard);
+  }
+
+  let receivablesCard = null;
+  if (modules.receivable) {
+    receivablesCard = document.createElement('div');
+    receivablesCard.className = 'surface-analytic dashboard-section-card dashboard-section-card--compact';
+
+    const receivablesTitle = el('h3', 'dashboard-section-title', t('nav.receivables'));
+    receivablesCard.appendChild(receivablesTitle);
+
+    const receivablesList = document.createElement('ul');
+    receivablesList.className = 'progress-list';
+    receivablesCard.appendChild(receivablesList);
+    attentionGrid.appendChild(receivablesCard);
+  }
+
+  let incomeProfilesCard = null;
+  if (modules.incomeProfile) {
+    incomeProfilesCard = document.createElement('div');
+    incomeProfilesCard.className = 'surface-analytic dashboard-section-card dashboard-section-card--compact';
+
+    const incomeProfilesTitle = el('h3', 'dashboard-section-title', t('nav.incomeProfiles'));
+    incomeProfilesCard.appendChild(incomeProfilesTitle);
+
+    const incomeProfilesList = document.createElement('ul');
+    incomeProfilesList.className = 'progress-list';
+    incomeProfilesCard.appendChild(incomeProfilesList);
+    attentionGrid.appendChild(incomeProfilesCard);
   }
 
   root.appendChild(attentionGrid);
@@ -276,7 +299,7 @@ export function render(context = {}) {
       heroValue.className = 'dashboard-hero-value amount amount-neutral';
       const errorEl = document.createElement('div');
       errorEl.className = 'error-message';
-      errorEl.textContent = `Failed to load balance: ${e.message}`;
+      errorEl.textContent = t('common.error') + ': ' + e.message;
       heroSection.appendChild(errorEl);
     }
   }
@@ -302,7 +325,7 @@ export function render(context = {}) {
       netValue.textContent = '—';
       const errorEl = document.createElement('div');
       errorEl.className = 'error-message';
-      errorEl.textContent = `Failed to load monthly summary: ${e.message}`;
+      errorEl.textContent = t('common.error') + ': ' + e.message;
       summaryStrip.appendChild(errorEl);
     }
   }
@@ -328,7 +351,7 @@ export function render(context = {}) {
       safeValue.className = 'dashboard-safe-card-value amount amount-neutral';
       const errorEl = document.createElement('div');
       errorEl.className = 'error-message';
-      errorEl.textContent = `Failed to load safe-to-spend: ${e.message}`;
+      errorEl.textContent = t('common.error') + ': ' + e.message;
       safeCard.appendChild(errorEl);
     }
   }
@@ -343,8 +366,8 @@ export function render(context = {}) {
       txList.innerHTML = `
         <li class="empty-state-list-item">
           <div class="empty-state-icon">📝</div>
-          <p class="empty-state-title">No transactions yet</p>
-          <p class="empty-state-desc">Start tracking your cash flow by adding your first transaction.</p>
+          <p class="empty-state-title">${t('transactions.noTransactions')}</p>
+          <p class="empty-state-desc">${t('transactions.emptyActionDesc') || ''}</p>
         </li>`;
     } else {
       txList.innerHTML = '';
@@ -461,7 +484,6 @@ export function render(context = {}) {
     }
     budgetCard.style.display = 'flex';
   }
-
   async function loadGoalsClosest() {
     if (!goalCard) return;
 
@@ -503,11 +525,74 @@ export function render(context = {}) {
       fill.style.width = '0%';
       track.appendChild(fill);
       li.appendChild(track);
+
       goalList.appendChild(li);
 
       fill.style.width = `${goal.pct}%`;
     }
     goalCard.style.display = 'flex';
+  }
+
+  async function loadReceivablesSummary() {
+    if (!receivablesCard || !modules.receivable) return;
+
+    try {
+      const persons = await modules.receivable.getPersons({ userId });
+      const receivablesList = receivablesCard.querySelector('.progress-list');
+      receivablesList.innerHTML = '';
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let totalOutstanding = 0;
+      let peopleWithOutstanding = 0;
+      let totalOverdue = 0;
+
+      for (const person of persons) {
+        const personReceivables = await modules.receivable.getReceivables({ personId: person.id });
+        const openReceivables = personReceivables.filter(r => r.status !== 'paid' && r.status !== 'forgiven');
+        const outstanding = openReceivables.reduce((sum, r) => sum + r.remainingAmount, 0);
+        if (outstanding > 0) {
+          totalOutstanding += outstanding;
+          peopleWithOutstanding++;
+        }
+        const overdue = openReceivables.filter(r => r.dueDate && new Date(r.dueDate) < today);
+        totalOverdue += overdue.reduce((sum, r) => sum + r.remainingAmount, 0);
+      }
+
+      if (totalOutstanding === 0) {
+        receivablesCard.style.display = 'none';
+        return;
+      }
+
+      receivablesCard.style.display = 'flex';
+      const summaryText = `${formatCurrency(totalOutstanding)} • ${peopleWithOutstanding} ${t('receivables.peopleWithOutstanding').toLowerCase()}${totalOverdue > 0 ? ' • ' + t('receivables.overdue') + ': ' + formatCurrency(totalOverdue) : ''}`;
+      receivablesList.innerHTML = `<li class="progress-item"><div class="progress-item-header"><span class="progress-item-name">${t('nav.receivables')}</span><span class="progress-item-value">${summaryText}</span></div></li>`;
+    } catch (e) {
+      receivablesCard.style.display = 'none';
+    }
+  }
+
+  async function loadIncomeProfilesSummary() {
+    if (!incomeProfilesCard || !modules.incomeProfile) return;
+
+    try {
+      const profiles = await modules.incomeProfile.listProfiles({ userId });
+      const incomeProfilesList = incomeProfilesCard.querySelector('.progress-list');
+      incomeProfilesList.innerHTML = '';
+
+      if (profiles.length === 0) {
+        incomeProfilesCard.style.display = 'none';
+        return;
+      }
+
+      incomeProfilesCard.style.display = 'flex';
+      const activeCount = profiles.filter(p => !p.archived).length;
+      const summaryText = `${activeCount} ${t('incomeProfiles.activeProfiles').toLowerCase()} • ${t('incomeProfiles.totalProfiles').toLowerCase()}: ${profiles.length}`;
+      incomeProfilesList.innerHTML = `<li class="progress-item"><div class="progress-item-header"><span class="progress-item-name">${t('nav.incomeProfiles')}</span><span class="progress-item-value">${summaryText}</span></div></li>`;
+    } catch (e) {
+      incomeProfilesCard.style.display = 'none';
+    }
   }
 
   async function loadCashFlowTrend() {
@@ -631,6 +716,8 @@ export function render(context = {}) {
       loadCategoryBreakdown(),
       loadBudgetsAtRisk(),
       loadGoalsClosest(),
+      loadReceivablesSummary(),
+      loadIncomeProfilesSummary(),
     ]);
   }
 

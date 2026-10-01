@@ -39,7 +39,7 @@ export function validateRestoreBackup(envelope, currentUserId) {
   }
 
   const data = envelope.data || {};
-  const requiredCollections = ['profile', 'accounts', 'categories', 'transactions', 'budgets', 'goals'];
+  const requiredCollections = ['profile', 'accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks'];
   for (const collection of requiredCollections) {
     if (!Array.isArray(data[collection])) {
       return { valid: false, errors: [`Missing or invalid collection: ${collection}`] };
@@ -148,6 +148,89 @@ function validateEntityShapes(data) {
     goalIds.add(goal.id);
   }
 
+  const personIds = new Set();
+  for (const person of data.people) {
+    if (!person.id || !person.userId || !person.name) {
+      errors.push(`Invalid person: missing required fields (${person.id || 'unknown'})`);
+    }
+    if (personIds.has(person.id)) {
+      errors.push(`Duplicate person id: ${person.id}`);
+    }
+    personIds.add(person.id);
+  }
+
+  const receivableIds = new Set();
+  for (const receivable of data.receivables) {
+    if (!receivable.id || !receivable.userId || !receivable.personId || receivable.amount === undefined || !receivable.description || !receivable.date || !receivable.sourceAccountId) {
+      errors.push(`Invalid receivable: missing required fields (${receivable.id || 'unknown'})`);
+    }
+    if (receivableIds.has(receivable.id)) {
+      errors.push(`Duplicate receivable id: ${receivable.id}`);
+    }
+    receivableIds.add(receivable.id);
+    if (!personIds.has(receivable.personId)) {
+      errors.push(`Receivable ${receivable.id} references non-existent person ${receivable.personId}`);
+    }
+  }
+
+  const resellingProductIds = new Set();
+  for (const product of data.resellingProducts) {
+    if (!product.id || !product.userId || !product.incomeProfileId || !product.name || product.purchasePrice === undefined || !product.purchaseDate || product.quantity === undefined) {
+      errors.push(`Invalid reselling product: missing required fields (${product.id || 'unknown'})`);
+    }
+    if (resellingProductIds.has(product.id)) {
+      errors.push(`Duplicate reselling product id: ${product.id}`);
+    }
+    resellingProductIds.add(product.id);
+  }
+
+  const resellingOrderIds = new Set();
+  for (const order of data.resellingOrders) {
+    if (!order.id || !order.userId || !order.incomeProfileId || !order.orderNumber || !order.date || !order.items || order.items.length === 0) {
+      errors.push(`Invalid reselling order: missing required fields (${order.id || 'unknown'})`);
+    }
+    if (resellingOrderIds.has(order.id)) {
+      errors.push(`Duplicate reselling order id: ${order.id}`);
+    }
+    resellingOrderIds.add(order.id);
+  }
+
+  const resellingSaleIds = new Set();
+  for (const sale of data.resellingSales) {
+    if (!sale.id || !sale.userId || !sale.incomeProfileId || !sale.productId || sale.quantity === undefined || sale.salePrice === undefined || !sale.saleDate) {
+      errors.push(`Invalid reselling sale: missing required fields (${sale.id || 'unknown'})`);
+    }
+    if (resellingSaleIds.has(sale.id)) {
+      errors.push(`Duplicate reselling sale id: ${sale.id}`);
+    }
+    resellingSaleIds.add(sale.id);
+    if (!resellingProductIds.has(sale.productId)) {
+      errors.push(`Reselling sale ${sale.id} references non-existent product ${sale.productId}`);
+    }
+  }
+
+  const resellingCostIds = new Set();
+  for (const cost of data.resellingCosts) {
+    if (!cost.id || !cost.userId || !cost.incomeProfileId || cost.amount === undefined || !cost.category || !cost.date || !cost.description) {
+      errors.push(`Invalid reselling cost: missing required fields (${cost.id || 'unknown'})`);
+    }
+    if (resellingCostIds.has(cost.id)) {
+      errors.push(`Duplicate reselling cost id: ${cost.id}`);
+    }
+    resellingCostIds.add(cost.id);
+  }
+
+  const resellingTaskIds = new Set();
+  for (const task of data.resellingTasks) {
+    if (!task.id || !task.userId || !task.incomeProfileId || !task.title) {
+      errors.push(`Invalid reselling task: missing required fields (${task.id || 'unknown'})`);
+    }
+    if (resellingTaskIds.has(task.id)) {
+      errors.push(`Duplicate reselling task id: ${task.id}`);
+    }
+    resellingTaskIds.add(task.id);
+  }
+
   return errors;
 }
 
@@ -163,7 +246,7 @@ export function computeRestorePreview(currentData, backupEnvelope) {
     collections: {},
   };
 
-  const collections = ['accounts', 'categories', 'transactions', 'budgets', 'goals'];
+  const collections = ['accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks'];
   for (const collection of collections) {
     const currentCount = Array.isArray(current[collection]) ? current[collection].length : 0;
     const backupCount = Array.isArray(backupData[collection]) ? backupData[collection].length : 0;
@@ -208,9 +291,17 @@ export function createRestoreService({
   transactionRepository,
   budgetRepository,
   goalRepository,
+  personRepository,
+  receivableRepository,
+  incomeProfileRepository,
+  resellingProductRepository,
+  resellingOrderRepository,
+  resellingSaleRepository,
+  resellingCostRepository,
+  resellingTaskRepository,
   goalModule,
   categoryModule,
-}) {
+} = {}) {
   async function executeRestore(backupEnvelope, options = {}) {
     const currentUserId = options.userId || backupEnvelope.userId;
 
@@ -245,6 +336,14 @@ export function createRestoreService({
           `transaction:${currentUserId}:`,
           `budget:${currentUserId}:`,
           `goal:${currentUserId}:`,
+          `person:${currentUserId}:`,
+          `receivable:${currentUserId}:`,
+          `incomeProfile:${currentUserId}:`,
+          `resellingProduct:${currentUserId}:`,
+          `resellingOrder:${currentUserId}:`,
+          `resellingSale:${currentUserId}:`,
+          `resellingCost:${currentUserId}:`,
+          `resellingTask:${currentUserId}:`,
         ];
 
         const keysToRemove = currentKeys.filter(key => {
@@ -288,6 +387,46 @@ export function createRestoreService({
         for (const goal of backupData.goals) {
           const key = `goal:${currentUserId}:${goal.id}`;
           await storage.set(key, goal);
+        }
+
+        for (const person of backupData.people) {
+          const key = `person:${currentUserId}:${person.id}`;
+          await storage.set(key, person);
+        }
+
+        for (const receivable of backupData.receivables) {
+          const key = `receivable:${currentUserId}:${receivable.id}`;
+          await storage.set(key, receivable);
+        }
+
+        for (const incomeProfile of backupData.incomeProfiles) {
+          const key = `incomeProfile:${currentUserId}:${incomeProfile.id}`;
+          await storage.set(key, incomeProfile);
+        }
+
+        for (const product of backupData.resellingProducts) {
+          const key = `resellingProduct:${currentUserId}:${product.id}`;
+          await storage.set(key, product);
+        }
+
+        for (const order of backupData.resellingOrders) {
+          const key = `resellingOrder:${currentUserId}:${order.id}`;
+          await storage.set(key, order);
+        }
+
+        for (const sale of backupData.resellingSales) {
+          const key = `resellingSale:${currentUserId}:${sale.id}`;
+          await storage.set(key, sale);
+        }
+
+        for (const cost of backupData.resellingCosts) {
+          const key = `resellingCost:${currentUserId}:${cost.id}`;
+          await storage.set(key, cost);
+        }
+
+        for (const task of backupData.resellingTasks) {
+          const key = `resellingTask:${currentUserId}:${task.id}`;
+          await storage.set(key, task);
         }
 
         const hasSystemCategories = backupData.categories.some(c => c.isSystem && c.systemRole);
@@ -335,6 +474,14 @@ export function createRestoreService({
         `transaction:${currentUserId}:`,
         `budget:${currentUserId}:`,
         `goal:${currentUserId}:`,
+        `person:${currentUserId}:`,
+        `receivable:${currentUserId}:`,
+        `incomeProfile:${currentUserId}:`,
+        `resellingProduct:${currentUserId}:`,
+        `resellingOrder:${currentUserId}:`,
+        `resellingSale:${currentUserId}:`,
+        `resellingCost:${currentUserId}:`,
+        `resellingTask:${currentUserId}:`,
       ];
 
       const keysToRemove = currentKeys.filter(key => {
@@ -379,6 +526,46 @@ export function createRestoreService({
         const key = `goal:${currentUserId}:${goal.id}`;
         await storage.set(key, goal);
       }
+
+      for (const person of snapshotData.people) {
+        const key = `person:${currentUserId}:${person.id}`;
+        await storage.set(key, person);
+      }
+
+      for (const receivable of snapshotData.receivables) {
+        const key = `receivable:${currentUserId}:${receivable.id}`;
+        await storage.set(key, receivable);
+      }
+
+      for (const incomeProfile of snapshotData.incomeProfiles) {
+        const key = `incomeProfile:${currentUserId}:${incomeProfile.id}`;
+        await storage.set(key, incomeProfile);
+      }
+
+      for (const product of snapshotData.resellingProducts) {
+        const key = `resellingProduct:${currentUserId}:${product.id}`;
+        await storage.set(key, product);
+      }
+
+      for (const order of snapshotData.resellingOrders) {
+        const key = `resellingOrder:${currentUserId}:${order.id}`;
+        await storage.set(key, order);
+      }
+
+      for (const sale of snapshotData.resellingSales) {
+        const key = `resellingSale:${currentUserId}:${sale.id}`;
+        await storage.set(key, sale);
+      }
+
+      for (const cost of snapshotData.resellingCosts) {
+        const key = `resellingCost:${currentUserId}:${cost.id}`;
+        await storage.set(key, cost);
+      }
+
+      for (const task of snapshotData.resellingTasks) {
+        const key = `resellingTask:${currentUserId}:${task.id}`;
+        await storage.set(key, task);
+      }
     });
 
     return {
@@ -388,14 +575,24 @@ export function createRestoreService({
   }
 
   async function loadCurrentData(userId) {
-    const [profile, accounts, categories, transactions, budgets, goals] = await Promise.all([
-      userRepository.findById(userId),
-      accountRepository.loadAll(),
-      categoryRepository.loadAll(),
-      transactionRepository.loadAll(),
-      budgetRepository.findAll(),
-      goalRepository.loadAll(),
-    ]);
+    const loads = [
+      userRepository ? userRepository.findById(userId) : Promise.resolve(null),
+      accountRepository ? accountRepository.loadAll() : Promise.resolve([]),
+      categoryRepository ? categoryRepository.loadAll() : Promise.resolve([]),
+      transactionRepository ? transactionRepository.loadAll() : Promise.resolve([]),
+      budgetRepository ? budgetRepository.findAll() : Promise.resolve([]),
+      goalRepository ? goalRepository.loadAll() : Promise.resolve([]),
+      personRepository ? personRepository.loadAll() : Promise.resolve([]),
+      receivableRepository ? receivableRepository.loadAll() : Promise.resolve([]),
+      incomeProfileRepository ? incomeProfileRepository.loadAll() : Promise.resolve([]),
+    ];
+    if (resellingProductRepository) loads.push(resellingProductRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (resellingOrderRepository) loads.push(resellingOrderRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (resellingSaleRepository) loads.push(resellingSaleRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (resellingCostRepository) loads.push(resellingCostRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (resellingTaskRepository) loads.push(resellingTaskRepository.loadAll()); else loads.push(Promise.resolve([]));
+
+    const [profile, accounts, categories, transactions, budgets, goals, people, receivables, incomeProfiles, resellingProducts, resellingOrders, resellingSales, resellingCosts, resellingTasks] = await Promise.all(loads);
 
     return {
       profile: profile ? [profile] : [],
@@ -404,6 +601,14 @@ export function createRestoreService({
       transactions: transactions || [],
       budgets: budgets || [],
       goals: goals || [],
+      people: people || [],
+      receivables: receivables || [],
+      incomeProfiles: incomeProfiles || [],
+      resellingProducts: resellingProducts || [],
+      resellingOrders: resellingOrders || [],
+      resellingSales: resellingSales || [],
+      resellingCosts: resellingCosts || [],
+      resellingTasks: resellingTasks || [],
     };
   }
 

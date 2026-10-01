@@ -12,6 +12,11 @@ import { render as renderBudgets } from './views/budgets.js';
 import { render as renderGoals } from './views/goals.js';
 import { render as renderReports } from './views/reports.js';
 import { render as renderSettings } from './views/settings.js';
+import { render as renderReceivables } from './views/receivables.js';
+import { render as renderIncomeProfiles } from './views/income-profiles.js';
+import { render as renderReselling } from './views/reselling.js';
+import { getLocale, onChange as onLocaleChange, t } from './i18n.js';
+import { getMonthNames } from './i18n-format.js';
 
 const VIEWS = {
   dashboard: renderDashboard,
@@ -21,16 +26,22 @@ const VIEWS = {
   goals: renderGoals,
   reports: renderReports,
   settings: renderSettings,
+  receivables: renderReceivables,
+  incomeProfiles: renderIncomeProfiles,
+  reselling: renderReselling,
 };
 
-const PAGE_TITLES = {
-  dashboard: 'Dashboard',
-  accounts: 'Accounts',
-  transactions: 'Transactions',
-  budgets: 'Budgets',
-  goals: 'Goals',
-  reports: 'Reports',
-  settings: 'Settings',
+const PAGE_TITLES_KEYS = {
+  dashboard: 'nav.dashboard',
+  accounts: 'nav.accounts',
+  transactions: 'nav.transactions',
+  budgets: 'nav.budgets',
+  goals: 'nav.goals',
+  reports: 'nav.reports',
+  settings: 'nav.settings',
+  receivables: 'nav.receivables',
+  incomeProfiles: 'nav.incomeProfiles',
+  reselling: 'nav.reselling',
 };
 
 export function createShell({ state, modules, root }) {
@@ -49,25 +60,23 @@ export function createShell({ state, modules, root }) {
   const sidebarUserEmail = root.querySelector('#sidebar-user-email');
   const sidebarUserAvatar = root.querySelector('#sidebar-user-avatar');
 
-  const MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
+  const MONTH_NAMES = getMonthNames();
 
   function getMonthLabel(monthKey) {
     if (!monthKey) return '';
     const [year, month] = monthKey.split('-').map(Number);
     if (!year || !month) return monthKey;
-    return `${MONTH_NAMES[month - 1]} ${year}`;
+    const d = new Date(year, month - 1, 1);
+    return new Intl.DateTimeFormat(getLocale(), { month: 'long', year: 'numeric' }).format(d);
   }
 
   function renderMonthNav() {
     const monthKey = state.getState().ui.monthKey || '';
     const label = getMonthLabel(monthKey);
     return `<div class="month-nav">
-      <button class="month-nav-btn" data-action="prev-month" aria-label="Previous month">‹</button>
+      <button class="month-nav-btn" data-action="prev-month" aria-label="${t('transactions.previousMonth')}">‹</button>
       <span class="month-nav-label">${label}</span>
-      <button class="month-nav-btn" data-action="next-month" aria-label="Next month">›</button>
+      <button class="month-nav-btn" data-action="next-month" aria-label="${t('transactions.nextMonth')}">›</button>
     </div>`;
   }
 
@@ -103,7 +112,20 @@ export function createShell({ state, modules, root }) {
 
   function updateTopBarTitle(tab) {
     if (!topBarTitle) return;
-    topBarTitle.textContent = PAGE_TITLES[tab] || 'Dashboard';
+    topBarTitle.textContent = t(PAGE_TITLES_KEYS[tab] || 'nav.dashboard');
+  }
+
+  function translateStaticElements() {
+    if (typeof root === 'undefined' || !root || typeof root.querySelectorAll !== 'function') return;
+    const elements = root.querySelectorAll('[data-i18n]');
+    for (const el of elements) {
+      const key = el.getAttribute('data-i18n');
+      if (!key) continue;
+      const translation = t(key);
+      if (translation && translation !== key) {
+        el.textContent = translation;
+      }
+    }
   }
 
   function updateSidebarUser(profile) {
@@ -138,7 +160,7 @@ export function createShell({ state, modules, root }) {
   }
 
   function handleStateChange(snapshot) {
-    const { lifecycle, ui, session, accounts, transactions, budgets, goals } = snapshot;
+    const { lifecycle, ui, session, accounts, transactions, budgets, goals, people, receivables, incomeProfiles, resellingProducts, resellingOrders, resellingSales, resellingCosts, resellingTasks } = snapshot;
 
     if (lifecycle === 'initializing') {
       Object.values(lifecycleEls).forEach((el) => {
@@ -170,6 +192,14 @@ export function createShell({ state, modules, root }) {
       const transactionsChanged = transactions.items !== previousTransactionsItems;
       const budgetsChanged = budgets.items !== previousBudgetsItems;
       const goalsChanged = goals.items !== previousGoalsItems;
+      const peopleChanged = people.items !== previousPeopleItems;
+      const receivablesChanged = receivables.items !== previousReceivablesItems;
+      const incomeProfilesChanged = incomeProfiles.items !== previousIncomeProfilesItems;
+      const resellingProductsChanged = resellingProducts.items !== previousResellingProductsItems;
+      const resellingOrdersChanged = resellingOrders.items !== previousResellingOrdersItems;
+      const resellingSalesChanged = resellingSales.items !== previousResellingSalesItems;
+      const resellingCostsChanged = resellingCosts.items !== previousResellingCostsItems;
+      const resellingTasksChanged = resellingTasks.items !== previousResellingTasksItems;
       const profileChanged = session.profile !== previousProfile;
 
       const relevantDataChanged =
@@ -178,6 +208,9 @@ export function createShell({ state, modules, root }) {
         (activeTab === 'budgets' && budgetsChanged) ||
         (activeTab === 'goals' && goalsChanged) ||
         (activeTab === 'settings' && profileChanged) ||
+        (activeTab === 'receivables' && (peopleChanged || receivablesChanged)) ||
+        (activeTab === 'incomeProfiles' && incomeProfilesChanged) ||
+        (activeTab === 'reselling' && (resellingProductsChanged || resellingOrdersChanged || resellingSalesChanged || resellingCostsChanged || resellingTasksChanged)) ||
         ((activeTab === 'dashboard' || activeTab === 'reports') &&
           (accountsChanged || transactionsChanged || budgetsChanged || goalsChanged));
 
@@ -193,6 +226,14 @@ export function createShell({ state, modules, root }) {
       previousTransactionsItems = transactions.items;
       previousBudgetsItems = budgets.items;
       previousGoalsItems = goals.items;
+      previousPeopleItems = people.items;
+      previousReceivablesItems = receivables.items;
+      previousIncomeProfilesItems = incomeProfiles.items;
+      previousResellingProductsItems = resellingProducts.items;
+      previousResellingOrdersItems = resellingOrders.items;
+      previousResellingSalesItems = resellingSales.items;
+      previousResellingCostsItems = resellingCosts.items;
+      previousResellingTasksItems = resellingTasks.items;
       previousProfile = session.profile;
 
       if (shouldRender) {
@@ -256,9 +297,17 @@ export function createShell({ state, modules, root }) {
       sidebarOverlay.addEventListener('click', closeMobileNav);
     }
 
+    const unsubscribe = onLocaleChange(() => {
+      translateStaticElements();
+      const activeTab = state.getState().ui.activeTab || 'dashboard';
+      updateTopBarTitle(activeTab);
+      renderView(activeTab);
+    });
+
     const initialTab = state.getState().ui.activeTab || 'dashboard';
     state.dispatch({ type: 'SET_LIFECYCLE', lifecycle: 'ready' });
     state.dispatch({ type: 'SET_ACTIVE_TAB', tab: initialTab });
+    translateStaticElements();
     updateTopBarTitle(initialTab);
     updateSidebarUser(state.getState().session?.profile);
   }
@@ -269,6 +318,14 @@ export function createShell({ state, modules, root }) {
   let previousTransactionsItems = null;
   let previousBudgetsItems = null;
   let previousGoalsItems = null;
+  let previousPeopleItems = null;
+  let previousReceivablesItems = null;
+  let previousIncomeProfilesItems = null;
+  let previousResellingProductsItems = null;
+  let previousResellingOrdersItems = null;
+  let previousResellingSalesItems = null;
+  let previousResellingCostsItems = null;
+  let previousResellingTasksItems = null;
   let previousProfile = null;
 
   return { mount };

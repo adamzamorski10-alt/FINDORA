@@ -34,6 +34,7 @@ export function createUserModule({ userRepository }) {
         accent: 'purple',
         privacyMode: false,
         excludeInvestmentsFromNetWorth: false,
+        language: 'pl',
       },
     };
 

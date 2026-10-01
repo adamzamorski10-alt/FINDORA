@@ -9,28 +9,23 @@
 import { createFormStateBuffer } from '../utils/form-state.js';
 import { showToast, showConfirm, showModal } from '../utils/feedback.js';
 import { createSvgIcon } from '../utils/icons.js';
-
-const TYPE_OPTIONS = [
-  { value: 'expense', label: 'Expense' },
-  { value: 'income', label: 'Income' },
-];
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+import { t } from '../i18n.js';
+import { formatCurrency as formatLocaleCurrency, formatMonthLabel as formatLocaleMonthLabel, getMonthNames } from '../i18n-format.js';
 
 function formatCurrency(value) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
-  return Number(value).toFixed(2);
+  return formatLocaleCurrency(value, 'PLN');
 }
 
 function formatMonthLabel(monthKey) {
-  if (!monthKey) return '';
-  const [year, month] = monthKey.split('-').map(Number);
-  if (!year || !month) return monthKey;
-  return `${MONTH_NAMES[month - 1]} ${year}`;
+  return formatLocaleMonthLabel(monthKey);
 }
+
+const MONTH_NAMES = getMonthNames();
+
+const TYPE_OPTIONS = [
+  { value: 'expense', labelKey: 'transactions.expense', label: 'Expense' },
+  { value: 'income', labelKey: 'transactions.income', label: 'Income' },
+];
 
 function el(tag, className, textContent) {
   const e = document.createElement(tag);
@@ -70,7 +65,7 @@ export function render(context = {}) {
   if (!state) {
     const placeholder = document.createElement('div');
     placeholder.className = 'view-placeholder';
-    placeholder.innerHTML = '<h2>Transactions</h2><p>Transactions placeholder — functional screens will be added in later stages.</p>';
+    placeholder.innerHTML = `<h2>${t('nav.transactions')}</h2><p>${t('common.placeholder') || ''}</p>`;
     return placeholder;
   }
 
@@ -90,16 +85,16 @@ export function render(context = {}) {
   header.className = 'page-header';
   const headerTitles = document.createElement('div');
   headerTitles.className = 'page-header-titles';
-  const title = el('h1', 'page-header-title', 'Transactions');
+  const title = el('h1', 'page-header-title', t('nav.transactions'));
   headerTitles.appendChild(title);
-  const subtitle = el('p', 'page-header-subtitle', 'Review and manage your financial activity');
+  const subtitle = el('p', 'page-header-subtitle', t('transactions.subtitle'));
   headerTitles.appendChild(subtitle);
   header.appendChild(headerTitles);
 
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'btn btn-primary transactions-add-btn';
-  addBtn.textContent = 'Add Transaction';
+  addBtn.textContent = t('transactions.add');
   addBtn.addEventListener('click', () => {
     state.dispatch({ type: 'RESET_TRANSACTION_FORM' });
     openTransactionForm();
@@ -117,7 +112,7 @@ export function render(context = {}) {
   if (loading) {
     const loadingSurface = document.createElement('div');
     loadingSurface.className = 'surface-analytic';
-    const loadingTitle = el('div', 'section-title', 'Financial Activity');
+    const loadingTitle = el('div', 'section-title', t('dashboard.subtitle'));
     loadingSurface.appendChild(loadingTitle);
     const skeletonList = document.createElement('div');
     skeletonList.style.marginTop = 'var(--space-4)';
@@ -135,28 +130,28 @@ export function render(context = {}) {
 
   const incomeItem = document.createElement('div');
   incomeItem.className = 'summary-strip-item';
-  const incomeLabel = el('span', 'summary-strip-label', 'Income');
+  const incomeLabel = el('span', 'summary-strip-label', t('dashboard.income'));
   const incomeValue = el('div', 'summary-strip-value summary-strip-value--muted', '—');
   incomeItem.appendChild(incomeLabel);
   incomeItem.appendChild(incomeValue);
 
   const expenseItem = document.createElement('div');
   expenseItem.className = 'summary-strip-item';
-  const expenseLabel = el('span', 'summary-strip-label', 'Expenses');
+  const expenseLabel = el('span', 'summary-strip-label', t('dashboard.expenses'));
   const expenseValue = el('div', 'summary-strip-value summary-strip-value--muted', '—');
   expenseItem.appendChild(expenseLabel);
   expenseItem.appendChild(expenseValue);
 
   const netItem = document.createElement('div');
   netItem.className = 'summary-strip-item';
-  const netLabel = el('span', 'summary-strip-label', 'Net');
+  const netLabel = el('span', 'summary-strip-label', t('dashboard.net'));
   const netValue = el('div', 'summary-strip-value summary-strip-value--muted', '—');
   netItem.appendChild(netLabel);
   netItem.appendChild(netValue);
 
   const countItem = document.createElement('div');
   countItem.className = 'summary-strip-item';
-  const countLabel = el('span', 'summary-strip-label', 'Transactions');
+  const countLabel = el('span', 'summary-strip-label', t('transactions.count'));
   const countValue = el('div', 'summary-strip-value summary-strip-value--muted', '0');
   countItem.appendChild(countLabel);
   countItem.appendChild(countValue);
@@ -174,7 +169,7 @@ export function render(context = {}) {
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
   searchInput.className = 'form-input';
-  searchInput.placeholder = 'Search transactions...';
+  searchInput.placeholder = t('transactions.search');
   searchInput.style.maxWidth = '260px';
   filterBar.appendChild(searchInput);
 
@@ -183,12 +178,12 @@ export function render(context = {}) {
   typeSelect.style.maxWidth = '160px';
   const allOption = document.createElement('option');
   allOption.value = '';
-  allOption.textContent = 'All types';
+  allOption.textContent = t('common.allTypes');
   typeSelect.appendChild(allOption);
   for (const opt of TYPE_OPTIONS) {
     const option = document.createElement('option');
     option.value = opt.value;
-    option.textContent = opt.label;
+    option.textContent = t(opt.labelKey);
     typeSelect.appendChild(option);
   }
   filterBar.appendChild(typeSelect);
@@ -198,7 +193,7 @@ export function render(context = {}) {
   accountSelect.style.maxWidth = '200px';
   const accountNoneOption = document.createElement('option');
   accountNoneOption.value = '';
-  accountNoneOption.textContent = 'All accounts';
+  accountNoneOption.textContent = t('common.allAccounts');
   accountSelect.appendChild(accountNoneOption);
   for (const acc of accounts) {
     const option = document.createElement('option');
@@ -234,12 +229,12 @@ export function render(context = {}) {
     const emptyIcon = document.createElement('div');
     emptyIcon.className = 'empty-state-icon';
     emptyIcon.textContent = '📝';
-    const emptyTitle = el('p', 'empty-state-title', 'No transactions yet');
-    const emptyDesc = el('p', 'empty-state-desc', 'Add your first transaction to start tracking your financial activity.');
+    const emptyTitle = el('p', 'empty-state-title', t('transactions.noTransactions'));
+    const emptyDesc = el('p', 'empty-state-desc', t('transactions.emptyActionDesc'));
     const emptyAction = document.createElement('button');
     emptyAction.type = 'button';
     emptyAction.className = 'btn btn-primary';
-    emptyAction.textContent = 'Add Transaction';
+    emptyAction.textContent = t('transactions.emptyAction');
     emptyAction.addEventListener('click', () => {
       state.dispatch({ type: 'RESET_TRANSACTION_FORM' });
       openTransactionForm();
@@ -255,9 +250,9 @@ export function render(context = {}) {
 
     const listHeader = document.createElement('div');
     listHeader.className = 'transaction-list-header';
-    const headerDesc = el('div', 'transaction-row-desc', 'Description');
-    const headerCategory = el('div', 'transaction-row-category', 'Category');
-    const headerAccount = el('div', 'transaction-row-account', 'Account');
+    const headerDesc = el('div', 'transaction-row-desc', t('common.description'));
+    const headerCategory = el('div', 'transaction-row-category', t('common.category'));
+    const headerAccount = el('div', 'transaction-row-account', t('accounts.title'));
     const headerDate = el('div', 'transaction-row-date', 'Date');
     const headerAmount = el('div', 'transaction-row-amount', 'Amount');
     listHeader.appendChild(headerDesc);
@@ -446,25 +441,25 @@ export function render(context = {}) {
     });
     body.appendChild(accountField);
 
-    const typeField = createFormSelectField('Type', TYPE_OPTIONS, buffer.getState().type, (value) => {
+    const typeField = createFormSelectField(t('common.type'), TYPE_OPTIONS.map(o => ({ value: o.value, label: t(o.labelKey) })), buffer.getState().type, (value) => {
       buffer.setValue('type', value);
       populateCategoryOptions(value);
     });
     body.appendChild(typeField);
 
-    const amountField = createFormField('Amount', 'number', buffer.getState().amount, (value) => {
+    const amountField = createFormField(t('common.amount'), 'number', buffer.getState().amount, (value) => {
       buffer.setValue('amount', value);
     });
     const amountHint = document.createElement('span');
     amountHint.className = 'form-hint';
-    amountHint.textContent = 'Enter a positive amount.';
+    amountHint.textContent = t('common.enterPositiveAmount');
     amountField.appendChild(amountHint);
     body.appendChild(amountField);
 
     const categoryWrapper = document.createElement('div');
     categoryWrapper.className = 'form-field';
     const categoryLabel = document.createElement('label');
-    categoryLabel.textContent = 'Category (optional)';
+    categoryLabel.textContent = t('common.categoryOptional');
     categoryLabel.className = 'form-label';
     categoryWrapper.appendChild(categoryLabel);
 
@@ -472,7 +467,7 @@ export function render(context = {}) {
     categorySelect.className = 'form-select';
     const noneOption = document.createElement('option');
     noneOption.value = '';
-    noneOption.textContent = 'None';
+    noneOption.textContent = t('common.none');
     categorySelect.appendChild(noneOption);
     categoryWrapper.appendChild(categorySelect);
     body.appendChild(categoryWrapper);
@@ -517,17 +512,17 @@ export function render(context = {}) {
 
     populateCategoryOptions(buffer.getState().type || 'expense');
 
-    const descField = createFormField('Description', 'text', buffer.getState().description, (value) => {
+    const descField = createFormField(t('common.description'), 'text', buffer.getState().description, (value) => {
       buffer.setValue('description', value);
     });
     body.appendChild(descField);
 
-    const dateField = createFormField('Date', 'text', buffer.getState().date, (value) => {
+    const dateField = createFormField(t('common.date'), 'text', buffer.getState().date, (value) => {
       buffer.setValue('date', value);
     });
     body.appendChild(dateField);
 
-    const notesField = createFormField('Notes (optional)', 'text', buffer.getState().notes, (value) => {
+    const notesField = createFormField(t('common.notes'), 'text', buffer.getState().notes, (value) => {
       buffer.setValue('notes', value);
     });
     body.appendChild(notesField);
@@ -537,13 +532,13 @@ export function render(context = {}) {
 
     const submitBtn = document.createElement('button');
     submitBtn.type = 'submit';
-    submitBtn.textContent = isEditing ? 'Save Changes' : 'Create Transaction';
+    submitBtn.textContent = isEditing ? t('common.save') : t('transactions.addTransaction');
     submitBtn.className = 'btn btn-primary';
     formActions.appendChild(submitBtn);
 
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('common.cancel');
     cancelBtn.className = 'btn btn-secondary';
     cancelBtn.addEventListener('click', () => {
       buffer.reset({

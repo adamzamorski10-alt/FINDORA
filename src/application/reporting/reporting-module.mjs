@@ -40,10 +40,15 @@ export function createReportingModule({
     return category !== undefined && category.systemRole === 'savings';
   }
 
+  function isReceivableTransaction(tx) {
+    return tx.metadata && tx.metadata.receivableId !== undefined && tx.metadata.receivableId !== null;
+  }
+
   function filterBaseReportingTransactions(transactions) {
     return transactions.filter(tx => {
       if (tx.archived) return false;
       if (tx.metadata && tx.metadata.openingBalance === true) return false;
+      if (isReceivableTransaction(tx)) return false;
       return true;
     });
   }
@@ -53,6 +58,7 @@ export function createReportingModule({
       if (tx.archived) return false;
       if (tx.metadata && tx.metadata.openingBalance === true) return false;
       if (isGoalContribution(tx, categoriesMap)) return false;
+      if (isReceivableTransaction(tx)) return false;
       return true;
     });
   }

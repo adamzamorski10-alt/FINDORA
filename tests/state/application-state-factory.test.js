@@ -41,6 +41,8 @@ describe('ApplicationState', () => {
       assert.strictEqual(snapshot.ui.selectedGoalId, null);
       assert.strictEqual(snapshot.ui.monthKey, null);
       assert.deepStrictEqual(snapshot.operations, {});
+      assert.deepStrictEqual(snapshot.people, { loading: false, error: null, items: [] });
+      assert.deepStrictEqual(snapshot.receivables, { loading: false, error: null, items: [] });
     });
   });
 
@@ -480,6 +482,52 @@ describe('ApplicationState', () => {
       assert.strictEqual(form.name, '');
       assert.strictEqual(form.target, '');
       assert.strictEqual(form.priority, 'medium');
+    });
+
+    it('tracks people loading state', () => {
+      const state = createApplicationState();
+      state.dispatch({ type: 'SET_PEOPLE_LOADING', loading: true });
+      assert.strictEqual(state.getState().people.loading, true);
+      state.dispatch({ type: 'SET_PEOPLE', people: [{ id: 'person-1' }] });
+      assert.strictEqual(state.getState().people.loading, false);
+    });
+
+    it('stores people', () => {
+      const state = createApplicationState();
+      const people = [{ id: 'person-1', name: 'Jan' }];
+      state.dispatch({ type: 'SET_PEOPLE', people });
+      assert.deepStrictEqual(state.getState().people.items, people);
+      assert.strictEqual(state.getState().people.error, null);
+    });
+
+    it('stores people error', () => {
+      const state = createApplicationState();
+      state.dispatch({ type: 'SET_PEOPLE_ERROR', error: 'network' });
+      assert.strictEqual(state.getState().people.error, 'network');
+      assert.strictEqual(state.getState().people.loading, false);
+    });
+
+    it('tracks receivables loading state', () => {
+      const state = createApplicationState();
+      state.dispatch({ type: 'SET_RECEIVABLES_LOADING', loading: true });
+      assert.strictEqual(state.getState().receivables.loading, true);
+      state.dispatch({ type: 'SET_RECEIVABLES', receivables: [{ id: 'r-1' }] });
+      assert.strictEqual(state.getState().receivables.loading, false);
+    });
+
+    it('stores receivables', () => {
+      const state = createApplicationState();
+      const receivables = [{ id: 'r-1', description: 'Test' }];
+      state.dispatch({ type: 'SET_RECEIVABLES', receivables });
+      assert.deepStrictEqual(state.getState().receivables.items, receivables);
+      assert.strictEqual(state.getState().receivables.error, null);
+    });
+
+    it('stores receivables error', () => {
+      const state = createApplicationState();
+      state.dispatch({ type: 'SET_RECEIVABLES_ERROR', error: 'network' });
+      assert.strictEqual(state.getState().receivables.error, 'network');
+      assert.strictEqual(state.getState().receivables.loading, false);
     });
   });
 });

@@ -16,16 +16,34 @@ export function createBackupService({
   transactionRepository,
   budgetRepository,
   goalRepository,
+  personRepository,
+  receivableRepository,
+  incomeProfileRepository,
+  resellingProductRepository,
+  resellingOrderRepository,
+  resellingSaleRepository,
+  resellingCostRepository,
+  resellingTaskRepository,
 }) {
   async function loadUserData(userId) {
-    const [profile, accounts, categories, transactions, budgets, goals] = await Promise.all([
+    const loads = [
       userRepository.findById(userId),
       accountRepository.loadAll(),
       categoryRepository.loadAll(),
       transactionRepository.loadAll(),
       budgetRepository.findAll(),
       goalRepository.loadAll(),
-    ]);
+      personRepository.loadAll(),
+      receivableRepository.loadAll(),
+      incomeProfileRepository.loadAll(),
+    ];
+    if (resellingProductRepository) loads.push(resellingProductRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (resellingOrderRepository) loads.push(resellingOrderRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (resellingSaleRepository) loads.push(resellingSaleRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (resellingCostRepository) loads.push(resellingCostRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (resellingTaskRepository) loads.push(resellingTaskRepository.loadAll()); else loads.push(Promise.resolve([]));
+
+    const [profile, accounts, categories, transactions, budgets, goals, people, receivables, incomeProfiles, resellingProducts, resellingOrders, resellingSales, resellingCosts, resellingTasks] = await Promise.all(loads);
 
     return {
       profile: profile ? [profile] : [],
@@ -34,6 +52,14 @@ export function createBackupService({
       transactions: transactions || [],
       budgets: budgets || [],
       goals: goals || [],
+      people: people || [],
+      receivables: receivables || [],
+      incomeProfiles: incomeProfiles || [],
+      resellingProducts: resellingProducts || [],
+      resellingOrders: resellingOrders || [],
+      resellingSales: resellingSales || [],
+      resellingCosts: resellingCosts || [],
+      resellingTasks: resellingTasks || [],
     };
   }
 

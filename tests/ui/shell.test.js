@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { init } from '../../src/ui/i18n.js';
 
 function createMockElement(tag = 'div') {
   const listeners = {};
@@ -98,6 +99,14 @@ function createMockState(initialTab = 'dashboard', initialMonthKey = '2024-09') 
     transactions: { items: [] },
     budgets: { items: [] },
     goals: { items: [] },
+    people: { items: [] },
+    receivables: { items: [] },
+    incomeProfiles: { items: [] },
+    resellingProducts: { items: [] },
+    resellingOrders: { items: [] },
+    resellingSales: { items: [] },
+    resellingCosts: { items: [] },
+    resellingTasks: { items: [] },
   };
 
   return {
@@ -129,6 +138,30 @@ function createMockState(initialTab = 'dashboard', initialMonthKey = '2024-09') 
       }
       if (action.type === 'SET_GOALS') {
         currentSnapshot = { ...currentSnapshot, goals: { ...currentSnapshot.goals, items: action.goals } };
+      }
+      if (action.type === 'SET_PEOPLE') {
+        currentSnapshot = { ...currentSnapshot, people: { ...currentSnapshot.people, items: action.people } };
+      }
+      if (action.type === 'SET_RECEIVABLES') {
+        currentSnapshot = { ...currentSnapshot, receivables: { ...currentSnapshot.receivables, items: action.receivables } };
+      }
+      if (action.type === 'SET_INCOME_PROFILES') {
+        currentSnapshot = { ...currentSnapshot, incomeProfiles: { ...currentSnapshot.incomeProfiles, items: action.profiles } };
+      }
+      if (action.type === 'SET_RESELLING_PRODUCTS') {
+        currentSnapshot = { ...currentSnapshot, resellingProducts: { ...currentSnapshot.resellingProducts, items: action.items } };
+      }
+      if (action.type === 'SET_RESELLING_ORDERS') {
+        currentSnapshot = { ...currentSnapshot, resellingOrders: { ...currentSnapshot.resellingOrders, items: action.items } };
+      }
+      if (action.type === 'SET_RESELLING_SALES') {
+        currentSnapshot = { ...currentSnapshot, resellingSales: { ...currentSnapshot.resellingSales, items: action.items } };
+      }
+      if (action.type === 'SET_RESELLING_COSTS') {
+        currentSnapshot = { ...currentSnapshot, resellingCosts: { ...currentSnapshot.resellingCosts, items: action.items } };
+      }
+      if (action.type === 'SET_RESELLING_TASKS') {
+        currentSnapshot = { ...currentSnapshot, resellingTasks: { ...currentSnapshot.resellingTasks, items: action.items } };
       }
       if (action.type === 'SET_USER_PROFILE') {
         currentSnapshot = { ...currentSnapshot, session: { ...currentSnapshot.session, profile: action.profile } };
@@ -190,6 +223,8 @@ function createMockDocument() {
 }
 
 globalThis.document = createMockDocument();
+
+await init('en');
 
 describe('Shell', () => {
   describe('navigation', () => {
