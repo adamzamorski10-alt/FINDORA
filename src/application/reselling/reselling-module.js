@@ -246,7 +246,36 @@ export function createResellingModule({
     });
 
     await appTx.run(async () => {
+      if (sale.paymentStatus === 'paid') {
+        if (!sale.accountId) throw new Error('VALIDATION_FAILED');
+        if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
+        const account = await accountRepo.findById(sale.accountId);
+        if (!account || account.userId !== userId) throw new Error('NOT_FOUND');
+        if (account.archived) throw new Error('ARCHIVED_ENTITY');
+      }
+
       await saleRepo.save(sale);
+
+      if (sale.paymentStatus === 'paid') {
+        const transaction = {
+          id: generateId(),
+          userId,
+          accountId: sale.accountId,
+          amount: sale.netAmount,
+          type: 'income',
+          categoryId: null,
+          description: sale.platform ? 'Reselling sale — ' + sale.platform : 'Reselling sale',
+          date: sale.saleDate,
+          notes: '',
+          metadata: { resellingSaleId: sale.id },
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await txRepo.save(transaction);
+        sale.linkedTransactionId = transaction.id;
+        await saleRepo.save(sale);
+      }
     });
 
     return sale;
@@ -287,6 +316,54 @@ export function createResellingModule({
     const updated = validateResellingSaleUpdate({ existing, updates });
 
     await appTx.run(async () => {
+      const oldPaymentStatus = existing.paymentStatus || 'pending';
+      const newPaymentStatus = updated.paymentStatus || 'pending';
+      const oldAccountId = existing.accountId || '';
+      const newAccountId = updated.accountId || '';
+      const financialChange = updated.netAmount !== existing.netAmount || updated.saleDate !== existing.saleDate || updated.platform !== existing.platform;
+
+      if (oldPaymentStatus === 'paid' && newPaymentStatus !== 'paid') {
+        if (existing.linkedTransactionId && txRepo) {
+          const linkedTx = await txRepo.findById(existing.linkedTransactionId);
+          if (linkedTx && !linkedTx.archived) await txRepo.save({ ...linkedTx, archived: true, updatedAt: new Date().toISOString() });
+        }
+        updated.linkedTransactionId = '';
+      } else if (oldPaymentStatus !== 'paid' && newPaymentStatus === 'paid') {
+        if (!newAccountId) throw new Error('VALIDATION_FAILED');
+        if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
+        const account = await accountRepo.findById(newAccountId);
+        if (!account || account.userId !== existing.userId) throw new Error('NOT_FOUND');
+        if (account.archived) throw new Error('ARCHIVED_ENTITY');
+        const transaction = {
+          id: generateId(), userId: existing.userId, accountId: newAccountId, amount: updated.netAmount,
+          type: 'income', categoryId: null,
+          description: updated.platform ? 'Reselling sale — ' + updated.platform : 'Reselling sale',
+          date: updated.saleDate, notes: '', metadata: { resellingSaleId: existing.id }, archived: false,
+          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        };
+        await txRepo.save(transaction);
+        updated.linkedTransactionId = transaction.id;
+      } else if (newPaymentStatus === 'paid' && (oldAccountId !== newAccountId || financialChange)) {
+        if (!newAccountId) throw new Error('VALIDATION_FAILED');
+        if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
+        const account = await accountRepo.findById(newAccountId);
+        if (!account || account.userId !== existing.userId) throw new Error('NOT_FOUND');
+        if (account.archived) throw new Error('ARCHIVED_ENTITY');
+        if (existing.linkedTransactionId) {
+          const oldLinkedTx = await txRepo.findById(existing.linkedTransactionId);
+          if (oldLinkedTx && !oldLinkedTx.archived) await txRepo.save({ ...oldLinkedTx, archived: true, updatedAt: new Date().toISOString() });
+        }
+        const transaction = {
+          id: generateId(), userId: existing.userId, accountId: newAccountId, amount: updated.netAmount,
+          type: 'income', categoryId: null,
+          description: updated.platform ? 'Reselling sale — ' + updated.platform : 'Reselling sale',
+          date: updated.saleDate, notes: '', metadata: { resellingSaleId: existing.id }, archived: false,
+          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        };
+        await txRepo.save(transaction);
+        updated.linkedTransactionId = transaction.id;
+      }
+
       await saleRepo.save(updated);
     });
 
@@ -306,9 +383,15 @@ export function createResellingModule({
       return existing;
     }
 
-    existing.archived = true;
-    existing.updatedAt = new Date().toISOString();
-    await saleRepo.save(existing);
+    await appTx.run(async () => {
+      existing.archived = true;
+      existing.updatedAt = new Date().toISOString();
+      await saleRepo.save(existing);
+      if (existing.linkedTransactionId && txRepo) {
+        const linkedTx = await txRepo.findById(existing.linkedTransactionId);
+        if (linkedTx && !linkedTx.archived) await txRepo.save({ ...linkedTx, archived: true, updatedAt: new Date().toISOString() });
+      }
+    });
     return existing;
   }
 
