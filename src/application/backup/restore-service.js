@@ -346,6 +346,7 @@ export function createRestoreService({
           `resellingTask:${currentUserId}:`,
           `websitesClient:${currentUserId}:`,
           `websitesProject:${currentUserId}:`,
+          `websitesPayment:${currentUserId}:`,
         ];
 
         const keysToRemove = currentKeys.filter(key => {
@@ -437,6 +438,9 @@ export function createRestoreService({
 
         for (const project of (backupData.websitesProjects || [])) {
           await storage.set(`websitesProject:${currentUserId}:${project.id}`, project);
+        }
+        for (const payment of (backupData.websitesPayments || [])) {
+          await storage.set(`websitesPayment:${currentUserId}:${payment.id}`, payment);
         }
 
         const hasSystemCategories = backupData.categories.some(c => c.isSystem && c.systemRole);
@@ -582,6 +586,9 @@ export function createRestoreService({
       for (const project of snapshotData.websitesProjects || []) {
         await storage.set(`websitesProject:${currentUserId}:${project.id}`, project);
       }
+      for (const payment of snapshotData.websitesPayments || []) {
+        await storage.set(`websitesPayment:${currentUserId}:${payment.id}`, payment);
+      }
     });
 
     return {
@@ -609,8 +616,9 @@ export function createRestoreService({
     if (resellingTaskRepository) loads.push(resellingTaskRepository.loadAll()); else loads.push(Promise.resolve([]));
     if (websitesClientRepository) loads.push(websitesClientRepository.loadAll()); else loads.push(Promise.resolve([]));
     if (websitesProjectRepository) loads.push(websitesProjectRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (websitesPaymentRepository) loads.push(websitesPaymentRepository.loadAll()); else loads.push(Promise.resolve([]));
 
-    const [profile, accounts, categories, transactions, budgets, goals, people, receivables, incomeProfiles, resellingProducts, resellingOrders, resellingSales, resellingCosts, resellingTasks, websitesClients, websitesProjects] = await Promise.all(loads);
+    const [profile, accounts, categories, transactions, budgets, goals, people, receivables, incomeProfiles, resellingProducts, resellingOrders, resellingSales, resellingCosts, resellingTasks, websitesClients, websitesProjects, websitesPayments] = await Promise.all(loads);
 
     return {
       profile: profile ? [profile] : [],
@@ -624,6 +632,7 @@ export function createRestoreService({
       incomeProfiles: incomeProfiles || [],
       websitesClients: websitesClients || [],
       websitesProjects: websitesProjects || [],
+      websitesPayments: websitesPayments || [],
       resellingProducts: resellingProducts || [],
       resellingOrders: resellingOrders || [],
       resellingSales: resellingSales || [],
