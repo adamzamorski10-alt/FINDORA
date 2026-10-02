@@ -29,6 +29,7 @@ import { createReceivablesModule } from './receivable/receivable-module.js';
 import { createIncomeProfileModule } from './income-profile/income-profile-module.js';
 import { createGlobalIncomeModule } from './income/global-income-module.js';
 import { createResellingModule } from './reselling/reselling-module.js';
+import { createWebsitesModule } from './websites/websites-module.js';
 import { createApplicationState } from '../state/application-state-factory.js';
 import { compute as safeToSpendCompute } from '../domain/safe-to-spend/safe-to-spend-calculator.js';
 import { compute as goalRequiredDepositCompute } from '../domain/goals/goal-required-deposit-calculator.js';
@@ -64,6 +65,13 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
     resellingTaskRepository: persistence.resellingTaskRepository,
     transactionRepository: persistence.transactionRepository,
     accountRepository: persistence.accountRepository,
+    applicationTransaction: appTx,
+  });
+
+  const websitesModule = createWebsitesModule({
+    websitesClientRepository: persistence.websitesClientRepository,
+    websitesProjectRepository: persistence.websitesProjectRepository,
+    incomeProfileRepository: persistence.incomeProfileRepository,
     applicationTransaction: appTx,
   });
 
@@ -180,6 +188,7 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
       applicationTransaction: appTx,
     }),
     reselling: resellingModule,
+    websites: websitesModule,
     globalIncome: globalIncomeModule,
     backup: backupService,
     restore: restoreService,
