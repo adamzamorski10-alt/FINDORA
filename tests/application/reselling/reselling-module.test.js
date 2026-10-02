@@ -20,6 +20,10 @@ async function createModule(userId = 'user-1') {
   const saleRepo = new ResellingSaleRepository(storage, userId, () => storage.keys());
   const costRepo = new ResellingCostRepository(storage, userId, () => storage.keys());
   const taskRepo = new ResellingTaskRepository(storage, userId, () => storage.keys());
+  const transactionRepo = new TransactionRepository(storage, userId, () => storage.keys());
+  const accountRepo = new AccountRepository(storage, userId, () => storage.keys());
+  const incomeProfileRepo = new IncomeProfileRepository(storage, userId, () => storage.keys());
+  await incomeProfileRepo.save({ id: 'ip-1', userId, type: 'reselling', name: 'Test Profile', description: '', archived: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   const appTx = new ApplicationTransaction(storage);
 
   return {
