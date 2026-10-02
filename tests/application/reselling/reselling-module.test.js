@@ -437,6 +437,23 @@ describe('ResellingSale Financial Integration', () => {
     assert.strictEqual(all.filter(t => t.metadata?.resellingSaleId === sale.id && t.archived).length, 1);
   });
 
+  it('repairs a paid sale when its linked transaction is missing', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    const sale = await module.createSale({
+      userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', saleStatus:'completed', accountId:'acc-1'
+    });
+    await txRepo.save({ id:sale.linkedTransactionId, userId:'user-1', accountId:'acc-1', amount:100, type:'income',
+      categoryId:null, description:'Reselling sale', date:'2024-07-01', notes:'',
+      metadata:{resellingSaleId:sale.id}, archived:true, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
+    const updated = await module.updateSale({ saleId:sale.id, updates:{ platform:'Vinted' } });
+    const active = (await txRepo.loadAll()).filter(t => t.metadata?.resellingSaleId === sale.id && !t.archived);
+    assert.strictEqual(active.length, 1);
+    assert.strictEqual(active[0].amount, 100);
+    assert.strictEqual(updated.linkedTransactionId, active[0].id);
+  });
+
   it('refreshes the financial transaction when a paid sale amount changes', async () => {
     const { module, txRepo, accountRepo } = await createFinancialModule();
     await addAccount(accountRepo, 'acc-1');
