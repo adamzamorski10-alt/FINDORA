@@ -200,7 +200,7 @@ describe('ResellingModule', () => {
         shipping: 15,
         otherCosts: 0,
         saleDate: '2024-07-01',
-        paymentStatus: 'paid',
+        paymentStatus: 'pending',
         saleStatus: 'completed',
       });
 
@@ -337,5 +337,133 @@ describe('ResellingModule', () => {
       assert.strictEqual(updated.status, 'listed');
       assert.strictEqual(updated.userId, 'user-1');
     });
+  });
+});
+
+
+describe('ResellingSale Financial Integration', () => {
+  async function createFinancialModule(userId = 'user-1') {
+    const storage = new InMemoryStorageAdapter();
+    await storage.init();
+    const productRepo = new ResellingProductRepository(storage, userId, () => storage.keys());
+    const orderRepo = new ResellingOrderRepository(storage, userId, () => storage.keys());
+    const saleRepo = new ResellingSaleRepository(storage, userId, () => storage.keys());
+    const costRepo = new ResellingCostRepository(storage, userId, () => storage.keys());
+    const taskRepo = new ResellingTaskRepository(storage, userId, () => storage.keys());
+    const txRepo = new TransactionRepository(storage, userId, () => storage.keys());
+    const accountRepo = new AccountRepository(storage, userId, () => storage.keys());
+    const appTx = new ApplicationTransaction(storage);
+    const module = createResellingModule({
+      resellingProductRepository: productRepo, resellingOrderRepository: orderRepo, resellingSaleRepository: saleRepo,
+      resellingCostRepository: costRepo, resellingTaskRepository: taskRepo, transactionRepository: txRepo,
+      accountRepository: accountRepo, applicationTransaction: appTx,
+    });
+    return { module, txRepo, accountRepo };
+  }
+
+  async function addAccount(accountRepo, id, userId = 'user-1') {
+    await accountRepo.save({
+      id, userId, name: id, type: 'bank', icon: 'landmark', color: '#0000FF', archived: false,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    });
+  }
+
+  it('creates exactly one income transaction for a paid sale', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:200, commission:10, shipping:15, otherCosts:5, saleDate:'2024-07-01',
+      paymentStatus:'paid', saleStatus:'completed', accountId:'acc-1' });
+    assert.ok(sale.linkedTransactionId);
+    const tx = (await txRepo.loadAll()).filter(t => !t.archived && t.metadata?.resellingSaleId === sale.id);
+    assert.strictEqual(tx.length, 1);
+    assert.strictEqual(tx[0].type, 'income');
+    assert.strictEqual(tx[0].amount, 170);
+    assert.strictEqual(tx[0].accountId, 'acc-1');
+  });
+
+  it('does not create a transaction for an unpaid sale', async () => {
+    const { module, txRepo } = await createFinancialModule();
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:200, saleDate:'2024-07-01', paymentStatus:'pending', saleStatus:'sold' });
+    assert.strictEqual(sale.linkedTransactionId, '');
+    assert.strictEqual((await txRepo.loadAll()).length, 0);
+  });
+
+  it('requires an account when creating a paid sale', async () => {
+    const { module, txRepo } = await createFinancialModule();
+    await assert.rejects(module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:200, saleDate:'2024-07-01', paymentStatus:'paid' }), /VALIDATION_FAILED/);
+    assert.strictEqual((await txRepo.loadAll()).length, 0);
+  });
+
+  it('creates the transaction when an unpaid sale becomes paid', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'pending', saleStatus:'awaiting_payment' });
+    const updated = await module.updateSale({ saleId:sale.id, updates:{ paymentStatus:'paid', accountId:'acc-1' } });
+    assert.ok(updated.linkedTransactionId);
+    const tx = (await txRepo.loadAll()).find(t => t.metadata?.resellingSaleId === sale.id && !t.archived);
+    assert.ok(tx);
+    assert.strictEqual(tx.amount, 100);
+    assert.strictEqual(tx.accountId, 'acc-1');
+  });
+
+  it('archives the transaction when a paid sale becomes unpaid', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', saleStatus:'completed', accountId:'acc-1' });
+    const updated = await module.updateSale({ saleId:sale.id, updates:{ paymentStatus:'pending' } });
+    assert.strictEqual(updated.linkedTransactionId, '');
+    const tx = (await txRepo.loadAll()).find(t => t.metadata?.resellingSaleId === sale.id);
+    assert.ok(tx);
+    assert.strictEqual(tx.archived, true);
+  });
+
+  it('moves the financial transaction when a paid sale changes account', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1'); await addAccount(accountRepo, 'acc-2');
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', saleStatus:'completed', accountId:'acc-1' });
+    const updated = await module.updateSale({ saleId:sale.id, updates:{ accountId:'acc-2' } });
+    assert.ok(updated.linkedTransactionId);
+    const all = await txRepo.loadAll();
+    assert.strictEqual(all.filter(t => t.metadata?.resellingSaleId === sale.id && !t.archived).length, 1);
+    assert.strictEqual(all.find(t => t.metadata?.resellingSaleId === sale.id && !t.archived).accountId, 'acc-2');
+    assert.strictEqual(all.filter(t => t.metadata?.resellingSaleId === sale.id && t.archived).length, 1);
+  });
+
+  it('refreshes the financial transaction when a paid sale amount changes', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', saleStatus:'completed', accountId:'acc-1' });
+    const updated = await module.updateSale({ saleId:sale.id, updates:{ salePrice:120 } });
+    assert.ok(updated.linkedTransactionId);
+    const all = await txRepo.loadAll();
+    const active = all.filter(t => t.metadata?.resellingSaleId === sale.id && !t.archived);
+    assert.strictEqual(active.length, 1);
+    assert.strictEqual(active[0].amount, 120);
+  });
+
+  it('archives the linked transaction when a paid sale is archived', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', saleStatus:'completed', accountId:'acc-1' });
+    await module.archiveSale({ saleId:sale.id });
+    const tx = (await txRepo.loadAll()).find(t => t.metadata?.resellingSaleId === sale.id);
+    assert.ok(tx);
+    assert.strictEqual(tx.archived, true);
+  });
+
+  it('rejects a paid sale linked to another user account', async () => {
+    const { module, accountRepo, txRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-other', 'user-2');
+    await assert.rejects(module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', accountId:'acc-other' }), /NOT_FOUND/);
+    assert.strictEqual((await txRepo.loadAll()).length, 0);
   });
 });
