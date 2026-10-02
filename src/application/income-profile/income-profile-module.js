@@ -94,9 +94,11 @@ export function createIncomeProfileModule({
       return existing;
     }
 
-    existing.archived = true;
-    existing.updatedAt = new Date().toISOString();
-    await profileRepo.save(existing);
+    await appTx.run(async () => {
+      existing.archived = true;
+      existing.updatedAt = new Date().toISOString();
+      await profileRepo.save(existing);
+    });
     return existing;
   }
 
