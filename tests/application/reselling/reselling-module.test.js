@@ -28,6 +28,8 @@ async function createModule(userId = 'user-1') {
       resellingSaleRepository: saleRepo,
       resellingCostRepository: costRepo,
       resellingTaskRepository: taskRepo,
+      transactionRepository: transactionRepo,
+      accountRepository: accountRepo,
       applicationTransaction: appTx,
     }),
     storage,
@@ -36,6 +38,8 @@ async function createModule(userId = 'user-1') {
     saleRepo,
     costRepo,
     taskRepo,
+    transactionRepo,
+    accountRepo,
     appTx,
   };
 }
@@ -210,6 +214,82 @@ describe('ResellingModule', () => {
       assert.strictEqual(sale.netAmount, 175);
       assert.strictEqual(sale.paymentStatus, 'pending');
       assert.strictEqual(sale.saleStatus, 'completed');
+    });
+  });
+
+  describe('cost financial integration', () => {
+    async function addAccount(accountRepo, id = 'acc-1', userId = 'user-1') {
+      await accountRepo.save({
+        id, userId, name: 'Test account', type: 'cash', icon: '', color: '#000000',
+        openingBalance: 1000, archived: false,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      });
+    }
+
+    it('creates exactly one expense transaction for a paid cost', async () => {
+      const { module, accountRepo, transactionRepo } = await createModule();
+      await addAccount(accountRepo);
+      const cost = await module.createCost({
+        userId:'user-1', incomeProfileId:'ip-1', amount:50, category:'shipping',
+        date:'2024-07-01', description:'Shipping', accountId:'acc-1', paymentStatus:'paid'
+      });
+      const txs = await transactionRepo.loadAll();
+      assert.strictEqual(txs.length, 1);
+      assert.strictEqual(txs[0].amount, 50);
+      assert.strictEqual(txs[0].type, 'expense');
+      assert.strictEqual(cost.linkedTransactionId, txs[0].id);
+    });
+
+    it('requires an account for a paid cost', async () => {
+      const { module, transactionRepo } = await createModule();
+      await assert.rejects(module.createCost({
+        userId:'user-1', incomeProfileId:'ip-1', amount:50, category:'shipping',
+        date:'2024-07-01', description:'Shipping', paymentStatus:'paid'
+      }), /VALIDATION_FAILED/);
+      assert.strictEqual((await transactionRepo.loadAll()).length, 0);
+    });
+
+    it('refreshes the expense transaction when a paid cost changes', async () => {
+      const { module, accountRepo, transactionRepo } = await createModule();
+      await addAccount(accountRepo);
+      const cost = await module.createCost({
+        userId:'user-1', incomeProfileId:'ip-1', amount:50, category:'shipping',
+        date:'2024-07-01', description:'Shipping', accountId:'acc-1', paymentStatus:'paid'
+      });
+      const updated = await module.updateCost({ costId:cost.id, updates:{ amount:75, description:'Updated shipping' } });
+      const txs = await transactionRepo.loadAll();
+      assert.strictEqual(txs.length, 2);
+      assert.strictEqual(txs.filter(tx => tx.archived).length, 1);
+      const active = txs.find(tx => !tx.archived);
+      assert.strictEqual(active.amount, 75);
+      assert.strictEqual(active.description, 'Updated shipping');
+      assert.strictEqual(updated.linkedTransactionId, active.id);
+    });
+
+    it('repairs a paid cost with a missing linked transaction', async () => {
+      const { module, accountRepo, transactionRepo } = await createModule();
+      await addAccount(accountRepo);
+      const cost = await module.createCost({
+        userId:'user-1', incomeProfileId:'ip-1', amount:50, category:'shipping',
+        date:'2024-07-01', description:'Shipping', accountId:'acc-1', paymentStatus:'paid'
+      });
+      await transactionRepo.archive(cost.linkedTransactionId);
+      const updated = await module.updateCost({ costId:cost.id, updates:{ description:'Repair' } });
+      const txs = await transactionRepo.loadAll();
+      assert.strictEqual(txs.filter(tx => !tx.archived).length, 1);
+      assert.strictEqual(updated.linkedTransactionId, txs.find(tx => !tx.archived).id);
+    });
+
+    it('archives the linked expense when a paid cost is archived', async () => {
+      const { module, accountRepo, transactionRepo } = await createModule();
+      await addAccount(accountRepo);
+      const cost = await module.createCost({
+        userId:'user-1', incomeProfileId:'ip-1', amount:50, category:'shipping',
+        date:'2024-07-01', description:'Shipping', accountId:'acc-1', paymentStatus:'paid'
+      });
+      await module.archiveCost({ costId:cost.id });
+      const txs = await transactionRepo.loadAll();
+      assert.strictEqual(txs.filter(tx => !tx.archived).length, 0);
     });
   });
 
