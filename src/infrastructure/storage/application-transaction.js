@@ -11,6 +11,9 @@ class ApplicationTransaction {
     }
 
     const ctx = this.adapter.beginTransaction();
+    if (!ctx) {
+      throw new Error('Storage adapter does not provide a usable transaction context');
+    }
     try {
       await callback();
       await this.adapter.commitTransaction(ctx);
