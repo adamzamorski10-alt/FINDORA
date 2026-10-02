@@ -11,7 +11,14 @@ export function createGlobalIncomeModule({
       throw new Error('VALIDATION_FAILED');
     }
 
-    const profiles = (await incomeProfileRepository.loadAll())
+    const allProfiles = await incomeProfileRepository.loadAll();
+    if (incomeProfileId) {
+      const selectedProfile = allProfiles.find(profile => profile.id === incomeProfileId);
+      if (!selectedProfile || selectedProfile.userId !== userId) throw new Error('NOT_FOUND');
+      if (selectedProfile.archived) throw new Error('ARCHIVED_ENTITY');
+    }
+
+    const profiles = allProfiles
       .filter(profile => profile.userId === userId && !profile.archived)
       .filter(profile => !incomeProfileId || profile.id === incomeProfileId);
 
