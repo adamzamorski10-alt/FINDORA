@@ -471,6 +471,8 @@ describe('ResellingSale Financial Integration', () => {
     const taskRepo = new ResellingTaskRepository(storage, userId, () => storage.keys());
     const txRepo = new TransactionRepository(storage, userId, () => storage.keys());
     const accountRepo = new AccountRepository(storage, userId, () => storage.keys());
+    const incomeProfileRepo = new IncomeProfileRepository(storage, userId, () => storage.keys());
+    await incomeProfileRepo.save({ id:'ip-1', userId, type:'reselling', name:'Financial Test', description:'', archived:false, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
     const appTx = new ApplicationTransaction(storage);
     const module = createResellingModule({
       resellingProductRepository: productRepo, resellingOrderRepository: orderRepo, resellingSaleRepository: saleRepo,
