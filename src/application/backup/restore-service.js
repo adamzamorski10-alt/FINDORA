@@ -576,6 +576,12 @@ export function createRestoreService({
         const key = `resellingTask:${currentUserId}:${task.id}`;
         await storage.set(key, task);
       }
+      for (const client of snapshotData.websitesClients || []) {
+        await storage.set(`websitesClient:${currentUserId}:${client.id}`, client);
+      }
+      for (const project of snapshotData.websitesProjects || []) {
+        await storage.set(`websitesProject:${currentUserId}:${project.id}`, project);
+      }
     });
 
     return {
@@ -601,8 +607,10 @@ export function createRestoreService({
     if (resellingSaleRepository) loads.push(resellingSaleRepository.loadAll()); else loads.push(Promise.resolve([]));
     if (resellingCostRepository) loads.push(resellingCostRepository.loadAll()); else loads.push(Promise.resolve([]));
     if (resellingTaskRepository) loads.push(resellingTaskRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (websitesClientRepository) loads.push(websitesClientRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (websitesProjectRepository) loads.push(websitesProjectRepository.loadAll()); else loads.push(Promise.resolve([]));
 
-    const [profile, accounts, categories, transactions, budgets, goals, people, receivables, incomeProfiles, resellingProducts, resellingOrders, resellingSales, resellingCosts, resellingTasks] = await Promise.all(loads);
+    const [profile, accounts, categories, transactions, budgets, goals, people, receivables, incomeProfiles, resellingProducts, resellingOrders, resellingSales, resellingCosts, resellingTasks, websitesClients, websitesProjects] = await Promise.all(loads);
 
     return {
       profile: profile ? [profile] : [],
@@ -614,6 +622,8 @@ export function createRestoreService({
       people: people || [],
       receivables: receivables || [],
       incomeProfiles: incomeProfiles || [],
+      websitesClients: websitesClients || [],
+      websitesProjects: websitesProjects || [],
       resellingProducts: resellingProducts || [],
       resellingOrders: resellingOrders || [],
       resellingSales: resellingSales || [],
