@@ -255,6 +255,7 @@ export function createResellingModule({
     await appTx.run(async () => {
       if (sale.paymentStatus === 'paid') {
         if (!sale.accountId) throw new Error('VALIDATION_FAILED');
+        if (!Number.isFinite(sale.netAmount) || sale.netAmount <= 0) throw new Error('VALIDATION_FAILED');
         if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
         const account = await accountRepo.findById(sale.accountId);
         if (!account || account.userId !== userId) throw new Error('NOT_FOUND');
@@ -345,6 +346,7 @@ export function createResellingModule({
         }
         updated.linkedTransactionId = '';
       } else if (oldPaymentStatus !== 'paid' && newPaymentStatus === 'paid') {
+        if (!Number.isFinite(updated.netAmount) || updated.netAmount <= 0) throw new Error('VALIDATION_FAILED');
         if (!newAccountId) throw new Error('VALIDATION_FAILED');
         if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
         const account = await accountRepo.findById(newAccountId);
@@ -360,6 +362,7 @@ export function createResellingModule({
         await txRepo.save(transaction);
         updated.linkedTransactionId = transaction.id;
       } else if (newPaymentStatus === 'paid' && (oldAccountId !== newAccountId || financialChange || !existing.linkedTransactionId || !(await txRepo?.findById(existing.linkedTransactionId)) || (await txRepo.findById(existing.linkedTransactionId))?.archived)) {
+        if (!Number.isFinite(updated.netAmount) || updated.netAmount <= 0) throw new Error('VALIDATION_FAILED');
         if (!newAccountId) throw new Error('VALIDATION_FAILED');
         if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
         const account = await accountRepo.findById(newAccountId);
