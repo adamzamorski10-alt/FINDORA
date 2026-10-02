@@ -55,6 +55,23 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
     applicationTransaction: appTx,
   });
 
+  const resellingModule = createResellingModule({
+    incomeProfileRepository: persistence.incomeProfileRepository,
+    resellingProductRepository: persistence.resellingProductRepository,
+    resellingOrderRepository: persistence.resellingOrderRepository,
+    resellingSaleRepository: persistence.resellingSaleRepository,
+    resellingCostRepository: persistence.resellingCostRepository,
+    resellingTaskRepository: persistence.resellingTaskRepository,
+    transactionRepository: persistence.transactionRepository,
+    accountRepository: persistence.accountRepository,
+    applicationTransaction: appTx,
+  });
+
+  const globalIncomeModule = createGlobalIncomeModule({
+    incomeProfileRepository: persistence.incomeProfileRepository,
+    resellingModule,
+  });
+
   const state = createApplicationState();
 
   const categoryModule = createCategoryModule({
