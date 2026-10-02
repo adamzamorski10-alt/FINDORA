@@ -39,7 +39,7 @@ export function validateRestoreBackup(envelope, currentUserId) {
   }
 
   const data = envelope.data || {};
-  const requiredCollections = ['profile', 'accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks'];
+  const requiredCollections = ['profile', 'accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks', 'websitesClients', 'websitesProjects', 'websitesPayments', 'websitesCosts'];
   for (const collection of requiredCollections) {
     if (!Array.isArray(data[collection])) {
       return { valid: false, errors: [`Missing or invalid collection: ${collection}`] };
@@ -277,7 +277,7 @@ export function computeRestorePreview(currentData, backupEnvelope) {
     collections: {},
   };
 
-  const collections = ['accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks', 'websitesClients', 'websitesProjects'];
+  const collections = ['accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks', 'websitesClients', 'websitesProjects', 'websitesPayments', 'websitesCosts'];
   for (const collection of collections) {
     const currentCount = Array.isArray(current[collection]) ? current[collection].length : 0;
     const backupCount = Array.isArray(backupData[collection]) ? backupData[collection].length : 0;
@@ -330,6 +330,10 @@ export function createRestoreService({
   resellingSaleRepository,
   resellingCostRepository,
   resellingTaskRepository,
+  websitesClientRepository,
+  websitesProjectRepository,
+  websitesPaymentRepository,
+  websitesCostRepository,
   goalModule,
   categoryModule,
 } = {}) {
@@ -531,6 +535,10 @@ export function createRestoreService({
         `resellingSale:${currentUserId}:`,
         `resellingCost:${currentUserId}:`,
         `resellingTask:${currentUserId}:`,
+        `websitesClient:${currentUserId}:`,
+        `websitesProject:${currentUserId}:`,
+        `websitesPayment:${currentUserId}:`,
+        `websitesCost:${currentUserId}:`,
       ];
 
       const keysToRemove = currentKeys.filter(key => {
