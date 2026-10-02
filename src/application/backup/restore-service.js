@@ -39,7 +39,7 @@ export function validateRestoreBackup(envelope, currentUserId) {
   }
 
   const data = envelope.data || {};
-  const requiredCollections = ['profile', 'accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks'];
+  const requiredCollections = ['profile', 'accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks', 'websitesClients', 'websitesProjects'];
   for (const collection of requiredCollections) {
     if (!Array.isArray(data[collection])) {
       return { valid: false, errors: [`Missing or invalid collection: ${collection}`] };
@@ -246,7 +246,7 @@ export function computeRestorePreview(currentData, backupEnvelope) {
     collections: {},
   };
 
-  const collections = ['accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks'];
+  const collections = ['accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks', 'websitesClients', 'websitesProjects'];
   for (const collection of collections) {
     const currentCount = Array.isArray(current[collection]) ? current[collection].length : 0;
     const backupCount = Array.isArray(backupData[collection]) ? backupData[collection].length : 0;
@@ -344,6 +344,8 @@ export function createRestoreService({
           `resellingSale:${currentUserId}:`,
           `resellingCost:${currentUserId}:`,
           `resellingTask:${currentUserId}:`,
+          `websitesClient:${currentUserId}:`,
+          `websitesProject:${currentUserId}:`,
         ];
 
         const keysToRemove = currentKeys.filter(key => {
@@ -427,6 +429,14 @@ export function createRestoreService({
         for (const task of backupData.resellingTasks) {
           const key = `resellingTask:${currentUserId}:${task.id}`;
           await storage.set(key, task);
+        }
+
+        for (const client of backupData.websitesClients) {
+          await storage.set(`websitesClient:${currentUserId}:${client.id}`, client);
+        }
+
+        for (const project of backupData.websitesProjects) {
+          await storage.set(`websitesProject:${currentUserId}:${project.id}`, project);
         }
 
         const hasSystemCategories = backupData.categories.some(c => c.isSystem && c.systemRole);
