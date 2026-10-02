@@ -454,6 +454,42 @@ describe('ResellingSale Financial Integration', () => {
     assert.strictEqual(updated.linkedTransactionId, active[0].id);
   });
 
+  it('does not duplicate the financial transaction on an unchanged paid sale update', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', saleStatus:'completed', accountId:'acc-1' });
+    const updated = await module.updateSale({ saleId:sale.id, updates:{ saleStatus:'completed' } });
+    assert.strictEqual(updated.linkedTransactionId, sale.linkedTransactionId);
+    const active = (await txRepo.loadAll()).filter(t => t.metadata?.resellingSaleId === sale.id && !t.archived);
+    assert.strictEqual(active.length, 1);
+  });
+
+  it('repairs a paid sale when the linked transaction is archived without another sale change', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', saleStatus:'completed', accountId:'acc-1' });
+    const original = await txRepo.findById(sale.linkedTransactionId);
+    await txRepo.save({ ...original, archived:true, updatedAt:new Date().toISOString() });
+    const updated = await module.updateSale({ saleId:sale.id, updates:{ saleStatus:'completed' } });
+    const all = await txRepo.loadAll();
+    const active = all.filter(t => t.metadata?.resellingSaleId === sale.id && !t.archived);
+    assert.strictEqual(active.length, 1);
+    assert.notStrictEqual(updated.linkedTransactionId, original.id);
+  });
+
+  it('archives the financial transaction when a paid sale becomes refunded', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', saleStatus:'completed', accountId:'acc-1' });
+    await module.updateSale({ saleId:sale.id, updates:{ paymentStatus:'refunded' } });
+    const tx = (await txRepo.loadAll()).find(t => t.metadata?.resellingSaleId === sale.id);
+    assert.ok(tx);
+    assert.strictEqual(tx.archived, true);
+  });
+
   it('refreshes the financial transaction when a paid sale amount changes', async () => {
     const { module, txRepo, accountRepo } = await createFinancialModule();
     await addAccount(accountRepo, 'acc-1');
