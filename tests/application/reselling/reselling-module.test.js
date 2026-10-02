@@ -698,3 +698,19 @@ describe('Reselling financial atomicity', () => {
   });
 });
 });
+
+
+describe('Reselling analytics scope validation', () => {
+  it('rejects analytics for a foreign or archived profile', async () => {
+    const { module, incomeProfileRepo } = await createModule();
+    await incomeProfileRepo.save({ id:'archived-ip', userId:'user-1', type:'reselling', name:'Archived', description:'', archived:true, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
+    await assert.rejects(module.getResellingAnalytics({ userId:'user-1', incomeProfileId:'foreign-ip' }), /NOT_FOUND/);
+    await assert.rejects(module.getResellingAnalytics({ userId:'user-1', incomeProfileId:'archived-ip' }), /ARCHIVED_ENTITY/);
+  });
+
+  it('rejects malformed or reversed analytics periods', async () => {
+    const { module } = await createModule();
+    await assert.rejects(module.getResellingAnalytics({ userId:'user-1', period:{ startDate:'2024-10-10', endDate:'2024-09-10' } }), /VALIDATION_FAILED/);
+    await assert.rejects(module.getResellingAnalytics({ userId:'user-1', period:{ startDate:'bad', endDate:'2024-09-10' } }), /VALIDATION_FAILED/);
+  });
+});
