@@ -98,10 +98,10 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
           const analytics = await websitesModule.getWebsitesAnalytics({ userId, incomeProfileId, period });
           return {
             revenue: analytics.totalRevenue,
-            costs: 0,
-            net: analytics.totalRevenue,
+            costs: analytics.totalCost,
+            net: analytics.totalNet,
             cashIn: analytics.realizedRevenue,
-            cashOut: 0,
+            cashOut: analytics.realizedCost,
           };
         },
       },
