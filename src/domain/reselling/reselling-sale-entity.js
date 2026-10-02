@@ -5,7 +5,7 @@
  * No storage, no UI, no side effects.
  */
 
-export function createResellingSale({ userId, incomeProfileId, productId, quantity, salePrice, platform, commission, shipping, otherCosts, saleDate, paymentStatus, saleStatus, accountId, linkedTransactionId }) {
+export function createResellingSale({ userId, incomeProfileId, productId, quantity, salePrice, platform, commission, shipping, otherCosts, saleDate, paymentStatus, saleStatus, accountId, linkedTransactionId, purchaseCost }) {
   if (!userId || typeof userId !== 'string' || userId.trim() === '') {
     throw new Error('VALIDATION_FAILED');
   }
@@ -48,6 +48,9 @@ export function createResellingSale({ userId, incomeProfileId, productId, quanti
   if (linkedTransactionId !== undefined && linkedTransactionId !== null && typeof linkedTransactionId !== 'string') {
     throw new Error('VALIDATION_FAILED');
   }
+  if (purchaseCost !== undefined && purchaseCost !== null && (typeof purchaseCost !== 'number' || !Number.isFinite(purchaseCost) || purchaseCost < 0)) {
+    throw new Error('VALIDATION_FAILED');
+  }
 
   const VALID_PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
   const finalPaymentStatus = paymentStatus && VALID_PAYMENT_STATUSES.includes(paymentStatus) ? paymentStatus : 'pending';
@@ -83,6 +86,7 @@ export function createResellingSale({ userId, incomeProfileId, productId, quanti
     saleStatus: finalSaleStatus,
     accountId: accountId || '',
     linkedTransactionId: linkedTransactionId || '',
+    purchaseCost: purchaseCost === undefined || purchaseCost === null ? null : purchaseCost,
     archived: false,
     createdAt: now,
     updatedAt: now,
