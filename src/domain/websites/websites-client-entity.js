@@ -6,7 +6,7 @@ export function createWebsitesClient({ userId, incomeProfileId, name, email, pho
   if (phone !== undefined && phone !== null && typeof phone !== 'string') throw new Error('VALIDATION_FAILED');
   if (notes !== undefined && notes !== null && typeof notes !== 'string') throw new Error('VALIDATION_FAILED');
   const now = new Date().toISOString();
-  return { id: crypto.randomUUID(), userId, incomeProfileId, name:name.trim(), email:email ? email.trim() : '', phone:phone ? phone.trim() : '', notes:notes ? notes.trim() : '', archived:false, createdAt:now, updatedAt:now };
+  return { id: (typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function'?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,9)), userId, incomeProfileId, name:name.trim(), email:email ? email.trim() : '', phone:phone ? phone.trim() : '', notes:notes ? notes.trim() : '', archived:false, createdAt:now, updatedAt:now };
 }
 export function validateWebsitesClientUpdate({ existing, updates } = {}) {
   if (!existing) throw new Error('NOT_FOUND');
