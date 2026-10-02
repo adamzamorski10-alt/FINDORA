@@ -150,6 +150,7 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
       applicationTransaction: appTx,
     }),
     reselling: createResellingModule({
+      incomeProfileRepository: persistence.incomeProfileRepository,
       resellingProductRepository: persistence.resellingProductRepository,
       resellingOrderRepository: persistence.resellingOrderRepository,
       resellingSaleRepository: persistence.resellingSaleRepository,
