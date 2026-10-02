@@ -51,6 +51,33 @@ async function createModule(userId = 'user-1') {
 }
 
 describe('ResellingModule', () => {
+  describe('income profile isolation', () => {
+    it('rejects creation against another user profile', async () => {
+      const { module, storage } = await createModule('user-1');
+      const foreignProfileRepo = new IncomeProfileRepository(storage, 'user-2', () => storage.keys());
+      await foreignProfileRepo.save({
+        id:'foreign-ip', userId:'user-2', type:'reselling', name:'Foreign',
+        description:'', archived:false, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
+      });
+      await assert.rejects(module.createProduct({
+        userId:'user-1', incomeProfileId:'foreign-ip', name:'Item',
+        purchasePrice:10, purchaseDate:'2024-07-01', quantity:1
+      }), /NOT_FOUND/);
+    });
+
+    it('rejects creation against an archived profile', async () => {
+      const { module, incomeProfileRepo } = await createModule('user-1');
+      await incomeProfileRepo.save({
+        id:'archived-ip', userId:'user-1', type:'reselling', name:'Archived',
+        description:'', archived:true, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
+      });
+      await assert.rejects(module.createProduct({
+        userId:'user-1', incomeProfileId:'archived-ip', name:'Item',
+        purchasePrice:10, purchaseDate:'2024-07-01', quantity:1
+      }), /ARCHIVED_ENTITY/);
+    });
+  });
+
   describe('construction', () => {
     it('creates a module with all public methods', async () => {
       const { module } = await createModule();
