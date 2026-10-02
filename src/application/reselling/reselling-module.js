@@ -759,6 +759,7 @@ export function createResellingModule({
       totalCost,
       totalNet,
       realizedRevenue: sales.filter(s => s.paymentStatus === 'paid').reduce((sum, s) => sum + s.netAmount, 0),
+      realizedCost: costs.filter(c => c.paymentStatus === 'paid').reduce((sum, c) => sum + c.amount, 0),
       realizedSalesCount: sales.filter(s => s.paymentStatus === 'paid').length,
       refundedSalesCount: sales.filter(s => s.paymentStatus === 'refunded').length,
       totalSalesCount,
