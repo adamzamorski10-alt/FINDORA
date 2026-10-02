@@ -132,9 +132,11 @@ export function createResellingModule({
       return existing;
     }
 
-    existing.archived = true;
-    existing.updatedAt = new Date().toISOString();
-    await productRepo.save(existing);
+    await appTx.run(async () => {
+      existing.archived = true;
+      existing.updatedAt = new Date().toISOString();
+      await productRepo.save(existing);
+    });
     return existing;
   }
 
@@ -225,9 +227,11 @@ export function createResellingModule({
       return existing;
     }
 
-    existing.archived = true;
-    existing.updatedAt = new Date().toISOString();
-    await orderRepo.save(existing);
+    await appTx.run(async () => {
+      existing.archived = true;
+      existing.updatedAt = new Date().toISOString();
+      await orderRepo.save(existing);
+    });
     return existing;
   }
 
@@ -605,7 +609,6 @@ export function createResellingModule({
       throw new Error('VALIDATION_FAILED');
     }
     await assertActiveIncomeProfile(userId, incomeProfileId);
-    await assertActiveIncomeProfile(userId, incomeProfileId);
 
     const task = createResellingTask({
       userId,
@@ -681,9 +684,11 @@ export function createResellingModule({
       return existing;
     }
 
-    existing.archived = true;
-    existing.updatedAt = new Date().toISOString();
-    await taskRepo.save(existing);
+    await appTx.run(async () => {
+      existing.archived = true;
+      existing.updatedAt = new Date().toISOString();
+      await taskRepo.save(existing);
+    });
     return existing;
   }
 
