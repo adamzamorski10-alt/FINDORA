@@ -75,7 +75,56 @@ describe('AccountModule', () => {
       assert.strictEqual(txs[0].accountId, account.id);
     });
 
-    it('creates opening-balance expense transaction for negative balance', async () => {
+    it('creates opening-balance transaction for decimal positive balance', async () => {
+      const storage = new InMemoryStorageAdapter();
+      await storage.init();
+      const accountRepo = new AccountRepository(storage, 'user-1', () => storage.keys());
+      const txRepo = new TransactionRepository(storage, 'user-1', () => storage.keys());
+      const appTx = new ApplicationTransaction(storage);
+      const module = createAccountModule({ accountRepository: accountRepo, transactionRepository: txRepo, applicationTransaction: appTx, openingBalanceCategoryId: 'cat-ob' });
+
+      const account = await module.createAccount({
+        userId: 'user-1',
+        name: 'Konto',
+        type: 'bank',
+        icon: 'landmark',
+        color: '#0000FF',
+        openingBalance: 214.93,
+      });
+
+      const txs = await txRepo.loadAll();
+      assert.strictEqual(txs.length, 1);
+      assert.strictEqual(txs[0].type, 'income');
+      assert.strictEqual(txs[0].amount, 214.93);
+      assert.strictEqual(txs[0].metadata.openingBalance, true);
+      assert.strictEqual(txs[0].accountId, account.id);
+    });
+
+    it('creates opening-balance transaction for decimal negative balance', async () => {
+      const storage = new InMemoryStorageAdapter();
+      await storage.init();
+      const accountRepo = new AccountRepository(storage, 'user-1', () => storage.keys());
+      const txRepo = new TransactionRepository(storage, 'user-1', () => storage.keys());
+      const appTx = new ApplicationTransaction(storage);
+      const module = createAccountModule({ accountRepository: accountRepo, transactionRepository: txRepo, applicationTransaction: appTx, openingBalanceCategoryId: 'cat-ob' });
+
+      const account = await module.createAccount({
+        userId: 'user-1',
+        name: 'Konto',
+        type: 'bank',
+        icon: 'landmark',
+        color: '#0000FF',
+        openingBalance: -100.50,
+      });
+
+      const txs = await txRepo.loadAll();
+      assert.strictEqual(txs.length, 1);
+      assert.strictEqual(txs[0].type, 'expense');
+      assert.strictEqual(txs[0].amount, 100.50);
+      assert.strictEqual(txs[0].metadata.openingBalance, true);
+    });
+
+    it('does not create transaction for zero opening balance', async () => {
       const storage = new InMemoryStorageAdapter();
       await storage.init();
       const accountRepo = new AccountRepository(storage, 'user-1', () => storage.keys());
@@ -197,6 +246,30 @@ describe('AccountModule', () => {
       let thrown = false;
       try {
         await module.createAccount({ userId: 'user-1', name: 'Konto', type: 'bank', icon: '   ', color: '#0000FF' });
+      } catch (e) {
+        thrown = true;
+        assert.strictEqual(e.message, 'VALIDATION_FAILED');
+      }
+      assert.ok(thrown);
+    });
+
+    it('throws VALIDATION_FAILED for NaN opening balance', async () => {
+      const module = createAccountModule({ accountRepository: {}, transactionRepository: {}, applicationTransaction: { run: async (fn) => fn() }, openingBalanceCategoryId: 'cat-ob' });
+      let thrown = false;
+      try {
+        await module.createAccount({ userId: 'user-1', name: 'Konto', type: 'bank', icon: 'landmark', color: '#0000FF', openingBalance: NaN });
+      } catch (e) {
+        thrown = true;
+        assert.strictEqual(e.message, 'VALIDATION_FAILED');
+      }
+      assert.ok(thrown);
+    });
+
+    it('throws VALIDATION_FAILED for Infinity opening balance', async () => {
+      const module = createAccountModule({ accountRepository: {}, transactionRepository: {}, applicationTransaction: { run: async (fn) => fn() }, openingBalanceCategoryId: 'cat-ob' });
+      let thrown = false;
+      try {
+        await module.createAccount({ userId: 'user-1', name: 'Konto', type: 'bank', icon: 'landmark', color: '#0000FF', openingBalance: Infinity });
       } catch (e) {
         thrown = true;
         assert.strictEqual(e.message, 'VALIDATION_FAILED');

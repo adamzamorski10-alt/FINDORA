@@ -10,6 +10,7 @@ console.log('ACCOUNTS VIEW MODULE LOADED');
 
 import { renderIcon } from '../utils/icons.js';
 import { createFormStateBuffer } from '../utils/form-state.js';
+import { parseDecimalAmount } from '../utils/amount-format.js';
 import { showToast, showConfirm, showModal } from '../utils/feedback.js';
 import { t } from '../i18n.js';
 import { formatCurrency as formatLocaleCurrency } from '../i18n-format.js';
@@ -425,11 +426,19 @@ export function render(context = {}) {
     body.appendChild(colorPicker);
 
     if (!isEditing) {
-      const openingBalanceField = createFormField(t('accounts.openingBalance'), 'number', buffer.getState().openingBalance === undefined ? '' : String(buffer.getState().openingBalance), (value) => {
-        const parsed = value === '' ? undefined : Number(value);
-        buffer.setValue('openingBalance', parsed);
-      });
+      const unitHint = t('accounts.openingBalanceUnit');
+      const openingBalanceField = createFormField(
+        t('accounts.openingBalance') + (unitHint ? ' (' + unitHint + ')' : ''),
+        'text',
+        buffer.getState().openingBalance === undefined ? '' : String(buffer.getState().openingBalance),
+        (value) => {
+          const parsed = parseDecimalAmount(value);
+          buffer.setValue('openingBalance', parsed);
+        }
+      );
       openingBalanceField.querySelector('input')?.setAttribute('name', 'openingBalance');
+      openingBalanceField.querySelector('input')?.setAttribute('inputmode', 'decimal');
+      openingBalanceField.querySelector('input')?.setAttribute('pattern', '[0-9]*[.,]?[0-9]*');
       const openingHint = document.createElement('span');
       openingHint.className = 'form-hint';
       openingHint.textContent = t('accounts.negativeOpeningBalance');
@@ -526,7 +535,7 @@ export function render(context = {}) {
       const color = currentForm.color?.trim();
       const rawOpeningBalance = currentForm.openingBalance === '' || currentForm.openingBalance === undefined || currentForm.openingBalance === null
         ? undefined
-        : Number(currentForm.openingBalance);
+        : parseDecimalAmount(currentForm.openingBalance);
       const openingBalance = rawOpeningBalance === undefined ? undefined : (Number.isFinite(rawOpeningBalance) ? rawOpeningBalance : undefined);
 
       if (!name || !type || !icon || !color) {

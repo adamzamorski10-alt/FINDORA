@@ -4,7 +4,7 @@ function cloneValue(value) {
   if (typeof structuredClone === 'function') {
     return structuredClone(value);
   }
-  if (value === null || value === undefined || typeof value !== 'object') {
+  if (value === null || typeof value !== 'object') {
     return value;
   }
   if (value instanceof Date) {
@@ -26,10 +26,17 @@ class IndexedDBStorageAdapter extends StorageAdapter {
     this.dbName = dbName;
     this.db = null;
     this.txStack = [];
+    this._closing = false;
   }
 
   _currentTx() {
     return this.txStack[this.txStack.length - 1] || null;
+  }
+
+  _guard() {
+    if (this._closing) {
+      throw new Error('STORAGE_CLOSING');
+    }
   }
 
   async init() {
@@ -45,6 +52,9 @@ class IndexedDBStorageAdapter extends StorageAdapter {
 
       request.onsuccess = (event) => {
         this.db = event.target.result;
+        this.db.onversionchange = () => {
+          this._closing = true;
+        };
         resolve();
       };
 
@@ -55,6 +65,7 @@ class IndexedDBStorageAdapter extends StorageAdapter {
   }
 
   async get(key) {
+    this._guard();
     const tx = this._currentTx();
     if (tx) {
       if (tx.deletes.has(key)) return null;
@@ -74,6 +85,7 @@ class IndexedDBStorageAdapter extends StorageAdapter {
   }
 
   async set(key, value) {
+    this._guard();
     const tx = this._currentTx();
     const cloned = cloneValue(value);
     if (tx) {
@@ -92,12 +104,14 @@ class IndexedDBStorageAdapter extends StorageAdapter {
   }
 
   async update(key, updater) {
+    this._guard();
     const current = await this.get(key);
     const updated = await updater(current);
     return this.set(key, updated);
   }
 
   async remove(key) {
+    this._guard();
     const tx = this._currentTx();
     if (tx) {
       tx.writes.delete(key);
@@ -115,6 +129,7 @@ class IndexedDBStorageAdapter extends StorageAdapter {
   }
 
   async keys() {
+    this._guard();
     const tx = this._currentTx();
     if (tx) {
       const existing = await new Promise((resolve, reject) => {
@@ -138,6 +153,7 @@ class IndexedDBStorageAdapter extends StorageAdapter {
   }
 
   beginTransaction() {
+    this._guard();
     if (this.txStack.length > 0) {
       throw new Error('Storage adapter does not support concurrent transactions; beginTransaction called while another transaction is active');
     }
@@ -152,6 +168,10 @@ class IndexedDBStorageAdapter extends StorageAdapter {
       throw new Error('Transaction context mismatch during commit');
     }
 
+    this._guard();
+
+    let done = false;
+
     const idbTx = this.db.transaction('kv', 'readwrite');
     const store = idbTx.objectStore('kv');
 
@@ -163,19 +183,20 @@ class IndexedDBStorageAdapter extends StorageAdapter {
     }
 
     await new Promise((resolve, reject) => {
-      const done = () => {
+      const finish = (err) => {
+        if (done) return;
+        done = true;
         this.txStack.pop();
-        resolve();
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
       };
-      idbTx.oncomplete = done;
-      idbTx.onerror = () => {
-        this.txStack.pop();
-        reject(idbTx.error || new Error('Transaction commit failed'));
-      };
-      idbTx.onabort = () => {
-        this.txStack.pop();
-        reject(new Error('Transaction aborted during commit'));
-      };
+
+      idbTx.oncomplete = () => finish(null);
+      idbTx.onerror = () => finish(idbTx.error || new Error('Transaction commit failed'));
+      idbTx.onabort = () => finish(new Error('Transaction aborted during commit'));
     });
   }
 

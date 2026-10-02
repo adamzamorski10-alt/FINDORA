@@ -176,14 +176,15 @@ export function render(context = {}) {
   async function renderOverview(container) {
     if (!modules.reselling) return;
     snapshot = state.getState();
+    const selectedProfileId = snapshot.incomeProfiles?.selectedIncomeProfileId || null;
 
     const [products, orders, sales, costs, tasks, analytics] = await Promise.all([
-      modules.reselling.listProducts({ userId }),
-      modules.reselling.listOrders({ userId }),
-      modules.reselling.listSales({ userId }),
-      modules.reselling.listCosts({ userId }),
-      modules.reselling.listTasks({ userId }),
-      modules.reselling.getResellingAnalytics({ userId }),
+      modules.reselling.listProducts({ userId, incomeProfileId: selectedProfileId }),
+      modules.reselling.listOrders({ userId, incomeProfileId: selectedProfileId }),
+      modules.reselling.listSales({ userId, incomeProfileId: selectedProfileId }),
+      modules.reselling.listCosts({ userId, incomeProfileId: selectedProfileId }),
+      modules.reselling.listTasks({ userId, incomeProfileId: selectedProfileId }),
+      modules.reselling.getResellingAnalytics({ userId, incomeProfileId: selectedProfileId }),
     ]);
 
     const inStockProducts = products.filter(p => p.status === 'in_stock').length;
@@ -242,6 +243,7 @@ export function render(context = {}) {
   async function renderProducts(container) {
     if (!modules.reselling) return;
     snapshot = state.getState();
+    const selectedProfileId = snapshot.incomeProfiles?.selectedIncomeProfileId || null;
 
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
@@ -255,7 +257,7 @@ export function render(context = {}) {
     listEl.id = 'reselling-products-list';
     container.appendChild(listEl);
 
-    const products = await modules.reselling.listProducts({ userId });
+    const products = await modules.reselling.listProducts({ userId, incomeProfileId: selectedProfileId });
     listEl.innerHTML = '';
 
     if (products.length === 0) {
@@ -334,6 +336,7 @@ export function render(context = {}) {
   async function renderOrders(container) {
     if (!modules.reselling) return;
     snapshot = state.getState();
+    const selectedProfileId = snapshot.incomeProfiles?.selectedIncomeProfileId || null;
 
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
@@ -346,7 +349,7 @@ export function render(context = {}) {
     listEl.className = 'surface-list';
     container.appendChild(listEl);
 
-    const orders = await modules.reselling.listOrders({ userId });
+    const orders = await modules.reselling.listOrders({ userId, incomeProfileId: selectedProfileId });
     listEl.innerHTML = '';
 
     if (orders.length === 0) {
@@ -392,6 +395,7 @@ export function render(context = {}) {
   async function renderSales(container) {
     if (!modules.reselling) return;
     snapshot = state.getState();
+    const selectedProfileId = snapshot.incomeProfiles?.selectedIncomeProfileId || null;
 
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
@@ -404,7 +408,7 @@ export function render(context = {}) {
     listEl.className = 'surface-list';
     container.appendChild(listEl);
 
-    const sales = await modules.reselling.listSales({ userId });
+    const sales = await modules.reselling.listSales({ userId, incomeProfileId: selectedProfileId });
     listEl.innerHTML = '';
 
     if (sales.length === 0) {
@@ -450,6 +454,7 @@ export function render(context = {}) {
   async function renderCosts(container) {
     if (!modules.reselling) return;
     snapshot = state.getState();
+    const selectedProfileId = snapshot.incomeProfiles?.selectedIncomeProfileId || null;
 
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
@@ -462,7 +467,7 @@ export function render(context = {}) {
     listEl.className = 'surface-list';
     container.appendChild(listEl);
 
-    const costs = await modules.reselling.listCosts({ userId });
+    const costs = await modules.reselling.listCosts({ userId, incomeProfileId: selectedProfileId });
     listEl.innerHTML = '';
 
     if (costs.length === 0) {
@@ -495,6 +500,12 @@ export function render(context = {}) {
       dateEl.textContent = cost.date;
       body.appendChild(dateEl);
 
+      const paymentStatusLabel = cost.paymentStatus === 'paid' ? t('reselling.costPaymentStatusPaid') : t('reselling.costPaymentStatusUnpaid');
+      const paymentStatusEl = document.createElement('div');
+      paymentStatusEl.className = 'account-list-item-meta';
+      paymentStatusEl.textContent = paymentStatusLabel;
+      body.appendChild(paymentStatusEl);
+
       const amountEl = document.createElement('span');
       amountEl.className = 'account-list-item-balance amount amount-negative';
       amountEl.textContent = formatCurrency(cost.amount);
@@ -508,6 +519,7 @@ export function render(context = {}) {
   async function renderTasks(container) {
     if (!modules.reselling) return;
     snapshot = state.getState();
+    const selectedProfileId = snapshot.incomeProfiles?.selectedIncomeProfileId || null;
 
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
@@ -520,7 +532,7 @@ export function render(context = {}) {
     listEl.className = 'surface-list';
     container.appendChild(listEl);
 
-    const tasks = await modules.reselling.listTasks({ userId });
+    const tasks = await modules.reselling.listTasks({ userId, incomeProfileId: selectedProfileId });
     listEl.innerHTML = '';
 
     if (tasks.length === 0) {
@@ -566,8 +578,9 @@ export function render(context = {}) {
   async function renderAnalysis(container) {
     if (!modules.reselling) return;
     snapshot = state.getState();
+    const selectedProfileId = snapshot.incomeProfiles?.selectedIncomeProfileId || null;
 
-    const analytics = await modules.reselling.getResellingAnalytics({ userId });
+    const analytics = await modules.reselling.getResellingAnalytics({ userId, incomeProfileId: selectedProfileId });
 
     const summaryEl = document.createElement('div');
     summaryEl.className = 'summary-strip';
@@ -1134,6 +1147,39 @@ export function render(context = {}) {
     });
     form.appendChild(descriptionField);
 
+    const accountWrapper = document.createElement('div');
+    accountWrapper.className = 'form-field';
+    const accountLabel = document.createElement('label');
+    accountLabel.textContent = t('common.account');
+    accountLabel.className = 'form-label';
+    accountWrapper.appendChild(accountLabel);
+    const accountSelect = document.createElement('select');
+    accountSelect.className = 'form-select';
+    accountSelect.setAttribute('name', 'accountId');
+    const noneOption = document.createElement('option');
+    noneOption.value = '';
+    noneOption.textContent = t('common.selectAccount');
+    accountSelect.appendChild(noneOption);
+    const accounts = currentSnapshot.accounts?.items || [];
+    for (const acc of accounts) {
+      if (acc.archived) continue;
+      const option = document.createElement('option');
+      option.value = acc.id;
+      option.textContent = acc.name;
+      accountSelect.appendChild(option);
+    }
+    accountSelect.addEventListener('change', (e) => {
+      form.dataset.accountId = e.target.value;
+    });
+    accountWrapper.appendChild(accountSelect);
+    form.appendChild(accountWrapper);
+
+    const paymentStatusSelect = createStatusSelect(form, [
+      { value: 'unpaid', label: t('reselling.costPaymentStatusUnpaid') },
+      { value: 'paid', label: t('reselling.costPaymentStatusPaid') },
+    ], 'unpaid', t('reselling.paymentStatus'));
+    form.appendChild(paymentStatusSelect);
+
     const actions = document.createElement('div');
     actions.className = 'form-actions';
 
@@ -1166,6 +1212,8 @@ export function render(context = {}) {
       const category = form.dataset.category || 'shipping';
       const date = form.dataset.date || '';
       const description = form.dataset.description || '';
+      const accountId = form.dataset.accountId || '';
+      const paymentStatus = form.dataset.paymentStatus || 'unpaid';
 
       if (!incomeProfileId) {
         showToast({ message: t('validation.required'), type: 'error' });
@@ -1183,6 +1231,10 @@ export function render(context = {}) {
         showToast({ message: t('validation.required'), type: 'error' });
         return;
       }
+      if (paymentStatus === 'paid' && !accountId) {
+        showToast({ message: t('validation.required'), type: 'error' });
+        return;
+      }
 
       submitBtn.disabled = true;
       try {
@@ -1193,6 +1245,8 @@ export function render(context = {}) {
           category,
           date,
           description,
+          accountId: accountId || undefined,
+          paymentStatus,
         });
         showToast({ message: t('reselling.createdSuccess'), type: 'success' });
         modalClose();

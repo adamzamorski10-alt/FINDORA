@@ -5,7 +5,7 @@
  * No storage, no UI, no side effects.
  */
 
-export function createResellingCost({ userId, incomeProfileId, amount, category, date, description, accountId, linkedProductId, linkedSaleId, linkedOrderId }) {
+export function createResellingCost({ userId, incomeProfileId, amount, category, date, description, accountId, linkedProductId, linkedSaleId, linkedOrderId, paymentStatus, linkedTransactionId }) {
   if (!userId || typeof userId !== 'string' || userId.trim() === '') {
     throw new Error('VALIDATION_FAILED');
   }
@@ -36,6 +36,15 @@ export function createResellingCost({ userId, incomeProfileId, amount, category,
   if (linkedOrderId !== undefined && linkedOrderId !== null && typeof linkedOrderId !== 'string') {
     throw new Error('VALIDATION_FAILED');
   }
+  if (paymentStatus !== undefined && paymentStatus !== null && typeof paymentStatus !== 'string') {
+    throw new Error('VALIDATION_FAILED');
+  }
+  if (linkedTransactionId !== undefined && linkedTransactionId !== null && typeof linkedTransactionId !== 'string') {
+    throw new Error('VALIDATION_FAILED');
+  }
+
+  const VALID_PAYMENT_STATUSES = ['unpaid', 'paid'];
+  const finalPaymentStatus = paymentStatus && VALID_PAYMENT_STATUSES.includes(paymentStatus) ? paymentStatus : 'unpaid';
 
   const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
@@ -55,6 +64,8 @@ export function createResellingCost({ userId, incomeProfileId, amount, category,
     linkedProductId: linkedProductId || '',
     linkedSaleId: linkedSaleId || '',
     linkedOrderId: linkedOrderId || '',
+    paymentStatus: finalPaymentStatus,
+    linkedTransactionId: linkedTransactionId || '',
     archived: false,
     createdAt: now,
     updatedAt: now,
@@ -115,6 +126,22 @@ export function validateResellingCostUpdate({ existing, updates }) {
       throw new Error('VALIDATION_FAILED');
     }
     result.linkedOrderId = updates.linkedOrderId || '';
+  }
+  if (updates.paymentStatus !== undefined) {
+    if (typeof updates.paymentStatus !== 'string') {
+      throw new Error('VALIDATION_FAILED');
+    }
+    const VALID_PAYMENT_STATUSES = ['unpaid', 'paid'];
+    if (!VALID_PAYMENT_STATUSES.includes(updates.paymentStatus)) {
+      throw new Error('VALIDATION_FAILED');
+    }
+    result.paymentStatus = updates.paymentStatus;
+  }
+  if (updates.linkedTransactionId !== undefined) {
+    if (updates.linkedTransactionId !== null && typeof updates.linkedTransactionId !== 'string') {
+      throw new Error('VALIDATION_FAILED');
+    }
+    result.linkedTransactionId = updates.linkedTransactionId || '';
   }
 
   if (updates.userId !== undefined) throw new Error('VALIDATION_FAILED');

@@ -11,6 +11,8 @@ export function createResellingModule({
   resellingSaleRepository,
   resellingCostRepository,
   resellingTaskRepository,
+  transactionRepository,
+  accountRepository,
   applicationTransaction,
 }) {
   const productRepo = resellingProductRepository;
@@ -18,6 +20,8 @@ export function createResellingModule({
   const saleRepo = resellingSaleRepository;
   const costRepo = resellingCostRepository;
   const taskRepo = resellingTaskRepository;
+  const txRepo = transactionRepository;
+  const accountRepo = accountRepository;
   const appTx = applicationTransaction;
 
   function generateId() {
@@ -309,7 +313,7 @@ export function createResellingModule({
   }
 
   // Costs
-  async function createCost({ userId, incomeProfileId, amount, category, date, description, accountId, linkedProductId, linkedSaleId, linkedOrderId }) {
+  async function createCost({ userId, incomeProfileId, amount, category, date, description, accountId, linkedProductId, linkedSaleId, linkedOrderId, paymentStatus }) {
     if (!userId || typeof userId !== 'string' || userId.trim() === '') {
       throw new Error('VALIDATION_FAILED');
     }
@@ -328,13 +332,45 @@ export function createResellingModule({
       linkedProductId,
       linkedSaleId,
       linkedOrderId,
+      paymentStatus,
     });
 
+    let resultCost = cost;
     await appTx.run(async () => {
       await costRepo.save(cost);
+
+      if (cost.paymentStatus === 'paid' && cost.accountId) {
+        const account = await accountRepo.findById(cost.accountId);
+        if (!account || account.userId !== userId) {
+          throw new Error('NOT_FOUND');
+        }
+        if (account.archived) {
+          throw new Error('ARCHIVED_ENTITY');
+        }
+
+        const transaction = {
+          id: generateId(),
+          userId,
+          accountId: cost.accountId,
+          amount: cost.amount,
+          type: 'expense',
+          categoryId: null,
+          description: cost.description,
+          date: cost.date,
+          notes: '',
+          metadata: { resellingCostId: cost.id },
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await txRepo.save(transaction);
+
+        resultCost = { ...cost, linkedTransactionId: transaction.id };
+        await costRepo.save(resultCost);
+      }
     });
 
-    return cost;
+    return resultCost;
   }
 
   async function getCost({ costId }) {
@@ -372,6 +408,95 @@ export function createResellingModule({
     const updated = validateResellingCostUpdate({ existing, updates });
 
     await appTx.run(async () => {
+      const oldPaymentStatus = existing.paymentStatus || 'unpaid';
+      const newPaymentStatus = updated.paymentStatus || 'unpaid';
+      const oldAccountId = existing.accountId || '';
+      const newAccountId = updated.accountId || '';
+
+      if (oldPaymentStatus === 'paid' && newPaymentStatus !== 'paid') {
+        if (existing.linkedTransactionId) {
+          const linkedTx = await txRepo.findById(existing.linkedTransactionId);
+          if (linkedTx && !linkedTx.archived) {
+            const archivedTx = { ...linkedTx, archived: true, updatedAt: new Date().toISOString() };
+            await txRepo.save(archivedTx);
+          }
+        }
+        updated.linkedTransactionId = '';
+      } else if (oldPaymentStatus !== 'paid' && newPaymentStatus === 'paid') {
+        if (!newAccountId) {
+          throw new Error('VALIDATION_FAILED');
+        }
+        const account = await accountRepo.findById(newAccountId);
+        if (!account || account.userId !== existing.userId) {
+          throw new Error('NOT_FOUND');
+        }
+        if (account.archived) {
+          throw new Error('ARCHIVED_ENTITY');
+        }
+
+        if (existing.linkedTransactionId) {
+          const oldLinkedTx = await txRepo.findById(existing.linkedTransactionId);
+          if (oldLinkedTx && !oldLinkedTx.archived) {
+            const archivedTx = { ...oldLinkedTx, archived: true, updatedAt: new Date().toISOString() };
+            await txRepo.save(archivedTx);
+          }
+        }
+
+        const transaction = {
+          id: generateId(),
+          userId: existing.userId,
+          accountId: newAccountId,
+          amount: updated.amount,
+          type: 'expense',
+          categoryId: null,
+          description: updated.description,
+          date: updated.date,
+          notes: '',
+          metadata: { resellingCostId: existing.id },
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await txRepo.save(transaction);
+        updated.linkedTransactionId = transaction.id;
+      } else if (newPaymentStatus === 'paid' && oldAccountId !== newAccountId) {
+        if (existing.linkedTransactionId) {
+          const oldLinkedTx = await txRepo.findById(existing.linkedTransactionId);
+          if (oldLinkedTx && !oldLinkedTx.archived) {
+            const archivedTx = { ...oldLinkedTx, archived: true, updatedAt: new Date().toISOString() };
+            await txRepo.save(archivedTx);
+          }
+        }
+        if (!newAccountId) {
+          throw new Error('VALIDATION_FAILED');
+        }
+        const account = await accountRepo.findById(newAccountId);
+        if (!account || account.userId !== existing.userId) {
+          throw new Error('NOT_FOUND');
+        }
+        if (account.archived) {
+          throw new Error('ARCHIVED_ENTITY');
+        }
+
+        const transaction = {
+          id: generateId(),
+          userId: existing.userId,
+          accountId: newAccountId,
+          amount: updated.amount,
+          type: 'expense',
+          categoryId: null,
+          description: updated.description,
+          date: updated.date,
+          notes: '',
+          metadata: { resellingCostId: existing.id },
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await txRepo.save(transaction);
+        updated.linkedTransactionId = transaction.id;
+      }
+
       await costRepo.save(updated);
     });
 
@@ -391,9 +516,20 @@ export function createResellingModule({
       return existing;
     }
 
-    existing.archived = true;
-    existing.updatedAt = new Date().toISOString();
-    await costRepo.save(existing);
+    await appTx.run(async () => {
+      existing.archived = true;
+      existing.updatedAt = new Date().toISOString();
+      await costRepo.save(existing);
+
+      if (existing.linkedTransactionId) {
+        const linkedTx = await txRepo.findById(existing.linkedTransactionId);
+        if (linkedTx && !linkedTx.archived) {
+          const archivedTx = { ...linkedTx, archived: true, updatedAt: new Date().toISOString() };
+          await txRepo.save(archivedTx);
+        }
+      }
+    });
+
     return existing;
   }
 
@@ -504,13 +640,30 @@ export function createResellingModule({
       costs = costs.filter(c => c.incomeProfileId === incomeProfileId);
     }
 
+    let products = await productRepo.loadAll();
+    products = products.filter(p => p.userId === userId && !p.archived);
+    if (incomeProfileId) {
+      products = products.filter(p => p.incomeProfileId === incomeProfileId);
+    }
+
     if (period && period.startDate && period.endDate) {
       sales = sales.filter(s => s.saleDate >= period.startDate && s.saleDate <= period.endDate);
       costs = costs.filter(c => c.date >= period.startDate && c.date <= period.endDate);
     }
 
+    const productMap = new Map(products.map(p => [p.id, p]));
+
+    const totalPurchaseCost = sales.reduce((sum, sale) => {
+      const product = productMap.get(sale.productId);
+      if (product) {
+        return sum + (product.purchasePrice * sale.quantity);
+      }
+      return sum;
+    }, 0);
+
     const totalRevenue = sales.reduce((sum, s) => sum + s.salePrice, 0);
-    const totalCost = costs.reduce((sum, c) => sum + c.amount, 0);
+    const totalOperationalCost = costs.reduce((sum, c) => sum + c.amount, 0);
+    const totalCost = totalPurchaseCost + totalOperationalCost;
     const totalNet = totalRevenue - totalCost;
     const totalSalesCount = sales.length;
     const totalCostsCount = costs.length;
@@ -521,9 +674,11 @@ export function createResellingModule({
       if (!salesByPlatform[platform]) {
         salesByPlatform[platform] = { count: 0, revenue: 0, net: 0 };
       }
+      const product = productMap.get(sale.productId);
+      const purchaseCost = product ? product.purchasePrice * sale.quantity : 0;
       salesByPlatform[platform].count++;
       salesByPlatform[platform].revenue += sale.salePrice;
-      salesByPlatform[platform].net += sale.netAmount;
+      salesByPlatform[platform].net += sale.netAmount - purchaseCost;
     }
 
     const costsByCategory = {};

@@ -119,6 +119,7 @@ const pl = {
   'accounts.accountIcon': 'Ikona konta',
   'accounts.accountColor': 'Kolor konta',
   'accounts.openingBalance': 'Saldo początkowe',
+  'accounts.openingBalanceUnit': 'zł',
   'accounts.totalBalance': 'Całkowity bilans',
   'accounts.bank': 'Bank',
   'accounts.savings': 'Oszczędności',
@@ -358,6 +359,8 @@ const pl = {
   'incomeProfiles.dashboardMonth': 'Przychody w tym miesiącu',
   'incomeProfiles.dashboardNoData': 'Brak danych o przychodach.',
   'incomeProfiles.dashboardNoDataDesc': 'Utwórz profile i rejestruj aktywność, aby zobaczyć podsumowanie.',
+  'incomeProfiles.workspaceNotImplemented': 'Ten typ profilu nie ma jeszcze zaimplementowanego workspace.',
+  'incomeProfiles.workspaceNotImplementedDesc': 'Workspace dla typu "{type}" zostanie dodany w przyszłym etapie.',
 
   // Reselling
   'reselling.title': 'Reselling',
@@ -457,6 +460,8 @@ const pl = {
   'reselling.paymentStatusPaid': 'Zapłacona',
   'reselling.paymentStatusFailed': 'Nieudana',
   'reselling.paymentStatusRefunded': 'Zwrócona',
+  'reselling.costPaymentStatusUnpaid': 'Nieopłacona',
+  'reselling.costPaymentStatusPaid': 'Opłacona',
   'reselling.saleStatus': 'Status sprzedaży',
   'reselling.saleStatusSold': 'Sprzedane',
   'reselling.saleStatusAwaitingPayment': 'Oczekuje na płatność',

@@ -529,5 +529,42 @@ describe('ApplicationState', () => {
       assert.strictEqual(state.getState().receivables.error, 'network');
       assert.strictEqual(state.getState().receivables.loading, false);
     });
+
+    describe('incomeProfiles selectedIncomeProfileId', () => {
+      it('defaults selectedIncomeProfileId to null', () => {
+        const state = createApplicationState();
+        assert.strictEqual(state.getState().incomeProfiles.selectedIncomeProfileId, null);
+      });
+
+      it('sets selectedIncomeProfileId via dispatch', () => {
+        const state = createApplicationState();
+        state.dispatch({ type: 'SET_SELECTED_INCOME_PROFILE_ID', profileId: 'profile-123' });
+        assert.strictEqual(state.getState().incomeProfiles.selectedIncomeProfileId, 'profile-123');
+      });
+
+      it('overwrites selectedIncomeProfileId on subsequent dispatch', () => {
+        const state = createApplicationState();
+        state.dispatch({ type: 'SET_SELECTED_INCOME_PROFILE_ID', profileId: 'profile-a' });
+        state.dispatch({ type: 'SET_SELECTED_INCOME_PROFILE_ID', profileId: 'profile-b' });
+        assert.strictEqual(state.getState().incomeProfiles.selectedIncomeProfileId, 'profile-b');
+      });
+
+      it('clears selectedIncomeProfileId when set to null', () => {
+        const state = createApplicationState();
+        state.dispatch({ type: 'SET_SELECTED_INCOME_PROFILE_ID', profileId: 'profile-1' });
+        state.dispatch({ type: 'SET_SELECTED_INCOME_PROFILE_ID', profileId: null });
+        assert.strictEqual(state.getState().incomeProfiles.selectedIncomeProfileId, null);
+      });
+
+      it('preserves incomeProfiles items when setting selectedIncomeProfileId', () => {
+        const state = createApplicationState();
+        const profiles = [{ id: 'p1', name: 'Vinted' }];
+        state.dispatch({ type: 'SET_INCOME_PROFILES', profiles });
+        state.dispatch({ type: 'SET_SELECTED_INCOME_PROFILE_ID', profileId: 'p1' });
+        const snap = state.getState();
+        assert.strictEqual(snap.incomeProfiles.selectedIncomeProfileId, 'p1');
+        assert.deepStrictEqual(snap.incomeProfiles.items, profiles);
+      });
+    });
   });
 });

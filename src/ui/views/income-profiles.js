@@ -337,89 +337,43 @@ export function render(context = {}) {
     if (summaryEl) summaryEl.style.display = 'none';
 
     detailEl.innerHTML = '';
-    const iconInfo = getProfileType(profile.type);
-    const typeLabel = iconInfo ? t(iconInfo.labelKey) : profile.type;
+    state.dispatch({ type: 'SET_SELECTED_INCOME_PROFILE_ID', profileId: profile.id });
 
-    const header = document.createElement('div');
-    header.className = 'page-header';
-    const headerTitles = document.createElement('div');
-    headerTitles.className = 'page-header-titles';
-    const title = document.createElement('h1');
-    title.className = 'page-header-title';
-    title.textContent = profile.name;
-    headerTitles.appendChild(title);
-    const subtitle = document.createElement('p');
-    subtitle.className = 'page-header-subtitle';
-    subtitle.textContent = typeLabel;
-    headerTitles.appendChild(subtitle);
-    header.appendChild(headerTitles);
+    const PROFILE_ROUTING = {
+      reselling: 'reselling',
+    };
 
-    const backBtn = document.createElement('button');
-    backBtn.type = 'button';
-    backBtn.className = 'btn btn-secondary';
-    backBtn.textContent = '← ' + t('incomeProfiles.title');
-    backBtn.addEventListener('click', () => {
-      detailEl.style.display = 'none';
-      if (listEl) listEl.style.display = '';
-      if (summaryEl) summaryEl.style.display = '';
-      detailEl.innerHTML = '';
-    });
-    header.appendChild(backBtn);
-    detailEl.appendChild(header);
+    const targetTab = PROFILE_ROUTING[profile.type];
+    if (targetTab) {
+      state.dispatch({ type: 'SET_ACTIVE_TAB', tab: targetTab });
+    } else {
+      detailEl.style.display = 'block';
+      const iconInfo = getProfileType(profile.type);
+      const typeLabel = iconInfo ? t(iconInfo.labelKey) : profile.type;
+      const header = document.createElement('div');
+      header.className = 'page-header';
+      const headerTitles = document.createElement('div');
+      headerTitles.className = 'page-header-titles';
+      const title = document.createElement('h1');
+      title.className = 'page-header-title';
+      title.textContent = profile.name;
+      headerTitles.appendChild(title);
+      const subtitle = document.createElement('p');
+      subtitle.className = 'page-header-subtitle';
+      subtitle.textContent = typeLabel;
+      headerTitles.appendChild(subtitle);
+      header.appendChild(headerTitles);
+      detailEl.appendChild(header);
 
-    const body = document.createElement('div');
-    body.className = 'income-profile-detail-body';
-
-    const infoCard = document.createElement('div');
-    infoCard.className = 'surface-card';
-
-    const rows = [
-      { label: t('incomeProfiles.type'), value: typeLabel },
-      { label: t('incomeProfiles.name'), value: profile.name },
-      { label: t('incomeProfiles.description'), value: profile.description || t('common.none') },
-      { label: t('incomeProfiles.status'), value: profile.archived ? t('incomeProfiles.statusArchived') : t('incomeProfiles.statusActive') },
-      { label: t('incomeProfiles.createdAt'), value: new Date(profile.createdAt).toLocaleString() },
-      { label: t('incomeProfiles.updatedAt'), value: new Date(profile.updatedAt).toLocaleString() },
-    ];
-
-    rows.forEach(row => {
-      const rowEl = document.createElement('div');
-      rowEl.className = 'income-profile-detail-row';
-      const labelEl = document.createElement('span');
-      labelEl.className = 'income-profile-detail-label';
-      labelEl.textContent = row.label;
-      const valueEl = document.createElement('span');
-      valueEl.className = 'income-profile-detail-value';
-      valueEl.textContent = row.value;
-      rowEl.appendChild(labelEl);
-      rowEl.appendChild(valueEl);
-      infoCard.appendChild(rowEl);
-    });
-
-    body.appendChild(infoCard);
-
-    const emptyState = document.createElement('div');
-    emptyState.className = 'empty-state';
-    const emptyIcon = document.createElement('div');
-    emptyIcon.className = 'empty-state-icon';
-    emptyIcon.textContent = '📊';
-    const emptyTitle = document.createElement('p');
-    emptyTitle.className = 'empty-state-title';
-    emptyTitle.textContent = t('incomeProfiles.noActivity');
-    const emptyDesc = document.createElement('p');
-    emptyDesc.className = 'empty-state-desc';
-    emptyDesc.textContent = t('incomeProfiles.noActivityDesc');
-    emptyState.appendChild(emptyIcon);
-    emptyState.appendChild(emptyTitle);
-    emptyState.appendChild(emptyDesc);
-    body.appendChild(emptyState);
-
-    const placeholder = document.createElement('p');
-    placeholder.className = 'text-sm text-slate-400 mt-4';
-    placeholder.textContent = t('incomeProfiles.activityPlaceholder');
-    body.appendChild(placeholder);
-
-    detailEl.appendChild(body);
+      const placeholder = document.createElement('div');
+      placeholder.className = 'empty-state';
+      placeholder.innerHTML = `
+        <div class="empty-state-icon">🚧</div>
+        <p class="empty-state-title">${t('incomeProfiles.workspaceNotImplemented')}</p>
+        <p class="empty-state-desc">${t('incomeProfiles.workspaceNotImplementedDesc', { type: typeLabel })}</p>
+      `;
+      detailEl.appendChild(placeholder);
+    }
   }
 
   loadData();

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createAppKernel } from '../../src/application/app-kernel.js';
 import { InMemoryStorageAdapter } from '../../src/infrastructure/storage/memory-storage-adapter.js';
 import { createApplicationState } from '../../src/state/application-state-factory.js';
+import { setLocale } from '../../src/ui/i18n.js';
 import { render as renderDashboard } from '../../src/ui/views/dashboard.js';
 import { render as renderAccounts } from '../../src/ui/views/accounts.js';
 import { render as renderTransactions } from '../../src/ui/views/transactions.js';
@@ -215,6 +216,7 @@ function buildViewModules(modules) {
 
 describe('Cross-Screen Mutation Propagation', () => {
   it('TEST A — transaction creation propagates to Dashboard, Reports, Budgets, and Transactions', async () => {
+    await setLocale('en');
     const storage = new InMemoryStorageAdapter();
     await storage.init();
     const kernel = await createKernel(storage);
@@ -304,6 +306,7 @@ describe('Cross-Screen Mutation Propagation', () => {
   });
 
   it('TEST B — transaction edit propagates to dependent screens', async () => {
+    await setLocale('en');
     const storage = new InMemoryStorageAdapter();
     await storage.init();
     const kernel = await createKernel(storage);
@@ -447,6 +450,7 @@ describe('Cross-Screen Mutation Propagation', () => {
   });
 
   it('TEST D — transaction account change updates balances', async () => {
+    await setLocale('en');
     const storage = new InMemoryStorageAdapter();
     await storage.init();
     const kernel = await createKernel(storage);
@@ -505,6 +509,7 @@ describe('Cross-Screen Mutation Propagation', () => {
   });
 
   it('TEST E — transaction archive removes it from all derived calculations', async () => {
+    await setLocale('en');
     const storage = new InMemoryStorageAdapter();
     await storage.init();
     const kernel = await createKernel(storage);

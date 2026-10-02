@@ -61,6 +61,7 @@ const Lifecycle = {
   SET_INCOME_PROFILES_LOADING: 'SET_INCOME_PROFILES_LOADING',
   SET_INCOME_PROFILES: 'SET_INCOME_PROFILES',
   SET_INCOME_PROFILES_ERROR: 'SET_INCOME_PROFILES_ERROR',
+  SET_SELECTED_INCOME_PROFILE_ID: 'SET_SELECTED_INCOME_PROFILE_ID',
   SET_INCOME_PROFILE_FORM: 'SET_INCOME_PROFILE_FORM',
   RESET_INCOME_PROFILE_FORM: 'RESET_INCOME_PROFILE_FORM',
   SET_RESELLING_PRODUCTS_LOADING: 'SET_RESELLING_PRODUCTS_LOADING',
@@ -191,6 +192,7 @@ function createInitialState() {
       loading: false,
       error: null,
       items: [],
+      selectedIncomeProfileId: null,
     },
     incomeProfileForm: {
       editingId: null,
@@ -709,6 +711,13 @@ export function createApplicationState() {
         state = {
           ...state,
           incomeProfiles: { ...state.incomeProfiles, error: action.error, loading: false },
+        };
+        break;
+
+      case ActionTypes.SET_SELECTED_INCOME_PROFILE_ID:
+        state = {
+          ...state,
+          incomeProfiles: { ...state.incomeProfiles, selectedIncomeProfileId: action.profileId },
         };
         break;
 

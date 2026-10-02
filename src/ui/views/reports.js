@@ -357,7 +357,7 @@ export function render(context = {}) {
           }
 
           const chartData = entries.map(entry => ({
-            label: entry.categoryId === 'uncategorized' ? 'Uncategorized' : (categoryMap.get(entry.categoryId) || entry.categoryId),
+            label: entry.categoryId === 'uncategorized' ? t('reports.uncategorized') : (categoryMap.get(entry.categoryId) || categoryId),
             value: entry.total,
           }));
 
