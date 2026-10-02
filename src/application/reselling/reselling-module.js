@@ -228,6 +228,11 @@ export function createResellingModule({
       throw new Error('VALIDATION_FAILED');
     }
 
+    const product = await productRepo.findById(productId);
+    if (!product || product.userId !== userId || product.archived) throw new Error('NOT_FOUND');
+    if (product.incomeProfileId !== incomeProfileId) throw new Error('NOT_FOUND');
+    const purchaseCost = product.purchasePrice * quantity;
+
     const sale = createResellingSale({
       userId,
       incomeProfileId,
@@ -243,6 +248,7 @@ export function createResellingModule({
       saleStatus,
       accountId,
       linkedTransactionId,
+      purchaseCost,
     });
 
     await appTx.run(async () => {
@@ -737,16 +743,17 @@ export function createResellingModule({
     const productMap = new Map(products.map(p => [p.id, p]));
 
     const totalPurchaseCost = sales.reduce((sum, sale) => {
-      const product = productMap.get(sale.productId);
-      if (product) {
-        return sum + (product.purchasePrice * sale.quantity);
+      if (typeof sale.purchaseCost === 'number' && Number.isFinite(sale.purchaseCost)) {
+        return sum + sale.purchaseCost;
       }
-      return sum;
+      const product = productMap.get(sale.productId);
+      return sum + (product ? product.purchasePrice * sale.quantity : 0);
     }, 0);
 
     const totalRevenue = sales.reduce((sum, s) => sum + s.salePrice, 0);
+    const totalSellingCosts = sales.reduce((sum, s) => sum + (s.commission || 0) + (s.shipping || 0) + (s.otherCosts || 0), 0);
     const totalOperationalCost = costs.reduce((sum, c) => sum + c.amount, 0);
-    const totalCost = totalPurchaseCost + totalOperationalCost;
+    const totalCost = totalPurchaseCost + totalSellingCosts + totalOperationalCost;
     const totalNet = totalRevenue - totalCost;
     const totalSalesCount = sales.length;
     const totalCostsCount = costs.length;
@@ -775,6 +782,9 @@ export function createResellingModule({
 
     return {
       totalRevenue,
+      totalPurchaseCost,
+      totalSellingCosts,
+      totalOperationalCost,
       totalCost,
       totalNet,
       totalSalesCount,
