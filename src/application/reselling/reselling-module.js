@@ -439,6 +439,7 @@ export function createResellingModule({
   async function createCost({ userId, incomeProfileId, amount, category, date, description, accountId, linkedProductId, linkedSaleId, linkedOrderId, paymentStatus }) {
     if (!userId || typeof userId !== 'string' || userId.trim() === '') throw new Error('VALIDATION_FAILED');
     if (!incomeProfileId || typeof incomeProfileId !== 'string' || incomeProfileId.trim() === '') throw new Error('VALIDATION_FAILED');
+    await assertActiveIncomeProfile(userId, incomeProfileId);
 
     const cost = createResellingCost({
       userId, incomeProfileId, amount, category, date, description, accountId,
@@ -499,6 +500,11 @@ export function createResellingModule({
 
     const existing = await costRepo.findById(costId);
     if (!existing) throw new Error('NOT_FOUND');
+    if (updates.linkedTransactionId !== undefined) throw new Error('VALIDATION_FAILED');
+    if (updates.incomeProfileId !== undefined) {
+      if (!updates.incomeProfileId || typeof updates.incomeProfileId !== 'string') throw new Error('VALIDATION_FAILED');
+      await assertActiveIncomeProfile(existing.userId, updates.incomeProfileId);
+    }
 
     const updated = validateResellingCostUpdate({ existing, updates });
 
