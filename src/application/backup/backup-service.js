@@ -24,6 +24,8 @@ export function createBackupService({
   resellingSaleRepository,
   resellingCostRepository,
   resellingTaskRepository,
+  websitesClientRepository,
+  websitesProjectRepository,
 }) {
   async function loadUserData(userId) {
     const loads = [
@@ -42,8 +44,10 @@ export function createBackupService({
     if (resellingSaleRepository) loads.push(resellingSaleRepository.loadAll()); else loads.push(Promise.resolve([]));
     if (resellingCostRepository) loads.push(resellingCostRepository.loadAll()); else loads.push(Promise.resolve([]));
     if (resellingTaskRepository) loads.push(resellingTaskRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (websitesClientRepository) loads.push(websitesClientRepository.loadAll()); else loads.push(Promise.resolve([]));
+    if (websitesProjectRepository) loads.push(websitesProjectRepository.loadAll()); else loads.push(Promise.resolve([]));
 
-    const [profile, accounts, categories, transactions, budgets, goals, people, receivables, incomeProfiles, resellingProducts, resellingOrders, resellingSales, resellingCosts, resellingTasks] = await Promise.all(loads);
+    const [profile, accounts, categories, transactions, budgets, goals, people, receivables, incomeProfiles, resellingProducts, resellingOrders, resellingSales, resellingCosts, resellingTasks, websitesClients, websitesProjects] = await Promise.all(loads);
 
     return {
       profile: profile ? [profile] : [],
@@ -60,6 +64,8 @@ export function createBackupService({
       resellingSales: resellingSales || [],
       resellingCosts: resellingCosts || [],
       resellingTasks: resellingTasks || [],
+      websitesClients: websitesClients || [],
+      websitesProjects: websitesProjects || [],
     };
   }
 
