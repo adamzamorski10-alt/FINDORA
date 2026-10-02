@@ -1,9 +1,10 @@
 import { calculateGlobalIncome } from '../../domain/income/global-income-calculator.js';
 
-export function createGlobalIncomeModule({
-  incomeProfileRepository,
-  resellingModule,
-}) {
+/**
+ * Global Income application service.
+ * Providers expose normalized summaries; this module never creates a second ledger.
+ */
+export function createGlobalIncomeModule({ incomeProfileRepository, providers = {} } = {}) {
   if (!incomeProfileRepository) throw new Error('DEPENDENCY_MISSING');
 
   async function getGlobalIncome({ userId, period, incomeProfileId } = {}) {
@@ -23,23 +24,12 @@ export function createGlobalIncomeModule({
       .filter(profile => !incomeProfileId || profile.id === incomeProfileId);
 
     const summaries = [];
-
     for (const profile of profiles) {
-      if (profile.type === 'reselling' && resellingModule) {
-        const analytics = await resellingModule.getResellingAnalytics({
-          userId,
-          incomeProfileId: profile.id,
-          period,
-        });
-        summaries.push({
-          profileId: profile.id,
-          revenue: analytics.totalRevenue,
-          costs: analytics.totalCost,
-          net: analytics.totalNet,
-          cashIn: analytics.realizedRevenue,
-          cashOut: analytics.realizedCost,
-        });
-      }
+      const provider = providers[profile.type];
+      if (!provider || typeof provider.getSummary !== 'function') continue;
+      const summary = await provider.getSummary({ userId, incomeProfileId: profile.id, period });
+      if (!summary || typeof summary !== 'object') continue;
+      summaries.push({ profileId: profile.id, ...summary });
     }
 
     return calculateGlobalIncome({ profiles, summaries });
