@@ -1006,6 +1006,33 @@ export function render(context = {}) {
     });
     form.appendChild(saleDateField);
 
+    const accountWrapper = document.createElement('div');
+    accountWrapper.className = 'form-field';
+    const accountLabel = document.createElement('label');
+    accountLabel.textContent = t('common.account');
+    accountLabel.className = 'form-label';
+    accountWrapper.appendChild(accountLabel);
+    const accountSelect = document.createElement('select');
+    accountSelect.className = 'form-select';
+    accountSelect.setAttribute('name', 'accountId');
+    const noneAccountOption = document.createElement('option');
+    noneAccountOption.value = '';
+    noneAccountOption.textContent = t('common.selectAccount');
+    accountSelect.appendChild(noneAccountOption);
+    const accounts = currentSnapshot.accounts?.items || [];
+    for (const acc of accounts) {
+      if (acc.archived) continue;
+      const option = document.createElement('option');
+      option.value = acc.id;
+      option.textContent = acc.name;
+      accountSelect.appendChild(option);
+    }
+    accountSelect.addEventListener('change', (e) => {
+      form.dataset.accountId = e.target.value;
+    });
+    accountWrapper.appendChild(accountSelect);
+    form.appendChild(accountWrapper);
+
     const paymentStatusSelect = createStatusSelect(form, [
       { value: 'pending', label: t('reselling.paymentStatusPending') },
       { value: 'paid', label: t('reselling.paymentStatusPaid') },
@@ -1062,6 +1089,7 @@ export function render(context = {}) {
       const saleDate = form.dataset.saleDate || '';
       const paymentStatus = form.dataset.paymentStatus || 'pending';
       const saleStatus = form.dataset.saleStatus || 'sold';
+      const accountId = form.dataset.accountId || '';
 
       if (!incomeProfileId) {
         showToast({ message: t('validation.required'), type: 'error' });
@@ -1076,6 +1104,10 @@ export function render(context = {}) {
         return;
       }
       if (!saleDate || !/^\d{4}-\d{2}-\d{2}$/.test(saleDate)) {
+        showToast({ message: t('validation.required'), type: 'error' });
+        return;
+      }
+      if (paymentStatus === 'paid' && !accountId) {
         showToast({ message: t('validation.required'), type: 'error' });
         return;
       }
@@ -1095,6 +1127,7 @@ export function render(context = {}) {
           saleDate,
           paymentStatus,
           saleStatus,
+          accountId: accountId || undefined,
         });
         showToast({ message: t('reselling.createdSuccess'), type: 'success' });
         modalClose();
