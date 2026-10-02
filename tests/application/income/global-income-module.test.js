@@ -51,4 +51,19 @@ describe('GlobalIncomeModule', () => {
     assert.strictEqual(result.byProfile.length, 1);
     assert.strictEqual(result.byProfile[0].profileId, 'r2');
   });
-});
+
+
+  it('rejects a foreign or archived profile scope instead of returning a misleading zero', async () => {
+    const incomeProfileRepository = {
+      async loadAll() {
+        return [
+          { id:'r1', userId:'u1', type:'reselling', name:'Vinted', archived:false },
+          { id:'r2', userId:'u2', type:'reselling', name:'Other', archived:false },
+          { id:'old', userId:'u1', type:'reselling', name:'Old', archived:true },
+        ];
+      },
+    };
+    const module = createGlobalIncomeModule({ incomeProfileRepository, resellingModule: null });
+    await assert.rejects(module.getGlobalIncome({ userId:'u1', incomeProfileId:'r2' }), /NOT_FOUND/);
+    await assert.rejects(module.getGlobalIncome({ userId:'u1', incomeProfileId:'old' }), /ARCHIVED_ENTITY/);
+  });\n});
