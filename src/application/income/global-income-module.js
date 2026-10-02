@@ -29,7 +29,7 @@ export function createGlobalIncomeModule({ incomeProfileRepository, providers = 
       if (!provider || typeof provider.getSummary !== 'function') continue;
       const summary = await provider.getSummary({ userId, incomeProfileId: profile.id, period });
       if (!summary || typeof summary !== 'object') continue;
-      summaries.push({ profileId: profile.id, ...summary });
+      summaries.push({ ...summary, profileId: profile.id });
     }
 
     return calculateGlobalIncome({ profiles, summaries });
