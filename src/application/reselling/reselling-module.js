@@ -227,6 +227,7 @@ export function createResellingModule({
     if (!incomeProfileId || typeof incomeProfileId !== 'string' || incomeProfileId.trim() === '') {
       throw new Error('VALIDATION_FAILED');
     }
+    if (linkedTransactionId) throw new Error('VALIDATION_FAILED');
 
     const product = productId ? await productRepo.findById(productId) : null;
     if (product && (product.userId !== userId || product.archived || product.incomeProfileId !== incomeProfileId)) {
@@ -321,6 +322,8 @@ export function createResellingModule({
       throw new Error('NOT_FOUND');
     }
 
+    if (updates.linkedTransactionId !== undefined) throw new Error('VALIDATION_FAILED');
+
     const updated = validateResellingSaleUpdate({ existing, updates });
 
     if (updates.productId !== undefined || updates.quantity !== undefined) {
@@ -340,6 +343,7 @@ export function createResellingModule({
       const financialChange = updated.netAmount !== existing.netAmount || updated.saleDate !== existing.saleDate || updated.platform !== existing.platform;
 
       if (oldPaymentStatus === 'paid' && newPaymentStatus !== 'paid') {
+        if (existing.linkedTransactionId && !txRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
         if (existing.linkedTransactionId && txRepo) {
           const linkedTx = await txRepo.findById(existing.linkedTransactionId);
           if (linkedTx && !linkedTx.archived) await txRepo.save({ ...linkedTx, archived: true, updatedAt: new Date().toISOString() });
