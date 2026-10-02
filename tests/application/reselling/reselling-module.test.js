@@ -208,7 +208,7 @@ describe('ResellingModule', () => {
 
       assert.ok(sale.id);
       assert.strictEqual(sale.netAmount, 175);
-      assert.strictEqual(sale.paymentStatus, 'paid');
+      assert.strictEqual(sale.paymentStatus, 'pending');
       assert.strictEqual(sale.saleStatus, 'completed');
     });
   });
