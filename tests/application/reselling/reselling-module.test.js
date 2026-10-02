@@ -8,6 +8,8 @@ import { ResellingCostRepository } from '../../../src/infrastructure/repositorie
 import { ResellingTaskRepository } from '../../../src/infrastructure/repositories/reselling-task-repository.js';
 import { InMemoryStorageAdapter } from '../../../src/infrastructure/storage/memory-storage-adapter.js';
 import { ApplicationTransaction } from '../../../src/infrastructure/storage/application-transaction.js';
+import { TransactionRepository } from '../../../src/infrastructure/repositories/transaction-repository.js';
+import { AccountRepository } from '../../../src/infrastructure/repositories/account-repository.js';
 
 async function createModule(userId = 'user-1') {
   const storage = new InMemoryStorageAdapter();
