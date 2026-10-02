@@ -30,7 +30,7 @@ export function createGlobalIncomeModule({
           costs: analytics.totalCost,
           net: analytics.totalNet,
           cashIn: analytics.realizedRevenue,
-          cashOut: 0,
+          cashOut: analytics.realizedCost,
         });
       }
     }
