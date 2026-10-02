@@ -641,4 +641,18 @@ describe('ResellingCost Financial Integration', () => {
       assert.strictEqual(allTx.length, 2, 'exactly two global financial transactions');
     });
   });
+
+
+  it('rejects a linked entity from another profile', async () => {
+    const { module, productRepo } = await createModule();
+    await productRepo.save({
+      id:'foreign-product', userId:'user-1', incomeProfileId:'ip-2', name:'Other', purchasePrice:10,
+      plannedSalePrice:20, purchaseDate:'2024-09-01', quantity:1, archived:false,
+      createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
+    });
+    await assert.rejects(module.createCost({
+      userId:'user-1', incomeProfileId:'ip-1', amount:20, category:'packaging',
+      date:'2024-09-15', description:'Packaging', paymentStatus:'unpaid', linkedProductId:'foreign-product'
+    }), /NOT_FOUND/);
+  });
 });
