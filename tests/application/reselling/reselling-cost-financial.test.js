@@ -8,6 +8,7 @@ import { ResellingCostRepository } from '../../../src/infrastructure/repositorie
 import { ResellingTaskRepository } from '../../../src/infrastructure/repositories/reselling-task-repository.js';
 import { TransactionRepository } from '../../../src/infrastructure/repositories/transaction-repository.js';
 import { AccountRepository } from '../../../src/infrastructure/repositories/account-repository.js';
+import { IncomeProfileRepository } from '../../../src/infrastructure/repositories/income-profile-repository.js';
 import { InMemoryStorageAdapter } from '../../../src/infrastructure/storage/memory-storage-adapter.js';
 import { ApplicationTransaction } from '../../../src/infrastructure/storage/application-transaction.js';
 import { createReportingModule } from '../../../src/application/reporting/reporting-module.mjs';
@@ -25,6 +26,8 @@ async function createModule(userId = 'user-1') {
   const taskRepo = new ResellingTaskRepository(storage, userId, () => storage.keys());
   const txRepo = new TransactionRepository(storage, userId, () => storage.keys());
   const accountRepo = new AccountRepository(storage, userId, () => storage.keys());
+  const incomeProfileRepo = new IncomeProfileRepository(storage, userId, () => storage.keys());
+  await incomeProfileRepo.save({ id:'ip-1', userId, type:'reselling', name:'Test Profile', description:'', archived:false, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
   const appTx = new ApplicationTransaction(storage);
 
   const module = createResellingModule({
@@ -35,6 +38,7 @@ async function createModule(userId = 'user-1') {
     resellingTaskRepository: taskRepo,
     transactionRepository: txRepo,
     accountRepository: accountRepo,
+    incomeProfileRepository: incomeProfileRepo,
     applicationTransaction: appTx,
   });
 
