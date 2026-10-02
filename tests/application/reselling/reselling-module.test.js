@@ -477,7 +477,7 @@ describe('ResellingSale Financial Integration', () => {
     const module = createResellingModule({
       resellingProductRepository: productRepo, resellingOrderRepository: orderRepo, resellingSaleRepository: saleRepo,
       resellingCostRepository: costRepo, resellingTaskRepository: taskRepo, transactionRepository: txRepo,
-      accountRepository: accountRepo, applicationTransaction: appTx,
+      accountRepository: accountRepo, incomeProfileRepository: incomeProfileRepo, applicationTransaction: appTx,
     });
     return { module, txRepo, accountRepo };
   }
