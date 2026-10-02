@@ -677,4 +677,24 @@ describe('ResellingSale Financial Integration', () => {
       salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', accountId:'acc-other' }), /NOT_FOUND/);
     assert.strictEqual((await txRepo.loadAll()).length, 0);
   });
+
+
+describe('Reselling financial atomicity', () => {
+  it('rolls back a paid sale when ledger transaction creation fails', async () => {
+    const { module, saleRepo, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    const originalSave = txRepo.save.bind(txRepo);
+    txRepo.save = async (value) => {
+      if (value?.metadata?.resellingSaleId) throw new Error('TX_WRITE_FAILED');
+      return originalSave(value);
+    };
+    await assert.rejects(
+      module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+        salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', saleStatus:'completed', accountId:'acc-1' }),
+      /TX_WRITE_FAILED/
+    );
+    assert.strictEqual((await saleRepo.loadAll()).length, 0);
+    assert.strictEqual((await txRepo.loadAll()).length, 0);
+  });
+});
 });
