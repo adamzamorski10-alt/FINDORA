@@ -34,6 +34,14 @@ export function createResellingModule({
     return profile;
   }
 
+  async function assertOptionalLink(repository, entityId, userId, incomeProfileId) {
+    if (!entityId) return;
+    const entity = await repository.findById(entityId);
+    if (!entity || entity.userId !== userId || entity.archived || entity.incomeProfileId !== incomeProfileId) {
+      throw new Error('NOT_FOUND');
+    }
+  }
+
   function generateId() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       return crypto.randomUUID();
@@ -444,6 +452,9 @@ export function createResellingModule({
     if (!userId || typeof userId !== 'string' || userId.trim() === '') throw new Error('VALIDATION_FAILED');
     if (!incomeProfileId || typeof incomeProfileId !== 'string' || incomeProfileId.trim() === '') throw new Error('VALIDATION_FAILED');
     await assertActiveIncomeProfile(userId, incomeProfileId);
+    await assertOptionalLink(productRepo, linkedProductId, userId, incomeProfileId);
+    await assertOptionalLink(saleRepo, linkedSaleId, userId, incomeProfileId);
+    await assertOptionalLink(orderRepo, linkedOrderId, userId, incomeProfileId);
 
     const cost = createResellingCost({
       userId, incomeProfileId, amount, category, date, description, accountId,
@@ -509,6 +520,10 @@ export function createResellingModule({
       if (!updates.incomeProfileId || typeof updates.incomeProfileId !== 'string') throw new Error('VALIDATION_FAILED');
       await assertActiveIncomeProfile(existing.userId, updates.incomeProfileId);
     }
+
+    await assertOptionalLink(productRepo, updates.linkedProductId, existing.userId, existing.incomeProfileId);
+    await assertOptionalLink(saleRepo, updates.linkedSaleId, existing.userId, existing.incomeProfileId);
+    await assertOptionalLink(orderRepo, updates.linkedOrderId, existing.userId, existing.incomeProfileId);
 
     const updated = validateResellingCostUpdate({ existing, updates });
 
