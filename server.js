@@ -1,10 +1,11 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const PORT = Number(process.env.PORT || 10000);
 const HOST = '0.0.0.0';
-const ROOT = __dirname;
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
