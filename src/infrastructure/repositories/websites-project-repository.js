@@ -1,0 +1,2 @@
+import { entityKey, loadAll, checkOwnership } from './repository-utils.js';
+export class WebsitesProjectRepository { constructor(storageAdapter,userId,listKeys){this.storage=storageAdapter;this.userId=userId;this.listKeys=listKeys;} async loadAll(){return loadAll(this.storage,'websitesProject',this.userId,this.listKeys);} async findById(id){return this.storage.get(entityKey('websitesProject',this.userId,id));} async save(entity){checkOwnership(entity,this.userId);await this.storage.set(entityKey('websitesProject',this.userId,entity.id),entity);} }
