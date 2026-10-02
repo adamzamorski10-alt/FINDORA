@@ -35,6 +35,7 @@ async function createModule(userId = 'user-1') {
       resellingTaskRepository: taskRepo,
       transactionRepository: transactionRepo,
       accountRepository: accountRepo,
+      incomeProfileRepository: incomeProfileRepo,
       applicationTransaction: appTx,
     }),
     storage,
