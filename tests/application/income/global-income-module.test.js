@@ -13,13 +13,6 @@ describe('GlobalIncomeModule', () => {
         ];
       },
     };
-    const resellingModule = {
-      async getResellingAnalytics({ incomeProfileId }) {
-        assert.strictEqual(incomeProfileId, 'r1');
-        return { totalRevenue:1000, totalCost:400, totalNet:600, realizedRevenue:900, realizedCost:250 };
-      },
-    };
-
     const module = createGlobalIncomeModule({
       incomeProfileRepository,
       providers: { reselling: { getSummary: async ({ incomeProfileId }) => {
@@ -46,11 +39,6 @@ describe('GlobalIncomeModule', () => {
         ];
       },
     };
-    const resellingModule = {
-      async getResellingAnalytics({ incomeProfileId }) {
-        return { totalRevenue: incomeProfileId === 'r1' ? 100 : 200, totalCost: 20, totalNet: incomeProfileId === 'r1' ? 80 : 180, realizedRevenue: 90, realizedCost: 10 };
-      },
-    };
     const module = createGlobalIncomeModule({
       incomeProfileRepository,
       providers: { reselling: { getSummary: async ({ incomeProfileId }) => ({ revenue: incomeProfileId === 'r1' ? 100 : 200, costs:20, net: incomeProfileId === 'r1' ? 80 : 180, cashIn:90, cashOut:10 }) } },
@@ -75,4 +63,5 @@ describe('GlobalIncomeModule', () => {
     const module = createGlobalIncomeModule({ incomeProfileRepository, providers: {} });
     await assert.rejects(module.getGlobalIncome({ userId:'u1', incomeProfileId:'r2' }), /NOT_FOUND/);
     await assert.rejects(module.getGlobalIncome({ userId:'u1', incomeProfileId:'old' }), /ARCHIVED_ENTITY/);
-  });\n});
+  });
+});
