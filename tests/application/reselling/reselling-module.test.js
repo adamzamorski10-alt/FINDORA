@@ -10,6 +10,7 @@ import { InMemoryStorageAdapter } from '../../../src/infrastructure/storage/memo
 import { ApplicationTransaction } from '../../../src/infrastructure/storage/application-transaction.js';
 import { TransactionRepository } from '../../../src/infrastructure/repositories/transaction-repository.js';
 import { AccountRepository } from '../../../src/infrastructure/repositories/account-repository.js';
+import { IncomeProfileRepository } from '../../../src/infrastructure/repositories/income-profile-repository.js';
 
 async function createModule(userId = 'user-1') {
   const storage = new InMemoryStorageAdapter();
