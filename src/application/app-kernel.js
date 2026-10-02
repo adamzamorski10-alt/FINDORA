@@ -72,6 +72,7 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
     websitesClientRepository: persistence.websitesClientRepository,
     websitesProjectRepository: persistence.websitesProjectRepository,
     websitesPaymentRepository: persistence.websitesPaymentRepository,
+    websitesCostRepository: persistence.websitesCostRepository,
     incomeProfileRepository: persistence.incomeProfileRepository,
     transactionRepository: persistence.transactionRepository,
     accountRepository: persistence.accountRepository,
@@ -156,6 +157,7 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
     websitesClientRepository: persistence.websitesClientRepository,
     websitesProjectRepository: persistence.websitesProjectRepository,
     websitesPaymentRepository: persistence.websitesPaymentRepository,
+    websitesCostRepository: persistence.websitesCostRepository,
     goalModule,
     categoryModule,
   });
