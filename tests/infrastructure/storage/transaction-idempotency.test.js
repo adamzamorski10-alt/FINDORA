@@ -198,3 +198,14 @@ describe('ApplicationTransaction with flaky transaction completion', () => {
     assert.strictEqual(caught.message, 'STORAGE_CLOSING');
   });
 });
+
+
+import { StorageAdapter } from '../../../src/infrastructure/storage/storage-adapter.js';
+
+describe('ApplicationTransaction capability guard', () => {
+  it('rejects adapters that inherit the abstract transaction implementation', async () => {
+    const adapter = new StorageAdapter();
+    const tx = new ApplicationTransaction(adapter);
+    await assert.rejects(tx.run(async () => {}), /StorageAdapter\.beginTransaction\(\) not implemented/);
+  });
+});
