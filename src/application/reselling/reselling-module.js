@@ -255,7 +255,7 @@ export function createResellingModule({
     if (linkedTransactionId) throw new Error('VALIDATION_FAILED');
 
     const product = productId ? await productRepo.findById(productId) : null;
-    if (product && (product.userId !== userId || product.archived || product.incomeProfileId !== incomeProfileId)) {
+    if (!product || product.userId !== userId || product.archived || product.incomeProfileId !== incomeProfileId) {
       throw new Error('NOT_FOUND');
     }
     const purchaseCost = product && typeof quantity === 'number' ? product.purchasePrice * quantity : null;
