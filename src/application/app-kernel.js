@@ -93,6 +93,18 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
           };
         },
       },
+      websites: {
+        getSummary: async ({ userId, incomeProfileId, period }) => {
+          const analytics = await websitesModule.getWebsitesAnalytics({ userId, incomeProfileId, period });
+          return {
+            revenue: analytics.totalRevenue,
+            costs: 0,
+            net: analytics.totalRevenue,
+            cashIn: analytics.realizedRevenue,
+            cashOut: 0,
+          };
+        },
+      },
     },
   });
 
