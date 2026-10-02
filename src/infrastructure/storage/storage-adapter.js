@@ -20,7 +20,7 @@ class StorageAdapter {
   }
 
   beginTransaction() {
-    return null;
+    throw new Error('StorageAdapter.beginTransaction() not implemented');
   }
 
   async commitTransaction(ctx) {
