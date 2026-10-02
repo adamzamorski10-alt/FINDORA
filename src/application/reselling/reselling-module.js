@@ -341,6 +341,10 @@ export function createResellingModule({
       const oldAccountId = existing.accountId || '';
       const newAccountId = updated.accountId || '';
       const financialChange = updated.netAmount !== existing.netAmount || updated.saleDate !== existing.saleDate || updated.platform !== existing.platform;
+      const existingLinkedTx = existing.linkedTransactionId && txRepo
+        ? await txRepo.findById(existing.linkedTransactionId)
+        : null;
+      const linkedTransactionNeedsRepair = Boolean(existing.linkedTransactionId) && (!existingLinkedTx || existingLinkedTx.archived);
 
       if (oldPaymentStatus === 'paid' && newPaymentStatus !== 'paid') {
         if (existing.linkedTransactionId && !txRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
@@ -365,7 +369,7 @@ export function createResellingModule({
         };
         await txRepo.save(transaction);
         updated.linkedTransactionId = transaction.id;
-      } else if (newPaymentStatus === 'paid' && (oldAccountId !== newAccountId || financialChange || !existing.linkedTransactionId || !(await txRepo?.findById(existing.linkedTransactionId)) || (await txRepo.findById(existing.linkedTransactionId))?.archived)) {
+      } else if (newPaymentStatus === 'paid' && (oldAccountId !== newAccountId || financialChange || !existing.linkedTransactionId || linkedTransactionNeedsRepair)) {
         if (!Number.isFinite(updated.netAmount) || updated.netAmount <= 0) throw new Error('VALIDATION_FAILED');
         if (!newAccountId) throw new Error('VALIDATION_FAILED');
         if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
@@ -373,7 +377,7 @@ export function createResellingModule({
         if (!account || account.userId !== existing.userId) throw new Error('NOT_FOUND');
         if (account.archived) throw new Error('ARCHIVED_ENTITY');
         if (existing.linkedTransactionId) {
-          const oldLinkedTx = await txRepo.findById(existing.linkedTransactionId);
+          const oldLinkedTx = existingLinkedTx;
           if (oldLinkedTx && !oldLinkedTx.archived) await txRepo.save({ ...oldLinkedTx, archived: true, updatedAt: new Date().toISOString() });
         }
         const transaction = {
