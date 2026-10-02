@@ -307,7 +307,9 @@ describe('ResellingModule', () => {
 
       assert.strictEqual(analytics.totalRevenue, 300);
       assert.strictEqual(analytics.totalCost, 150);
-      assert.strictEqual(analytics.totalNet, 150);
+      assert.strictEqual(analytics.totalNet, 120);
+      assert.strictEqual(analytics.totalSellingCosts, 30);
+      assert.strictEqual(analytics.totalOperationalCost, 150);
       assert.strictEqual(analytics.totalSalesCount, 1);
       assert.strictEqual(analytics.totalCostsCount, 2);
       assert.ok(analytics.profitMargin > 0);
@@ -369,6 +371,18 @@ describe('ResellingSale Financial Integration', () => {
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     });
   }
+
+  it('snapshots product purchase cost when the sale is created', async () => {
+    const { module, saleRepo } = await createModule();
+    await module.createProduct({ userId:'user-1', incomeProfileId:'ip-1', name:'T-Shirt', purchasePrice:50, purchaseDate:'2024-06-15', quantity:10 });
+    const products = await module.listProducts({ userId:'user-1', incomeProfileId:'ip-1' });
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:products[0].id, quantity:2,
+      salePrice:150, saleDate:'2024-07-01', paymentStatus:'pending' });
+    assert.strictEqual(sale.purchaseCost, 100);
+    await module.updateProduct({ productId:products[0].id, updates:{ purchasePrice:90 } });
+    const stored = await saleRepo.findById(sale.id);
+    assert.strictEqual(stored.purchaseCost, 100);
+  });
 
   it('creates exactly one income transaction for a paid sale', async () => {
     const { module, txRepo, accountRepo } = await createFinancialModule();
