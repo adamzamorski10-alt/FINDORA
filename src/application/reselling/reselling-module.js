@@ -416,57 +416,35 @@ export function createResellingModule({
 
   // Costs
   async function createCost({ userId, incomeProfileId, amount, category, date, description, accountId, linkedProductId, linkedSaleId, linkedOrderId, paymentStatus }) {
-    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-      throw new Error('VALIDATION_FAILED');
-    }
-    if (!incomeProfileId || typeof incomeProfileId !== 'string' || incomeProfileId.trim() === '') {
-      throw new Error('VALIDATION_FAILED');
-    }
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') throw new Error('VALIDATION_FAILED');
+    if (!incomeProfileId || typeof incomeProfileId !== 'string' || incomeProfileId.trim() === '') throw new Error('VALIDATION_FAILED');
 
     const cost = createResellingCost({
-      userId,
-      incomeProfileId,
-      amount,
-      category,
-      date,
-      description,
-      accountId,
-      linkedProductId,
-      linkedSaleId,
-      linkedOrderId,
-      paymentStatus,
+      userId, incomeProfileId, amount, category, date, description, accountId,
+      linkedProductId, linkedSaleId, linkedOrderId, paymentStatus,
     });
 
     let resultCost = cost;
     await appTx.run(async () => {
+      if (cost.paymentStatus === 'paid') {
+        if (!cost.accountId) throw new Error('VALIDATION_FAILED');
+        if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
+
+        const account = await accountRepo.findById(cost.accountId);
+        if (!account || account.userId !== userId) throw new Error('NOT_FOUND');
+        if (account.archived) throw new Error('ARCHIVED_ENTITY');
+      }
+
       await costRepo.save(cost);
 
-      if (cost.paymentStatus === 'paid' && cost.accountId) {
-        const account = await accountRepo.findById(cost.accountId);
-        if (!account || account.userId !== userId) {
-          throw new Error('NOT_FOUND');
-        }
-        if (account.archived) {
-          throw new Error('ARCHIVED_ENTITY');
-        }
-
+      if (cost.paymentStatus === 'paid') {
         const transaction = {
-          id: generateId(),
-          userId,
-          accountId: cost.accountId,
-          amount: cost.amount,
-          type: 'expense',
-          categoryId: null,
-          description: cost.description,
-          date: cost.date,
-          notes: '',
-          metadata: { resellingCostId: cost.id },
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          id: generateId(), userId, accountId: cost.accountId, amount: cost.amount,
+          type: 'expense', categoryId: null, description: cost.description, date: cost.date,
+          notes: '', metadata: { resellingCostId: cost.id }, archived: false,
+          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
         };
         await txRepo.save(transaction);
-
         resultCost = { ...cost, linkedTransactionId: transaction.id };
         await costRepo.save(resultCost);
       }
@@ -495,17 +473,11 @@ export function createResellingModule({
   }
 
   async function updateCost({ costId, updates }) {
-    if (!costId || typeof costId !== 'string' || costId.trim() === '') {
-      throw new Error('VALIDATION_FAILED');
-    }
-    if (!updates || typeof updates !== 'object') {
-      throw new Error('VALIDATION_FAILED');
-    }
+    if (!costId || typeof costId !== 'string' || costId.trim() === '') throw new Error('VALIDATION_FAILED');
+    if (!updates || typeof updates !== 'object') throw new Error('VALIDATION_FAILED');
 
     const existing = await costRepo.findById(costId);
-    if (!existing) {
-      throw new Error('NOT_FOUND');
-    }
+    if (!existing) throw new Error('NOT_FOUND');
 
     const updated = validateResellingCostUpdate({ existing, updates });
 
@@ -514,89 +486,51 @@ export function createResellingModule({
       const newPaymentStatus = updated.paymentStatus || 'unpaid';
       const oldAccountId = existing.accountId || '';
       const newAccountId = updated.accountId || '';
+      const financialChange =
+        updated.amount !== existing.amount ||
+        updated.date !== existing.date ||
+        updated.description !== existing.description ||
+        oldAccountId !== newAccountId;
 
-      if (oldPaymentStatus === 'paid' && newPaymentStatus !== 'paid') {
-        if (existing.linkedTransactionId) {
+      if (newPaymentStatus === 'paid') {
+        if (!newAccountId) throw new Error('VALIDATION_FAILED');
+        if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
+
+        const account = await accountRepo.findById(newAccountId);
+        if (!account || account.userId !== existing.userId) throw new Error('NOT_FOUND');
+        if (account.archived) throw new Error('ARCHIVED_ENTITY');
+
+        const linkedTx = existing.linkedTransactionId
+          ? await txRepo.findById(existing.linkedTransactionId)
+          : null;
+        const needsReplacement =
+          oldPaymentStatus !== 'paid' ||
+          financialChange ||
+          !linkedTx ||
+          linkedTx.archived;
+
+        if (needsReplacement) {
+          if (linkedTx && !linkedTx.archived) {
+            await txRepo.save({ ...linkedTx, archived: true, updatedAt: new Date().toISOString() });
+          }
+
+          const transaction = {
+            id: generateId(), userId: existing.userId, accountId: newAccountId, amount: updated.amount,
+            type: 'expense', categoryId: null, description: updated.description, date: updated.date,
+            notes: '', metadata: { resellingCostId: existing.id }, archived: false,
+            createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          };
+          await txRepo.save(transaction);
+          updated.linkedTransactionId = transaction.id;
+        }
+      } else {
+        if (oldPaymentStatus === 'paid' && existing.linkedTransactionId && txRepo) {
           const linkedTx = await txRepo.findById(existing.linkedTransactionId);
           if (linkedTx && !linkedTx.archived) {
-            const archivedTx = { ...linkedTx, archived: true, updatedAt: new Date().toISOString() };
-            await txRepo.save(archivedTx);
+            await txRepo.save({ ...linkedTx, archived: true, updatedAt: new Date().toISOString() });
           }
         }
         updated.linkedTransactionId = '';
-      } else if (oldPaymentStatus !== 'paid' && newPaymentStatus === 'paid') {
-        if (!newAccountId) {
-          throw new Error('VALIDATION_FAILED');
-        }
-        const account = await accountRepo.findById(newAccountId);
-        if (!account || account.userId !== existing.userId) {
-          throw new Error('NOT_FOUND');
-        }
-        if (account.archived) {
-          throw new Error('ARCHIVED_ENTITY');
-        }
-
-        if (existing.linkedTransactionId) {
-          const oldLinkedTx = await txRepo.findById(existing.linkedTransactionId);
-          if (oldLinkedTx && !oldLinkedTx.archived) {
-            const archivedTx = { ...oldLinkedTx, archived: true, updatedAt: new Date().toISOString() };
-            await txRepo.save(archivedTx);
-          }
-        }
-
-        const transaction = {
-          id: generateId(),
-          userId: existing.userId,
-          accountId: newAccountId,
-          amount: updated.amount,
-          type: 'expense',
-          categoryId: null,
-          description: updated.description,
-          date: updated.date,
-          notes: '',
-          metadata: { resellingCostId: existing.id },
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        await txRepo.save(transaction);
-        updated.linkedTransactionId = transaction.id;
-      } else if (newPaymentStatus === 'paid' && oldAccountId !== newAccountId) {
-        if (existing.linkedTransactionId) {
-          const oldLinkedTx = await txRepo.findById(existing.linkedTransactionId);
-          if (oldLinkedTx && !oldLinkedTx.archived) {
-            const archivedTx = { ...oldLinkedTx, archived: true, updatedAt: new Date().toISOString() };
-            await txRepo.save(archivedTx);
-          }
-        }
-        if (!newAccountId) {
-          throw new Error('VALIDATION_FAILED');
-        }
-        const account = await accountRepo.findById(newAccountId);
-        if (!account || account.userId !== existing.userId) {
-          throw new Error('NOT_FOUND');
-        }
-        if (account.archived) {
-          throw new Error('ARCHIVED_ENTITY');
-        }
-
-        const transaction = {
-          id: generateId(),
-          userId: existing.userId,
-          accountId: newAccountId,
-          amount: updated.amount,
-          type: 'expense',
-          categoryId: null,
-          description: updated.description,
-          date: updated.date,
-          notes: '',
-          metadata: { resellingCostId: existing.id },
-          archived: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        await txRepo.save(transaction);
-        updated.linkedTransactionId = transaction.id;
       }
 
       await costRepo.save(updated);
