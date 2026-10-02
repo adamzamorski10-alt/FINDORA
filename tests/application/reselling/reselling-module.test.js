@@ -398,6 +398,21 @@ describe('ResellingSale Financial Integration', () => {
     assert.strictEqual(tx[0].accountId, 'acc-1');
   });
 
+  it('allows legacy sales without a currently available product', async () => {
+    const { module } = await createFinancialModule();
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'legacy-product', quantity:1,
+      salePrice:200, saleDate:'2024-07-01', paymentStatus:'pending' });
+    assert.strictEqual(sale.purchaseCost, null);
+  });
+
+  it('rejects a paid sale whose net cash inflow is zero or negative', async () => {
+    const { module, txRepo, accountRepo } = await createFinancialModule();
+    await addAccount(accountRepo, 'acc-1');
+    await assert.rejects(module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
+      salePrice:100, commission:100, saleDate:'2024-07-01', paymentStatus:'paid', accountId:'acc-1' }), /VALIDATION_FAILED/);
+    assert.strictEqual((await txRepo.loadAll()).length, 0);
+  });
+
   it('does not create a transaction for an unpaid sale', async () => {
     const { module, txRepo } = await createFinancialModule();
     const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
@@ -502,6 +517,16 @@ describe('ResellingSale Financial Integration', () => {
     const tx = (await txRepo.loadAll()).find(t => t.metadata?.resellingSaleId === sale.id);
     assert.ok(tx);
     assert.strictEqual(tx.archived, true);
+  });
+
+  it('refreshes the purchase snapshot when sale quantity changes', async () => {
+    const { module } = await createFinancialModule();
+    await module.createProduct({ userId:'user-1', incomeProfileId:'ip-1', name:'Item', purchasePrice:25, purchaseDate:'2024-06-15', quantity:10 });
+    const products = await module.listProducts({ userId:'user-1', incomeProfileId:'ip-1' });
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:products[0].id, quantity:2,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'pending' });
+    const updated = await module.updateSale({ saleId:sale.id, updates:{ quantity:3 } });
+    assert.strictEqual(updated.purchaseCost, 75);
   });
 
   it('refreshes the financial transaction when a paid sale amount changes', async () => {
