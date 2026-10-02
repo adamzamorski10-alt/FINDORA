@@ -120,6 +120,7 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
     resellingTaskRepository: persistence.resellingTaskRepository,
     websitesClientRepository: persistence.websitesClientRepository,
     websitesProjectRepository: persistence.websitesProjectRepository,
+    websitesPaymentRepository: persistence.websitesPaymentRepository,
   });
 
   const restoreService = createRestoreService({
@@ -142,6 +143,7 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
     resellingTaskRepository: persistence.resellingTaskRepository,
     websitesClientRepository: persistence.websitesClientRepository,
     websitesProjectRepository: persistence.websitesProjectRepository,
+    websitesPaymentRepository: persistence.websitesPaymentRepository,
     goalModule,
     categoryModule,
   });
