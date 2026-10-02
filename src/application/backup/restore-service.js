@@ -231,6 +231,29 @@ function validateEntityShapes(data) {
     resellingTaskIds.add(task.id);
   }
 
+  const websitesClientIds = new Set();
+  for (const client of data.websitesClients || []) {
+    if (!client.id || !client.userId || !client.incomeProfileId || !client.name) errors.push(`Invalid websites client: missing required fields (${client.id || 'unknown'})`);
+    if (websitesClientIds.has(client.id)) errors.push(`Duplicate websites client id: ${client.id}`);
+    websitesClientIds.add(client.id);
+  }
+
+  const websitesProjectIds = new Set();
+  for (const project of data.websitesProjects || []) {
+    if (!project.id || !project.userId || !project.incomeProfileId || !project.clientId || !project.name) errors.push(`Invalid websites project: missing required fields (${project.id || 'unknown'})`);
+    if (websitesProjectIds.has(project.id)) errors.push(`Duplicate websites project id: ${project.id}`);
+    websitesProjectIds.add(project.id);
+    if (!websitesClientIds.has(project.clientId)) errors.push(`Websites project ${project.id} references non-existent client ${project.clientId}`);
+  }
+
+  const websitesPaymentIds = new Set();
+  for (const payment of data.websitesPayments || []) {
+    if (!payment.id || !payment.userId || !payment.incomeProfileId || !payment.projectId || payment.amount === undefined || !payment.date || !payment.description) errors.push(`Invalid websites payment: missing required fields (${payment.id || 'unknown'})`);
+    if (websitesPaymentIds.has(payment.id)) errors.push(`Duplicate websites payment id: ${payment.id}`);
+    websitesPaymentIds.add(payment.id);
+    if (!websitesProjectIds.has(payment.projectId)) errors.push(`Websites payment ${payment.id} references non-existent project ${payment.projectId}`);
+  }
+
   return errors;
 }
 
