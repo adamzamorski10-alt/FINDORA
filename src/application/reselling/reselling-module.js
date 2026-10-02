@@ -13,6 +13,7 @@ export function createResellingModule({
   resellingTaskRepository,
   transactionRepository,
   accountRepository,
+  incomeProfileRepository,
   applicationTransaction,
 }) {
   const productRepo = resellingProductRepository;
@@ -22,7 +23,16 @@ export function createResellingModule({
   const taskRepo = resellingTaskRepository;
   const txRepo = transactionRepository;
   const accountRepo = accountRepository;
+  const profileRepo = incomeProfileRepository;
   const appTx = applicationTransaction;
+
+  async function assertActiveIncomeProfile(userId, incomeProfileId) {
+    if (!profileRepo) throw new Error('DEPENDENCY_MISSING');
+    const profile = await profileRepo.findById(incomeProfileId);
+    if (!profile || profile.userId !== userId) throw new Error('NOT_FOUND');
+    if (profile.archived) throw new Error('ARCHIVED_ENTITY');
+    return profile;
+  }
 
   function generateId() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -44,6 +54,7 @@ export function createResellingModule({
     if (!incomeProfileId || typeof incomeProfileId !== 'string' || incomeProfileId.trim() === '') {
       throw new Error('VALIDATION_FAILED');
     }
+    await assertActiveIncomeProfile(userId, incomeProfileId);
 
     const product = createResellingProduct({
       userId,
@@ -135,6 +146,7 @@ export function createResellingModule({
     if (!incomeProfileId || typeof incomeProfileId !== 'string' || incomeProfileId.trim() === '') {
       throw new Error('VALIDATION_FAILED');
     }
+    await assertActiveIncomeProfile(userId, incomeProfileId);
 
     const order = createResellingOrder({
       userId,
@@ -227,6 +239,7 @@ export function createResellingModule({
     if (!incomeProfileId || typeof incomeProfileId !== 'string' || incomeProfileId.trim() === '') {
       throw new Error('VALIDATION_FAILED');
     }
+    await assertActiveIncomeProfile(userId, incomeProfileId);
     if (linkedTransactionId) throw new Error('VALIDATION_FAILED');
 
     const product = productId ? await productRepo.findById(productId) : null;
@@ -585,6 +598,8 @@ export function createResellingModule({
     if (!incomeProfileId || typeof incomeProfileId !== 'string' || incomeProfileId.trim() === '') {
       throw new Error('VALIDATION_FAILED');
     }
+    await assertActiveIncomeProfile(userId, incomeProfileId);
+    await assertActiveIncomeProfile(userId, incomeProfileId);
 
     const task = createResellingTask({
       userId,
@@ -719,11 +734,12 @@ export function createResellingModule({
       if (!salesByPlatform[platform]) {
         salesByPlatform[platform] = { count: 0, revenue: 0, net: 0 };
       }
-      const product = productMap.get(sale.productId);
-      const purchaseCost = product ? product.purchasePrice * sale.quantity : 0;
+      const purchaseCost = typeof sale.purchaseCost === 'number' && Number.isFinite(sale.purchaseCost)
+        ? sale.purchaseCost
+        : (productMap.get(sale.productId)?.purchasePrice || 0) * sale.quantity;
       salesByPlatform[platform].count++;
       salesByPlatform[platform].revenue += sale.salePrice;
-      salesByPlatform[platform].net += sale.netAmount - purchaseCost;
+      salesByPlatform[platform].net += sale.salePrice - purchaseCost - (sale.commission || 0) - (sale.shipping || 0) - (sale.otherCosts || 0);
     }
 
     const costsByCategory = {};
@@ -742,6 +758,9 @@ export function createResellingModule({
       totalOperationalCost,
       totalCost,
       totalNet,
+      realizedRevenue: sales.filter(s => s.paymentStatus === 'paid').reduce((sum, s) => sum + s.netAmount, 0),
+      realizedSalesCount: sales.filter(s => s.paymentStatus === 'paid').length,
+      refundedSalesCount: sales.filter(s => s.paymentStatus === 'refunded').length,
       totalSalesCount,
       totalCostsCount,
       profitMargin: totalRevenue > 0 ? (totalNet / totalRevenue) * 100 : 0,
