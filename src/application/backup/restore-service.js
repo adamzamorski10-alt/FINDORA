@@ -39,7 +39,7 @@ export function validateRestoreBackup(envelope, currentUserId) {
   }
 
   const data = envelope.data || {};
-  const requiredCollections = ['profile', 'accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks', 'websitesClients', 'websitesProjects'];
+  const requiredCollections = ['profile', 'accounts', 'categories', 'transactions', 'budgets', 'goals', 'people', 'receivables', 'incomeProfiles', 'resellingProducts', 'resellingOrders', 'resellingSales', 'resellingCosts', 'resellingTasks'];
   for (const collection of requiredCollections) {
     if (!Array.isArray(data[collection])) {
       return { valid: false, errors: [`Missing or invalid collection: ${collection}`] };
@@ -431,11 +431,11 @@ export function createRestoreService({
           await storage.set(key, task);
         }
 
-        for (const client of backupData.websitesClients) {
+        for (const client of (backupData.websitesClients || [])) {
           await storage.set(`websitesClient:${currentUserId}:${client.id}`, client);
         }
 
-        for (const project of backupData.websitesProjects) {
+        for (const project of (backupData.websitesProjects || [])) {
           await storage.set(`websitesProject:${currentUserId}:${project.id}`, project);
         }
 
