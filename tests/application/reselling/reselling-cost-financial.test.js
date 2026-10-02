@@ -497,6 +497,66 @@ describe('ResellingCost Financial Integration', () => {
     });
   });
 
+  describe('Case G — profile and ledger-link integrity', async () => {
+    it('rejects creating a cost in a foreign or missing income profile', async () => {
+      const { module } = await createModule();
+
+      await assert.rejects(
+        module.createCost({
+          userId: 'user-1',
+          incomeProfileId: 'missing-profile',
+          amount: 20,
+          category: 'advertising',
+          date: '2024-09-15',
+          description: 'Advertising',
+          paymentStatus: 'unpaid',
+        }),
+        /NOT_FOUND/
+      );
+    });
+
+    it('rejects direct linked transaction mutation', async () => {
+      const { module, accountRepo } = await createModule();
+      await accountRepo.save({
+        id: 'acc-1', userId: 'user-1', name: 'Bank', type: 'bank', icon: 'landmark',
+        color: '#0000FF', archived: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      });
+      const cost = await module.createCost({
+        userId: 'user-1', incomeProfileId: 'ip-1', amount: 20, category: 'advertising',
+        date: '2024-09-15', description: 'Advertising', accountId: 'acc-1', paymentStatus: 'paid',
+      });
+
+      await assert.rejects(
+        module.updateCost({ costId: cost.id, updates: { linkedTransactionId: 'attacker-tx' } }),
+        /VALIDATION_FAILED/
+      );
+    });
+
+    it('rolls back cost and ledger transaction when transaction creation fails', async () => {
+      const { module, costRepo, txRepo, accountRepo } = await createModule();
+      await accountRepo.save({
+        id: 'acc-1', userId: 'user-1', name: 'Bank', type: 'bank', icon: 'landmark',
+        color: '#0000FF', archived: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      });
+      const originalSave = txRepo.save.bind(txRepo);
+      txRepo.save = async (value) => {
+        if (value?.metadata?.resellingCostId) throw new Error('TX_WRITE_FAILED');
+        return originalSave(value);
+      };
+
+      await assert.rejects(
+        module.createCost({
+          userId: 'user-1', incomeProfileId: 'ip-1', amount: 20, category: 'advertising',
+          date: '2024-09-15', description: 'Advertising', accountId: 'acc-1', paymentStatus: 'paid',
+        }),
+        /TX_WRITE_FAILED/
+      );
+
+      assert.strictEqual((await costRepo.loadAll()).length, 0, 'cost write must roll back');
+      assert.strictEqual((await txRepo.loadAll()).length, 0, 'ledger write must not survive failed transaction');
+    });
+  });
+
   describe('Cross-profile isolation', () => {
     it('cost in one profile does not affect analytics of another', async () => {
       const { module, accountRepo } = await createModule();
