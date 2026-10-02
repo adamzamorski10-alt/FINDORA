@@ -27,6 +27,7 @@ import { createSafeToSpendModule } from './safe-to-spend/safe-to-spend-module.js
 import { createReportingModule } from './reporting/reporting-module.mjs';
 import { createReceivablesModule } from './receivable/receivable-module.js';
 import { createIncomeProfileModule } from './income-profile/income-profile-module.js';
+import { createGlobalIncomeModule } from './income/global-income-module.js';
 import { createResellingModule } from './reselling/reselling-module.js';
 import { createApplicationState } from '../state/application-state-factory.js';
 import { compute as safeToSpendCompute } from '../domain/safe-to-spend/safe-to-spend-calculator.js';
