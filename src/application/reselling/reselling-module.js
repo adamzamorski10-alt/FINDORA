@@ -343,7 +343,7 @@ export function createResellingModule({
         };
         await txRepo.save(transaction);
         updated.linkedTransactionId = transaction.id;
-      } else if (newPaymentStatus === 'paid' && (oldAccountId !== newAccountId || financialChange)) {
+      } else if (newPaymentStatus === 'paid' && (!existing.linkedTransactionId || oldAccountId !== newAccountId || financialChange)) {
         if (!newAccountId) throw new Error('VALIDATION_FAILED');
         if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
         const account = await accountRepo.findById(newAccountId);
