@@ -228,10 +228,11 @@ export function createResellingModule({
       throw new Error('VALIDATION_FAILED');
     }
 
-    const product = await productRepo.findById(productId);
-    if (!product || product.userId !== userId || product.archived) throw new Error('NOT_FOUND');
-    if (product.incomeProfileId !== incomeProfileId) throw new Error('NOT_FOUND');
-    const purchaseCost = product.purchasePrice * quantity;
+    const product = productId ? await productRepo.findById(productId) : null;
+    if (product && (product.userId !== userId || product.archived || product.incomeProfileId !== incomeProfileId)) {
+      throw new Error('NOT_FOUND');
+    }
+    const purchaseCost = product && typeof quantity === 'number' ? product.purchasePrice * quantity : null;
 
     const sale = createResellingSale({
       userId,
@@ -320,6 +321,15 @@ export function createResellingModule({
     }
 
     const updated = validateResellingSaleUpdate({ existing, updates });
+
+    if (updates.productId !== undefined || updates.quantity !== undefined) {
+      const product = await productRepo.findById(updated.productId);
+      if (product && product.userId === existing.userId && !product.archived && product.incomeProfileId === updated.incomeProfileId) {
+        updated.purchaseCost = product.purchasePrice * updated.quantity;
+      } else if (updates.productId !== undefined) {
+        throw new Error('NOT_FOUND');
+      }
+    }
 
     await appTx.run(async () => {
       const oldPaymentStatus = existing.paymentStatus || 'pending';
