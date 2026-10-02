@@ -71,6 +71,7 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
     personRepository: persistence.personRepository,
     receivableRepository: persistence.receivableRepository,
     incomeProfileRepository: persistence.incomeProfileRepository,
+    incomeProfileRepository: persistence.incomeProfileRepository,
     resellingProductRepository: persistence.resellingProductRepository,
     resellingOrderRepository: persistence.resellingOrderRepository,
     resellingSaleRepository: persistence.resellingSaleRepository,
