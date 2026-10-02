@@ -246,6 +246,14 @@ function validateEntityShapes(data) {
     if (!websitesClientIds.has(project.clientId)) errors.push(`Websites project ${project.id} references non-existent client ${project.clientId}`);
   }
 
+  const websitesCostIds = new Set();
+  for (const cost of data.websitesCosts || []) {
+    if (!cost.id || !cost.userId || !cost.incomeProfileId || !cost.projectId || cost.amount === undefined || !cost.category || !cost.date || !cost.description) errors.push(`Invalid websites cost: missing required fields (${cost.id || 'unknown'})`);
+    if (websitesCostIds.has(cost.id)) errors.push(`Duplicate websites cost id: ${cost.id}`);
+    websitesCostIds.add(cost.id);
+    if (!websitesProjectIds.has(cost.projectId)) errors.push(`Websites cost ${cost.id} references non-existent project ${cost.projectId}`);
+  }
+
   const websitesPaymentIds = new Set();
   for (const payment of data.websitesPayments || []) {
     if (!payment.id || !payment.userId || !payment.incomeProfileId || !payment.projectId || payment.amount === undefined || !payment.date || !payment.description) errors.push(`Invalid websites payment: missing required fields (${payment.id || 'unknown'})`);
