@@ -69,7 +69,20 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
 
   const globalIncomeModule = createGlobalIncomeModule({
     incomeProfileRepository: persistence.incomeProfileRepository,
-    resellingModule,
+    providers: {
+      reselling: {
+        getSummary: async ({ userId, incomeProfileId, period }) => {
+          const analytics = await resellingModule.getResellingAnalytics({ userId, incomeProfileId, period });
+          return {
+            revenue: analytics.totalRevenue,
+            costs: analytics.totalCost,
+            net: analytics.totalNet,
+            cashIn: analytics.realizedRevenue,
+            cashOut: analytics.realizedCost,
+          };
+        },
+      },
+    },
   });
 
   const state = createApplicationState();
