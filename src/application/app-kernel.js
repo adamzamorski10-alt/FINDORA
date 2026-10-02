@@ -71,7 +71,10 @@ export function createAppKernel({ storageAdapter, userId, openingBalanceCategory
   const websitesModule = createWebsitesModule({
     websitesClientRepository: persistence.websitesClientRepository,
     websitesProjectRepository: persistence.websitesProjectRepository,
+    websitesPaymentRepository: persistence.websitesPaymentRepository,
     incomeProfileRepository: persistence.incomeProfileRepository,
+    transactionRepository: persistence.transactionRepository,
+    accountRepository: persistence.accountRepository,
     applicationTransaction: appTx,
   });
 
