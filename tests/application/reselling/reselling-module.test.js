@@ -473,6 +473,11 @@ describe('ResellingSale Financial Integration', () => {
     const accountRepo = new AccountRepository(storage, userId, () => storage.keys());
     const incomeProfileRepo = new IncomeProfileRepository(storage, userId, () => storage.keys());
     await incomeProfileRepo.save({ id:'ip-1', userId, type:'reselling', name:'Financial Test', description:'', archived:false, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
+    await productRepo.save({
+      id:'p-1', userId, incomeProfileId:'ip-1', name:'Financial Test Product', sku:'TEST-1', platform:'Test',
+      purchasePrice:50, plannedSalePrice:100, purchaseDate:'2024-06-01', quantity:10, location:'', notes:'',
+      status:'in_stock', archived:false, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
+    });
     const appTx = new ApplicationTransaction(storage);
     const module = createResellingModule({
       resellingProductRepository: productRepo, resellingOrderRepository: orderRepo, resellingSaleRepository: saleRepo,
