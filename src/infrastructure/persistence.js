@@ -14,6 +14,7 @@ import { ResellingCostRepository } from './repositories/reselling-cost-repositor
 import { ResellingTaskRepository } from './repositories/reselling-task-repository.js';
 import { WebsitesClientRepository } from './repositories/websites-client-repository.js';
 import { WebsitesProjectRepository } from './repositories/websites-project-repository.js';
+import { WebsitesPaymentRepository } from './repositories/websites-payment-repository.js';
 
 export function createPersistence({ storageAdapter, userId }) {
   const listKeys = () => storageAdapter.keys();
@@ -35,6 +36,7 @@ export function createPersistence({ storageAdapter, userId }) {
     resellingTaskRepository: new ResellingTaskRepository(storageAdapter, userId, listKeys),
     websitesClientRepository: new WebsitesClientRepository(storageAdapter, userId, listKeys),
     websitesProjectRepository: new WebsitesProjectRepository(storageAdapter, userId, listKeys),
+    websitesPaymentRepository: new WebsitesPaymentRepository(storageAdapter, userId, listKeys),
   };
 
   return {
