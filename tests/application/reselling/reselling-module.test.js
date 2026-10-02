@@ -506,6 +506,15 @@ describe('ResellingSale Financial Integration', () => {
     assert.strictEqual(stored.purchaseCost, 100);
   });
 
+  it('rejects a sale that references a missing product', async () => {
+    const { module, saleRepo } = await createFinancialModule();
+    await assert.rejects(module.createSale({
+      userId:'user-1', incomeProfileId:'ip-1', productId:'missing-product', quantity:1,
+      salePrice:100, saleDate:'2024-07-01', paymentStatus:'pending'
+    }), /NOT_FOUND/);
+    assert.strictEqual((await saleRepo.loadAll()).length, 0);
+  });
+
   it('creates exactly one income transaction for a paid sale', async () => {
     const { module, txRepo, accountRepo } = await createFinancialModule();
     await addAccount(accountRepo, 'acc-1');
