@@ -24,7 +24,7 @@ const MIME_TYPES = {
 
 function safePath(urlPath) {
   const decoded = decodeURIComponent(urlPath.split('?')[0]);
-  const relative = decoded.replace(/^\\/+/, '');
+  const relative = decoded.startsWith('/') ? decoded.slice(1) : decoded;
   const absolute = path.resolve(ROOT, relative);
   if (absolute !== ROOT && !absolute.startsWith(ROOT + path.sep)) return null;
   return absolute;
