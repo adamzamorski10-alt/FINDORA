@@ -425,8 +425,8 @@ describe('ResellingModule', () => {
       const analytics = await module.getResellingAnalytics({ userId: 'user-1' });
 
       assert.strictEqual(analytics.totalRevenue, 300);
-      assert.strictEqual(analytics.totalCost, 150);
-      assert.strictEqual(analytics.totalNet, 120);
+      assert.strictEqual(analytics.totalCost, 330);
+      assert.strictEqual(analytics.totalNet, -30);
       assert.strictEqual(analytics.totalSellingCosts, 30);
       assert.strictEqual(analytics.totalOperationalCost, 150);
       assert.strictEqual(analytics.totalSalesCount, 1);
@@ -477,6 +477,8 @@ describe('ResellingSale Financial Integration', () => {
     const accountRepo = new AccountRepository(storage, userId, () => storage.keys());
     const incomeProfileRepo = new IncomeProfileRepository(storage, userId, () => storage.keys());
     await incomeProfileRepo.save({ id:'ip-1', userId, type:'reselling', name:'Financial Test', description:'', archived:false, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
+    await incomeProfileRepo.save({ id:'ip-vinted', userId, type:'reselling', name:'Vinted', description:'', archived:false, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
+    await incomeProfileRepo.save({ id:'ip-electronics', userId, type:'reselling', name:'Electronics', description:'', archived:false, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
     await productRepo.save({
       id:'p-1', userId, incomeProfileId:'ip-1', name:'Financial Test Product', sku:'TEST-1', platform:'Test',
       purchasePrice:50, plannedSalePrice:100, purchaseDate:'2024-06-01', quantity:10, location:'', notes:'',
@@ -488,7 +490,7 @@ describe('ResellingSale Financial Integration', () => {
       resellingCostRepository: costRepo, resellingTaskRepository: taskRepo, transactionRepository: txRepo,
       accountRepository: accountRepo, incomeProfileRepository: incomeProfileRepo, applicationTransaction: appTx,
     });
-    return { module, txRepo, accountRepo };
+    return { module, saleRepo, txRepo, accountRepo };
   }
 
   async function addAccount(accountRepo, id, userId = 'user-1') {
@@ -533,11 +535,10 @@ describe('ResellingSale Financial Integration', () => {
     assert.strictEqual(tx[0].accountId, 'acc-1');
   });
 
-  it('allows legacy sales without a currently available product', async () => {
+  it('rejects sales without a currently available product', async () => {
     const { module } = await createFinancialModule();
-    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'legacy-product', quantity:1,
-      salePrice:200, saleDate:'2024-07-01', paymentStatus:'pending' });
-    assert.strictEqual(sale.purchaseCost, null);
+    await assert.rejects(module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'legacy-product', quantity:1,
+      salePrice:200, saleDate:'2024-07-01', paymentStatus:'pending' }), /NOT_FOUND/);
   });
 
   it('rejects a paid sale whose net cash inflow is zero or negative', async () => {
@@ -656,9 +657,8 @@ describe('ResellingSale Financial Integration', () => {
 
   it('refreshes the purchase snapshot when sale quantity changes', async () => {
     const { module } = await createFinancialModule();
-    await module.createProduct({ userId:'user-1', incomeProfileId:'ip-1', name:'Item', purchasePrice:25, purchaseDate:'2024-06-15', quantity:10 });
-    const products = await module.listProducts({ userId:'user-1', incomeProfileId:'ip-1' });
-    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:products[0].id, quantity:2,
+    const product = await module.createProduct({ userId:'user-1', incomeProfileId:'ip-1', name:'Item', purchasePrice:25, purchaseDate:'2024-06-15', quantity:10 });
+    const sale = await module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:product.id, quantity:2,
       salePrice:100, saleDate:'2024-07-01', paymentStatus:'pending' });
     const updated = await module.updateSale({ saleId:sale.id, updates:{ quantity:3 } });
     assert.strictEqual(updated.purchaseCost, 75);
