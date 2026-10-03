@@ -19,6 +19,8 @@ function compute(inputs) {
   return Math.max(0, loan.amount - repaid);
 }
 
+export { compute, computeRepaid };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute, computeRepaid };
 }
