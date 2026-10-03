@@ -16,6 +16,8 @@ function compute(inputs) {
   return rule.amount;
 }
 
+export { compute };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute };
 }
