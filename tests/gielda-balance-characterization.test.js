@@ -22,7 +22,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const serviceCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'application', 'gielda', 'gielda-balance-service.js'), 'utf8');
-const calculatorCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'domain', 'gielda', 'gielda-balance-calculator.js'), 'utf8');
+const calculatorCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'domain', 'gielda', 'gielda-balance-calculator.js'), 'utf8').replace(/\bexport\s+\{\s*compute\s*\};?/g, '');
 
 function legacyGetGieldaBalance(operations) {
   const dep = operations.filter(o => o.type === 'wplata').reduce((s, o) => s + o.amount, 0);
