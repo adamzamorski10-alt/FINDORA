@@ -21,8 +21,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const serviceCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'application', 'income', 'month-earn-stats-service.js'), 'utf8');
-const calculatorCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'domain', 'income', 'month-earn-stats-calculator.js'), 'utf8');
-const sharedCalculatorCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'domain', 'income', 'source-monthly-earnings-calculator.js'), 'utf8');
+const calculatorCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'domain', 'income', 'month-earn-stats-calculator.js'), 'utf8').replace(/\bexport\s+\{\s*compute\s*\};?/g, '');
+const sharedCalculatorCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'domain', 'income', 'source-monthly-earnings-calculator.js'), 'utf8').replace(/\bexport\s+\{\s*compute\s*\};?/g, '');
 
 function legacyGetSourceTransactions(sourceId, transactions) {
   return transactions.filter(t => t.type === 'income' && t._sourceId === sourceId);
