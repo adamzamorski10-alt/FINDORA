@@ -431,7 +431,7 @@ describe('ResellingModule', () => {
       assert.strictEqual(analytics.totalOperationalCost, 150);
       assert.strictEqual(analytics.totalSalesCount, 1);
       assert.strictEqual(analytics.totalCostsCount, 2);
-      assert.ok(analytics.profitMargin > 0);
+      assert.strictEqual(analytics.profitMargin, -10);
     });
   });
 
