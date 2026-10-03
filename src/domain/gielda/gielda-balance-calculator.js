@@ -36,6 +36,8 @@ function compute(inputs) {
   return dep - wit + ear - los;
 }
 
+export { compute };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute };
 }
