@@ -110,7 +110,21 @@ Required regression coverage:
 - payment/cost ownership isolation
 - no mutation after rejected ownership checks
 
-## 6. Financial integration invariant
+## 6. Ownership hardening status
+
+The Websites mutation boundary has now been hardened in code.
+
+Current implementation:
+- the Websites module receives the scoped `userId` from the application composition root
+- update/archive operations verify the retrieved entity belongs to that scoped user
+- the entity's income profile is revalidated before mutation
+- archived entities are rejected for mutation
+- ownership rejection occurs before any write
+- focused regression tests were added for cross-user client/project/payment/cost update/archive attempts
+
+This closes the previously identified application-level ownership gap. It does not yet prove the complete Websites stage is green.
+
+## 7. Financial integration invariant
 
 Websites payments/costs can create linked financial transactions.
 
@@ -125,7 +139,7 @@ Required invariants:
 
 The direct use of repositories by Websites is intentional only if all Transaction-domain invariants required for these integrations are explicitly enforced. This boundary must be reviewed before expanding the integration further.
 
-## 7. Security/data isolation rules
+## 8. Security/data isolation rules
 
 FINDORA is local-first and user-scoped.
 
@@ -138,7 +152,7 @@ Error semantics:
 
 Never expose another user's entity merely because its identifier is known.
 
-## 8. Testing policy
+## 9. Testing policy
 
 Use staged verification:
 1. focused tests during implementation
@@ -154,7 +168,7 @@ Kilo reasoning:
 - MEDIUM: cross-module implementation/debugging
 - HIGH: architecture, security, final hostile audit
 
-## 9. Immediate roadmap
+## 10. Immediate roadmap
 
 ### Stage A — Websites Hardening
 1. Fix ownership checks.
@@ -183,13 +197,13 @@ Only after the above gates:
 - remove stale roadmap assumptions
 - select the next product slice based on evidence
 
-## 10. Documentation rule
+## 11. Documentation rule
 
 Older documents containing statements such as "TransactionRepository not implemented", "UI still lives in index.html", "IndexedDB not implemented", or "start Phase 1 TransactionRepository" are historical unless verified against the current repository.
 
 Do not use those statements as current status.
 
-## 11. Current checkpoint
+## 12. Current checkpoint
 
 DONE:
 - core greenfield architecture
@@ -202,10 +216,10 @@ DONE:
 - recent test-runner fixes
 
 CURRENT:
-- Websites hardening and integration audit
+- verify the focused Websites ownership hardening and isolate the remaining legacy calculator/test-environment failures before the full regression gate
 
 NEXT:
-- focused hardening → full regression → security/architecture gate → evidence-based product roadmap
+- focused ownership/financial integration tests → full regression → security/architecture gate → evidence-based product roadmap
 
 BLOCKERS:
 - no known architectural blocker; current priority is verification and hardening.
