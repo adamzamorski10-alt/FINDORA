@@ -19,6 +19,8 @@ function compute(inputs) {
   return { income, expense, net: income - expense };
 }
 
+export { compute };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute };
 }
