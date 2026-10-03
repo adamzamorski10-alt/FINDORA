@@ -27,6 +27,8 @@ function compute(inputs) {
   return b;
 }
 
+export { compute };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute };
 }
