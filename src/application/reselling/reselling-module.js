@@ -382,7 +382,13 @@ export function createResellingModule({
         if (!Number.isFinite(updated.netAmount) || updated.netAmount <= 0) throw new Error('VALIDATION_FAILED');
         if (!newAccountId) throw new Error('VALIDATION_FAILED');
         if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
-        const account = await accountRepo.findById(newAccountId);
+        let account;
+        try {
+          account = await accountRepo.findById(newAccountId);
+        } catch (error) {
+          if (error?.message === 'OWNERSHIP_VIOLATION') throw new Error('NOT_FOUND');
+          throw error;
+        }
         if (!account || account.userId !== existing.userId) throw new Error('NOT_FOUND');
         if (account.archived) throw new Error('ARCHIVED_ENTITY');
         const transaction = {
@@ -717,7 +723,7 @@ export function createResellingModule({
       if (typeof period !== 'object' || !period.startDate || !period.endDate ||
           typeof period.startDate !== 'string' || typeof period.endDate !== 'string' ||
           !/^\d{4}-\d{2}-\d{2}$/.test(period.startDate) ||
-          !/^\\d{4}-\\d{2}-\\d{2}$/.test(period.endDate) ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(period.endDate) ||
           period.startDate > period.endDate) {
         throw new Error('VALIDATION_FAILED');
       }
