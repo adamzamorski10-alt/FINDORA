@@ -183,15 +183,18 @@ describe('ResellingCost Financial Integration', () => {
     it('does not create transaction when cost has no accountId', async () => {
       const { module, txRepo } = await createModule();
 
-      await module.createCost({
-        userId: 'user-1',
-        incomeProfileId: 'ip-1',
-        amount: 20,
-        category: 'advertising',
-        date: '2024-09-15',
-        description: 'Advertising',
-        paymentStatus: 'paid',
-      });
+      await assert.rejects(
+        module.createCost({
+          userId: 'user-1',
+          incomeProfileId: 'ip-1',
+          amount: 20,
+          category: 'advertising',
+          date: '2024-09-15',
+          description: 'Advertising',
+          paymentStatus: 'paid',
+        }),
+        /VALIDATION_FAILED/
+      );
 
       const allTx = await txRepo.loadAll();
       assert.strictEqual(allTx.length, 0, 'no transactions without accountId');
