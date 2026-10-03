@@ -28,6 +28,8 @@ function compute(inputs) {
   return next.toISOString().split('T')[0];
 }
 
+export { compute };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute };
 }
