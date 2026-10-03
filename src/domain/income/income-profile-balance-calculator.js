@@ -30,6 +30,8 @@ function compute(inputs) {
   return base + txNet;
 }
 
+export { compute };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute };
 }
