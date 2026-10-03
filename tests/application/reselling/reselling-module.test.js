@@ -490,7 +490,7 @@ describe('ResellingSale Financial Integration', () => {
       resellingCostRepository: costRepo, resellingTaskRepository: taskRepo, transactionRepository: txRepo,
       accountRepository: accountRepo, incomeProfileRepository: incomeProfileRepo, applicationTransaction: appTx,
     });
-    return { module, saleRepo, txRepo, accountRepo };
+    return { module, saleRepo, txRepo, accountRepo, storage };
   }
 
   async function addAccount(accountRepo, id, userId = 'user-1') {
@@ -689,8 +689,9 @@ describe('ResellingSale Financial Integration', () => {
   });
 
   it('rejects a paid sale linked to another user account', async () => {
-    const { module, accountRepo, txRepo } = await createFinancialModule();
-    await addAccount(accountRepo, 'acc-other', 'user-2');
+    const { module, accountRepo, txRepo, storage } = await createFinancialModule();
+    const foreignAccountRepo = new AccountRepository(storage, 'user-2', () => storage.keys());
+    await addAccount(foreignAccountRepo, 'acc-other', 'user-2');
     await assert.rejects(module.createSale({ userId:'user-1', incomeProfileId:'ip-1', productId:'p-1', quantity:1,
       salePrice:100, saleDate:'2024-07-01', paymentStatus:'paid', accountId:'acc-other' }), /NOT_FOUND/);
     assert.strictEqual((await txRepo.loadAll()).length, 0);
