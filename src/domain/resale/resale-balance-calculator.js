@@ -27,6 +27,8 @@ function compute(inputs) {
   return Math.max(0, held - spent);
 }
 
+export { compute };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute };
 }
