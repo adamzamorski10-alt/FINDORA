@@ -283,7 +283,13 @@ export function createResellingModule({
         if (!sale.accountId) throw new Error('VALIDATION_FAILED');
         if (!Number.isFinite(sale.netAmount) || sale.netAmount <= 0) throw new Error('VALIDATION_FAILED');
         if (!txRepo || !accountRepo) throw new Error('FINANCIAL_INTEGRATION_UNAVAILABLE');
-        const account = await accountRepo.findById(sale.accountId);
+        let account;
+        try {
+          account = await accountRepo.findById(sale.accountId);
+        } catch (error) {
+          if (error?.message === 'OWNERSHIP_VIOLATION') throw new Error('NOT_FOUND');
+          throw error;
+        }
         if (!account || account.userId !== userId) throw new Error('NOT_FOUND');
         if (account.archived) throw new Error('ARCHIVED_ENTITY');
       }
