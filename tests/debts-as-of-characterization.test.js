@@ -22,7 +22,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const serviceCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'application', 'debts', 'debts-as-of-service.js'), 'utf8');
-const calculatorCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'domain', 'debts', 'debts-as-of-calculator.js'), 'utf8');
+const calculatorCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'domain', 'debts', 'debts-as-of-calculator.js'), 'utf8').replace(/\bexport\s+\{\s*compute\s*\};?/g, '');
 
 function legacyGetDebtsAsOf(dateStr, debtors) {
   const endTs = new Date(dateStr + 'T23:59:59').getTime();
