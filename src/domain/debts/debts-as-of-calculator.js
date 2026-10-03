@@ -31,6 +31,8 @@ function compute(inputs) {
   return sum;
 }
 
+export { compute };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute };
 }
