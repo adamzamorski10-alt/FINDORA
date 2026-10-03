@@ -43,6 +43,13 @@ function createMockDocument() {
       tagName: tag.toUpperCase(),
       className: '',
       innerHTML: '',
+      _textContent: '',
+      get textContent() {
+        return this._textContent + this.children.map(child => child && typeof child.textContent === 'string' ? child.textContent : '').join('');
+      },
+      set textContent(value) {
+        this._textContent = String(value ?? '');
+      },
       children: [],
       style: {
         setProperty(name, value) { styleProps[name] = value; },
