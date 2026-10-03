@@ -27,6 +27,8 @@ function compute(inputs) {
   return result.net;
 }
 
+export { compute };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute };
 }
