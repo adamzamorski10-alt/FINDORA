@@ -105,6 +105,10 @@ describe('RestoreService', () => {
           resellingSales: [],
           resellingCosts: [],
           resellingTasks: [],
+          websitesClients: [],
+          websitesProjects: [],
+          websitesPayments: [],
+          websitesCosts: [],
         },
         integrity: { checksum: 'fake' },
       };
@@ -138,6 +142,10 @@ describe('RestoreService', () => {
           resellingSales: [],
           resellingCosts: [],
           resellingTasks: [],
+          websitesClients: [],
+          websitesProjects: [],
+          websitesPayments: [],
+          websitesCosts: [],
         },
         integrity: { checksum: 'fake' },
       };
