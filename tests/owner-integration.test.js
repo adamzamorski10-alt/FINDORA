@@ -7,14 +7,10 @@
  * Run with: node tests/owner-integration.test.js
  */
 
-import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const sessionManagerCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'session-manager.js'), 'utf8');
 const userDataLoaderCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'user-data-loader.js'), 'utf8');
