@@ -21,7 +21,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const serviceCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'application', 'resale', 'resale-balance-service.js'), 'utf8');
-const calculatorCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'domain', 'resale', 'resale-balance-calculator.js'), 'utf8');
+const calculatorCode = fs.readFileSync(path.join(__dirname, '..', 'src', 'domain', 'resale', 'resale-balance-calculator.js'), 'utf8').replace(/export \\{ compute \\};?/g, '');
 
 function legacyGetResaleBalance(sourceId, transactions) {
   const held = transactions
