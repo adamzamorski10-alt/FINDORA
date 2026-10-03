@@ -716,7 +716,7 @@ export function createResellingModule({
     if (period !== undefined && period !== null) {
       if (typeof period !== 'object' || !period.startDate || !period.endDate ||
           typeof period.startDate !== 'string' || typeof period.endDate !== 'string' ||
-          !/^\\d{4}-\\d{2}-\\d{2}$/.test(period.startDate) ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(period.startDate) ||
           !/^\\d{4}-\\d{2}-\\d{2}$/.test(period.endDate) ||
           period.startDate > period.endDate) {
         throw new Error('VALIDATION_FAILED');
