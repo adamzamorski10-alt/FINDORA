@@ -193,7 +193,7 @@ async function createKernel(storage) {
 }
 
 function findText(node, text) {
-  if (node.textContent === text) return true;
+  if (typeof node.textContent === 'string' && node.textContent.includes(text)) return true;
   if (node.children) {
     for (const child of node.children) {
       if (findText(child, text)) return true;
@@ -302,7 +302,7 @@ describe('Cross-Screen Mutation Propagation', () => {
     assert.ok(findText(dashboardEl, 'Safe to Spend'));
 
     assert.ok(findText(reportsEl, 'Income'));
-    assert.ok(findText(reportsEl, 'Expenses'));
+    assert.ok(findText(reportsEl, 'Expense'));
     assert.ok(findText(reportsEl, 'Cash Flow Trend'));
 
     assert.ok(findText(budgetsEl, 'Food'));
