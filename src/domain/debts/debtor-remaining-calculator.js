@@ -18,6 +18,8 @@ function compute(inputs) {
   return Math.max(0, activeSum - computeGeneralRepaid({ debtor }));
 }
 
+export { compute, computeGeneralRepaid };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute, computeGeneralRepaid };
 }
