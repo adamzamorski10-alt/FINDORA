@@ -25,6 +25,8 @@ async function createModule(userId = 'user-1') {
   const incomeProfileRepo = new IncomeProfileRepository(storage, userId, () => storage.keys());
   await incomeProfileRepo.save({ id: 'ip-1', userId, type: 'reselling', name: 'Test Profile', description: '', archived: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   await incomeProfileRepo.save({ id: 'ip-2', userId, type: 'reselling', name: 'Second Profile', description: '', archived: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  await incomeProfileRepo.save({ id: 'ip-vinted', userId, type: 'reselling', name: 'Vinted', description: '', archived: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  await incomeProfileRepo.save({ id: 'ip-electronics', userId, type: 'reselling', name: 'Electronics', description: '', archived: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   const appTx = new ApplicationTransaction(storage);
 
   return {
@@ -230,10 +232,11 @@ describe('ResellingModule', () => {
   describe('createSale', () => {
     it('creates sale with correct netAmount', async () => {
       const { module } = await createModule();
+      const product = await module.createProduct({ userId:'user-1', incomeProfileId:'ip-1', name:'Test Product', purchasePrice:50, purchaseDate:'2024-06-15', quantity:5 });
       const sale = await module.createSale({
         userId: 'user-1',
         incomeProfileId: 'ip-1',
-        productId: 'p-1',
+        productId: product.id,
         quantity: 2,
         salePrice: 200,
         platform: 'Vinted',
@@ -406,10 +409,11 @@ describe('ResellingModule', () => {
 
       await module.createCost({ userId: 'user-1', incomeProfileId: 'ip-1', amount: 100, category: 'shipping', date: '2024-07-01', description: 'Cost 1' });
       await module.createCost({ userId: 'user-1', incomeProfileId: 'ip-1', amount: 50, category: 'packaging', date: '2024-07-01', description: 'Cost 2' });
+      const product = await module.createProduct({ userId:'user-1', incomeProfileId:'ip-1', name:'Analytics Product', purchasePrice:150, purchaseDate:'2024-06-15', quantity:1 });
       await module.createSale({
         userId: 'user-1',
         incomeProfileId: 'ip-1',
-        productId: 'p-1',
+        productId: product.id,
         quantity: 1,
         salePrice: 300,
         platform: 'Vinted',
