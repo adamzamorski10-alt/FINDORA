@@ -442,7 +442,11 @@ describe('ResellingCost Financial Integration', () => {
 
   describe('Case F — Reselling Analytics profit semantics', async () => {
     it('analytics count all costs as operational costs regardless of payment status', async () => {
-      const { module } = await createModule();
+      const { module, accountRepo } = await createModule();
+      await accountRepo.save({
+        id:'acc-1', userId:'user-1', name:'Bank', type:'bank', icon:'landmark', color:'#0000FF',
+        archived:false, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
+      });
 
       await module.createCost({
         userId: 'user-1',
@@ -451,6 +455,7 @@ describe('ResellingCost Financial Integration', () => {
         category: 'advertising',
         date: '2024-09-15',
         description: 'Ad',
+        accountId: 'acc-1',
         paymentStatus: 'paid',
       });
 
