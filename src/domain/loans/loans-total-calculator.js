@@ -19,6 +19,8 @@ function compute(inputs) {
   }, 0);
 }
 
+export { compute };
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compute };
 }
